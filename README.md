@@ -1,3 +1,1 @@
-# snow_party
-
-A new Flutter project.
+# frontend-escritorio

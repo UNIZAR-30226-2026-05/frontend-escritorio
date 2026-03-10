@@ -1,0 +1,21 @@
+# Archivo que indica las herramientas y bibliotecas que usa el proyecto, 
+# como Riverpod
+# como los assets (sprites y sonidos) 
+# o como metadatos del proyecto (nombre y versión cuando tengamos)
+
+name: snow_party
+description: "A new Flutter project."
+publish_to: 'none'
+
+environment:
+  sdk: '>=3.1.0 <4.0.0' 
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_riverpod: ^2.4.9
+  flutter_lints: ^3.0.0
+
+
+# TODO Añadir dependencias mientras se va actualizando el código
+# como por ejemplo GoRouter para navegar entre el tablero y los minijuegos

@@ -98,4 +98,43 @@ class GameController extends StateNotifier<GameState> {
       currentPhase: nextPhase,
     );
   }
+
+  // Método para recibir datos del backend sobre el movimiento de un jugador
+  void updatePlayerFromBackend(
+      String playerId, int newTileIndex, int diceRoll) {
+    if (state.currentPhase == GamePhase.finished) return;
+
+    final currentPlayer = state.players.firstWhere((p) => p.id == playerId);
+
+    // Actualizar la lista de jugadores con la nueva posición
+    final updatedPlayers = state.players.map((p) {
+      if (p.id == playerId) {
+        return p.copyWith(currentTileIndex: newTileIndex);
+      }
+      return p; // Los demás jugadores se quedan igual
+    }).toList();
+
+    // Comprobar si alguien ha ganado (basado en la meta)
+    // Se actualiza la fase siguiente del juego en base a la actual
+    GamePhase nextPhase = state.currentPhase;
+    String newMessage = "\${currentPlayer.username} sacó un $diceRoll.";
+    // Comprobar condición de victoria
+    if (newTileIndex >= totalTiles - 1) {
+      nextPhase = GamePhase.finished;
+      newMessage = "¡\${currentPlayer.username} HA GANADO LA PARTIDA!";
+    }
+
+    // Preparar qué jugador va a tirar después (simplificado)
+    int nextPlayerIndex =
+        (state.activePlayerIndex + 1) % state.turnOrder.length;
+
+    // Actualizar el estado
+    state = state.copyWith(
+      players: updatedPlayers,
+      lastDiceResult: diceRoll,
+      activePlayerIndex: nextPlayerIndex,
+      serverMessage: newMessage,
+      currentPhase: nextPhase,
+    );
+  }
 }

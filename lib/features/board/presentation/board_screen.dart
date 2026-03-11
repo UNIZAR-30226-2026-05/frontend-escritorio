@@ -2,16 +2,36 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'controllers/game_provider.dart';
 import '../domain/gamemodels.dart';
+import '../domain/websocket_service.dart';
 
 // Clase de BoardScreen
 // Se utiliza un ConsumerWidget porque se usa Riverpod. Este contiene un objeto
 // ref dentro del método build
 // Este objeto ref conecta la pantalla con el resto de controladores de la aplicación
-class BoardScreen extends ConsumerWidget {
+class BoardScreen extends ConsumerStatefulWidget {
   const BoardScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<BoardScreen> createState() => _BoardScreenState();
+}
+
+class _BoardScreenState extends ConsumerState<BoardScreen> {
+  // Inicialización de valores dummy para probar la app
+  final String _gameId = "1"; 
+  final String _playerId = "1"; // Ajustar si quieres ser otro jugador
+  
+  @override
+  void initState() {
+    super.initState();
+    // Conectamos el WebSocket tan pronto la pantalla se inicia
+    // Usamos Future.microtask porque no podemos leer ref en initState directamente
+    Future.microtask(() {
+      ref.read(webSocketProvider).connect(_gameId, _playerId);
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
     // Escuchar el Estado Global
     // Esta función observa el gameProvider y cada vez que se emita un nuevo estado
     // (tirar un dado por ejemplo), se vuelve a dibujar la pantalla
@@ -127,7 +147,9 @@ class BoardScreen extends ConsumerWidget {
               // Cuando se presiona se verifica si la partida ha acabado
               onPressed: gameState.currentPhase == GamePhase.finished
                   ? null // Si el juego se ha acabado, el botón se deshabilita
-                  : () => ref.read(gameProvider.notifier).rollDice(),
+                  // : () => ref.read(gameProvider.notifier).rollDice(), 
+                  // Ahora en lugar de usar la lógica local simulada, se envía al server
+                  : () => ref.read(webSocketProvider).rollDiceCommand(_gameId, currentPlayer.id),
               // Imprime el resultado de tirar el dado con lastDiceResult
               child: Text(
                 gameState.lastDiceResult == null

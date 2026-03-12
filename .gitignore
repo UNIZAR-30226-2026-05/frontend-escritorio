@@ -44,3 +44,6 @@ app.*.map.json
 /android/app/profile
 /android/app/release
 /linux/
+
+# Archivos de configuración local de Claude (no subir al repo)
+.claude/

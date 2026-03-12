@@ -1,28 +1,31 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'features/board/presentation/board_screen.dart';
 
-void main() {
+import 'core/router/app_router.dart';
+
+void main() async {
+  // Necesario para flutter_secure_storage antes de runApp
+  WidgetsFlutterBinding.ensureInitialized();
   runApp(
-    // ProviderScope es obligatorio para usar Riverpod
     const ProviderScope(
       child: SnowPartyApp(),
     ),
   );
 }
 
-class SnowPartyApp extends StatelessWidget {
+class SnowPartyApp extends ConsumerWidget {
   const SnowPartyApp({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Snow Party MVP',
+  Widget build(BuildContext context, WidgetRef ref) {
+    final router = ref.watch(routerProvider);
+    return MaterialApp.router(
+      title: 'Snow Party',
       theme: ThemeData(
         primarySwatch: Colors.blue,
+        useMaterial3: true,
       ),
-      //TODO Eliminar e implementar go_router para el manejo de sesiones y usuarios5
-      home: const BoardScreen(),
+      routerConfig: router,
       debugShowCheckedModeBanner: false,
     );
   }

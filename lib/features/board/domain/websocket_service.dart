@@ -1,4 +1,5 @@
 import 'dart:convert';
+import '../../../core/constants/api_constants.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 import '../../board/presentation/controllers/game_provider.dart';
@@ -20,9 +21,7 @@ class WebSocketService {
     // Si ya está conectado no se hace nada
     if (_isConnected) return;
 
-    // Usar 127.0.0.1 asumiendo que el backend corre en la misma máquina local
-    // TODO confirmar que la ip que se usa es la correcta
-    final url = 'ws://127.0.0.1:8000/ws/partida/$gameId/$playerId';
+    final url = '${ApiConstants.wsBaseUrl}/ws/partida/$gameId/$playerId';
 
     // Se intenta conectar a través de la url de arriba y oir los mensajes
     try {

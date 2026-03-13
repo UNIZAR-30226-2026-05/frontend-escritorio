@@ -20,6 +20,20 @@ dependencies:
   flutter_secure_storage: ^9.2.2
   go_router: ^14.0.0
 
+flutter:
+  assets:
+    - assets/animations/
+    - assets/images/board/
+    - assets/images/board/casillas/
+    - assets/images/characters/
+    - assets/images/characters/general/
+    - assets/images/characters/tablero/
+    - assets/images/items/
+    - assets/images/ui/
+    - assets/sounds/bgm/
+    - assets/sounds/sfx/
+    - assets/data/
+
 
 # TODO Añadir dependencias mientras se va actualizando el código
 # como por ejemplo GoRouter para navegar entre el tablero y los minijuegos

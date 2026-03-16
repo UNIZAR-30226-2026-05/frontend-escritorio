@@ -9,8 +9,8 @@ final gameProvider = StateNotifierProvider<GameController, GameState>((ref) {
 
 // El controlador del juego
 class GameController extends StateNotifier<GameState> {
-  // Tamaño del tablero para esta prueba
-  final int totalTiles = 20;
+  // Tamaño del tablero para esta prueba (73 casillas según las coordenadas definidas)
+  final int totalTiles = 73;
 
   // 3. Estado Inicial de la Partida
   GameController()

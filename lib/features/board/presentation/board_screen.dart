@@ -20,7 +20,8 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
   final String _gameId = "1";
   final String _playerId = "1"; // Ajustar si quieres ser otro jugador
 
-  bool _showDebugOverlay = false; // Controlar si se muestran los números de las casillas
+  bool _showDebugOverlay =
+      false; // Controlar si se muestran los números de las casillas
 
   // Coordenadas de los centros de las casillas en el tablero
   final Map<int, Offset> tileCenters = {
@@ -59,43 +60,43 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
     32: const Offset(539, 139),
     33: const Offset(440, 139),
     34: const Offset(342, 155),
-    35: const Offset(337, 168),
-    36: const Offset(255, 242),
-    37: const Offset(203, 332),
-    38: const Offset(181, 442),
-    39: const Offset(192, 544),
-    40: const Offset(239, 641),
-    41: const Offset(337, 707),
-    42: const Offset(441, 721),
-    43: const Offset(539, 721),
-    44: const Offset(640, 721),
-    45: const Offset(738, 722),
-    46: const Offset(836, 720),
-    47: const Offset(935, 720),
-    48: const Offset(1035, 721),
-    49: const Offset(1131, 722),
-    50: const Offset(1232, 722),
-    51: const Offset(1331, 720),
-    52: const Offset(1443, 694),
-    53: const Offset(1519, 604),
-    54: const Offset(1518, 489),
-    55: const Offset(1439, 396),
-    56: const Offset(1331, 369),
-    57: const Offset(1233, 369),
-    58: const Offset(1134, 369),
-    59: const Offset(1035, 369),
-    60: const Offset(936, 369),
-    61: const Offset(837, 369),
-    62: const Offset(736, 368),
-    63: const Offset(637, 360),
-    64: const Offset(527, 380),
-    65: const Offset(449, 486),
-    66: const Offset(532, 587),
-    67: const Offset(638, 597),
-    68: const Offset(737, 596),
-    69: const Offset(835, 597),
-    70: const Offset(935, 596),
-    71: const Offset(1034, 595),
+    35: const Offset(255, 242),
+    36: const Offset(203, 332),
+    37: const Offset(181, 442),
+    38: const Offset(192, 544),
+    39: const Offset(239, 641),
+    40: const Offset(337, 707),
+    41: const Offset(441, 721),
+    42: const Offset(539, 721),
+    43: const Offset(640, 721),
+    44: const Offset(738, 722),
+    45: const Offset(836, 720),
+    46: const Offset(935, 720),
+    47: const Offset(1035, 721),
+    48: const Offset(1131, 722),
+    49: const Offset(1232, 722),
+    50: const Offset(1331, 720),
+    51: const Offset(1443, 694),
+    52: const Offset(1519, 604),
+    53: const Offset(1518, 489),
+    54: const Offset(1439, 396),
+    55: const Offset(1331, 369),
+    56: const Offset(1233, 369),
+    57: const Offset(1134, 369),
+    58: const Offset(1035, 369),
+    59: const Offset(936, 369),
+    60: const Offset(837, 369),
+    61: const Offset(736, 368),
+    62: const Offset(637, 360),
+    63: const Offset(527, 380),
+    64: const Offset(449, 486),
+    65: const Offset(532, 587),
+    66: const Offset(638, 597),
+    67: const Offset(737, 596),
+    68: const Offset(835, 597),
+    69: const Offset(935, 596),
+    70: const Offset(1034, 595),
+    71: const Offset(1132, 597),
     72: const Offset(1307, 550),
   };
 
@@ -194,23 +195,56 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
                     final tileCenter = tileCenters[index] ?? Offset.zero;
 
                     return Positioned(
-                      left: tileCenter.dx - 20, // Centrar horizontalmente (mitad del ancho 40)
-                      top: tileCenter.dy - 10,  // Centrar verticalmente (mitad del alto ~20)
+                      left: tileCenter.dx -
+                          80, // Centrar horizontalmente (mitad del ancho 160)
+                      top: tileCenter.dy -
+                          65, // Alinear los "pies" ajustado un poco más abajo
                       child: Container(
                         width:
-                            40, // Ancho estimado de la zona para centrar figuritas
+                            160, // Ancho de zona
                         alignment: Alignment.center,
-                        child: Wrap(
-                          alignment: WrapAlignment.center,
-                          spacing: 4,
-                          runSpacing: 4,
-                          children: playersHere
-                              .map((p) => CircleAvatar(
-                                    backgroundColor:
-                                        getCharacterColor(p.characterClass),
-                                    radius: 10,
-                                  ))
-                              .toList(),
+                        child: Stack(
+                          alignment: Alignment.center,
+                          clipBehavior: Clip.none,
+                          children: List.generate(playersHere.length, (i) {
+                            final p = playersHere[i];
+                            final total = playersHere.length;
+                            
+                            // Calcular si mira a la derecha o a la izquierda basado en la casilla anterior
+                            bool isFacingRight = true;
+                            if (index > 0) {
+                              final current = tileCenters[index];
+                              final prev = tileCenters[index - 1];
+                              if (current != null && prev != null && current != const Offset(0,0) && prev != const Offset(0,0)) {
+                                isFacingRight = current.dx >= prev.dx;
+                              }
+                            }
+                            
+                            // Lógica para que no se superpongan si caen en la misma casilla
+                            Offset playerOffset = const Offset(0, 0);
+                            if (total == 2) {
+                              playerOffset = i == 0 ? const Offset(-15, 0) : const Offset(15, 0);
+                            } else if (total == 3) {
+                              if (i == 0) playerOffset = const Offset(-15, -5);
+                              else if (i == 1) playerOffset = const Offset(15, -5);
+                              else playerOffset = const Offset(0, 10);
+                            } else if (total >= 4) {
+                              if (i == 0) playerOffset = const Offset(-15, -10);
+                              else if (i == 1) playerOffset = const Offset(15, -10);
+                              else if (i == 2) playerOffset = const Offset(-15, 10);
+                              else playerOffset = const Offset(15, 10);
+                            }
+
+                            return Transform.translate(
+                              offset: playerOffset,
+                              child: Image.asset(
+                                getCharacterImagePath(p.characterClass, isFacingRight),
+                                width: 80,
+                                height: 80,
+                                fit: BoxFit.contain,
+                              ),
+                            );
+                          }),
                         ),
                       ),
                     );
@@ -231,7 +265,8 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
                               decoration: BoxDecoration(
                                 color: Colors.black.withOpacity(0.5),
                                 shape: BoxShape.circle,
-                                border: Border.all(color: Colors.white, width: 1),
+                                border:
+                                    Border.all(color: Colors.white, width: 1),
                               ),
                               child: Text(
                                 '${entry.key}',
@@ -268,8 +303,8 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
                   ? null // Si el juego se ha acabado, el botón se deshabilita
                   // Lógica local para probar sin backend:
                   : () => ref.read(gameProvider.notifier).rollDice(),
-                  // Cuando el backend esté listo, descomentar la siguiente línea y comentar la anterior:
-                  // : () => ref.read(webSocketProvider).rollDiceCommand(_gameId, currentPlayer.id),
+              // Cuando el backend esté listo, descomentar la siguiente línea y comentar la anterior:
+              // : () => ref.read(webSocketProvider).rollDiceCommand(_gameId, currentPlayer.id),
               // Imprime el resultado de tirar el dado con lastDiceResult
               child: Text(
                 gameState.lastDiceResult == null
@@ -285,8 +320,7 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
   }
 }
 
-// Función para devolver un color dado un personaje
-// TODO Cambiarlo para que devuelva una imagen en vez de un color
+// Función para devolver un color dado un personaje (usado en textos y botones)
 Color getCharacterColor(CharacterClass charClass) {
   switch (charClass) {
     case CharacterClass.banquero:
@@ -297,5 +331,20 @@ Color getCharacterColor(CharacterClass charClass) {
       return Colors.black; // El Escapista es negro
     case CharacterClass.videojugador:
       return Colors.orange; // El Gamer es naranja
+  }
+}
+
+// Función para devolver la ruta del sprite png de un personaje en el tablero
+String getCharacterImagePath(CharacterClass charClass, bool isFacingRight) {
+  final suffix = isFacingRight ? 'der' : 'izq';
+  switch (charClass) {
+    case CharacterClass.banquero:
+      return 'assets/images/characters/tablero/banquero_t_$suffix.png';
+    case CharacterClass.vidente:
+      return 'assets/images/characters/tablero/vidente_t_$suffix.png';
+    case CharacterClass.escapista:
+      return 'assets/images/characters/tablero/escapista_t_$suffix.png';
+    case CharacterClass.videojugador:
+      return 'assets/images/characters/tablero/videojugador_t_$suffix.png';
   }
 }

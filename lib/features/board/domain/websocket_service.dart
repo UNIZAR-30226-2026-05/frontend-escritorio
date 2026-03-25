@@ -17,11 +17,11 @@ class WebSocketService {
   WebSocketService(this._ref);
 
   // Función para conectar con el backend a través de websockets
-  void connect(String gameId, String playerId) {
+  void connect(String gameId, String token) {
     // Si ya está conectado no se hace nada
     if (_isConnected) return;
 
-    final url = '${ApiConstants.wsBaseUrl}/ws/partida/$gameId/$playerId';
+    final url = '${ApiConstants.wsBaseUrl}/ws/partida/$gameId?token=$token';
 
     // Se intenta conectar a través de la url de arriba y oir los mensajes
     try {

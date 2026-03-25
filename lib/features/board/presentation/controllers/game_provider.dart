@@ -12,26 +12,39 @@ class GameController extends StateNotifier<GameState> {
   // Tamaño del tablero para esta prueba (73 casillas según las coordenadas definidas)
   final int totalTiles = 73;
 
-  // 3. Estado Inicial de la Partida
+  // 3. Estado Inicial de la Partida — 4 jugadores según el diseño del tablero
   GameController()
       : super(GameState(
           currentPhase: GamePhase.boardTurn,
-          turnOrder: ['1', '2'], // El orden de los turnos (ID de los jugadores)
-          activePlayerIndex:
-              0, // Empieza el jugador en la posición 0 del turnOrder
+          turnOrder: ['1', '2', '3', '4'],
+          activePlayerIndex: 0,
           players: [
             Player(
               id: '1',
-              username: 'Edu (Banquero) (Obviamente)',
-              characterClass: CharacterClass.banquero,
-              coins: 10,
+              username: 'David',
+              characterClass: CharacterClass.videojugador,
+              coins: 0,
               diceInventory: [DiceType.normal],
             ),
             Player(
               id: '2',
-              username: 'Dani (Vidente)',
+              username: 'Elena',
+              characterClass: CharacterClass.banquero,
+              coins: 0,
+              diceInventory: [DiceType.normal],
+            ),
+            Player(
+              id: '3',
+              username: 'Marcos',
+              characterClass: CharacterClass.escapista,
+              coins: 0,
+              diceInventory: [DiceType.normal],
+            ),
+            Player(
+              id: '4',
+              username: 'Lucía',
               characterClass: CharacterClass.vidente,
-              coins: 10,
+              coins: 0,
               diceInventory: [DiceType.normal],
             ),
           ],
@@ -39,60 +52,52 @@ class GameController extends StateNotifier<GameState> {
         ));
 
   // Función para tirar los dados
-  // TODO Cambiarla por una llamada a la api que tire los dados
-  // El código siguiente es una simulación para ejecutarlo todo en local sin backend
-  void rollDice() {
-    // Los dados no se pueden tirar si la partida ha terminado
+  void rollDice() async {
     if (state.currentPhase == GamePhase.finished) return;
 
-    // Tirar el dado
-    // Esta función se reemplazará con la llamada al backend
-    // TODO Cambiar la función para llamar al backend
     final diceRoll = Random().nextInt(6) + 1;
 
-    // Obtener el turno con el jugador que va a tirar AHORA
     final activePlayerId = state.turnOrder[state.activePlayerIndex];
     final currentPlayer =
         state.players.firstWhere((p) => p.id == activePlayerId);
 
-    // Calcular a qué casilla se va a mover
-    int newTileIndex = currentPlayer.currentTileIndex + diceRoll;
+    int targetTileIndex = currentPlayer.currentTileIndex + diceRoll;
 
-    // Si se pasa de la última casilla, se queda en la meta (Casilla 19)
-    // En la versión final se harán más cosas (ir hacia atrás casillas)
-    // TODO Cambiar la mecánica
-    if (newTileIndex >= totalTiles - 1) {
-      newTileIndex = totalTiles - 1;
+    if (targetTileIndex >= totalTiles - 1) {
+      targetTileIndex = totalTiles - 1;
     }
 
-    // Actualizar la lista de jugadores con la nueva posición
-    final updatedPlayers = state.players.map((p) {
-      if (p.id == activePlayerId) {
-        // copyWith crea un clon del jugador pero cambiándole SOLO la casilla
-        return p.copyWith(currentTileIndex: newTileIndex);
-      }
-      return p; // Los demás jugadores se quedan igual
-    }).toList();
+    String newMessage = "${currentPlayer.username} sacó un $diceRoll.";
 
-    // Preparar qué jugador va a tirar después
+    // Animación de movimiento paso a paso
+    for (int i = currentPlayer.currentTileIndex + 1; i <= targetTileIndex; i++) {
+      await Future.delayed(const Duration(milliseconds: 350));
+      
+      final stepPlayers = state.players.map((p) {
+        if (p.id == activePlayerId) {
+          return p.copyWith(currentTileIndex: i);
+        }
+        return p;
+      }).toList();
+
+      state = state.copyWith(
+        players: stepPlayers, 
+        serverMessage: newMessage, 
+        lastDiceResult: diceRoll
+      );
+    }
+
     int nextPlayerIndex =
         (state.activePlayerIndex + 1) % state.turnOrder.length;
 
-    // Comprobar si alguien ha ganado
     GamePhase nextPhase = state.currentPhase;
-    String newMessage = "${currentPlayer.username} sacó un $diceRoll.";
 
-    if (newTileIndex == totalTiles - 1) {
-      nextPhase =
-          GamePhase.finished; // Cambiamos la fase del juego a "Terminado"
+    if (targetTileIndex == totalTiles - 1) {
+      nextPhase = GamePhase.finished;
       newMessage = "¡${currentPlayer.username} HA GANADO LA PARTIDA!";
     }
 
-    // Emitir el nuevo estado a la UI
-    // Al hacer esto, Riverpod avisa a board_screen.dart que debe redibujarse
     state = state.copyWith(
-      players: updatedPlayers,
-      lastDiceResult: diceRoll,
       activePlayerIndex: nextPlayerIndex,
       serverMessage: newMessage,
       currentPhase: nextPhase,
@@ -101,37 +106,42 @@ class GameController extends StateNotifier<GameState> {
 
   // Método para recibir datos del backend sobre el movimiento de un jugador
   void updatePlayerFromBackend(
-      String playerId, int newTileIndex, int diceRoll) {
+      String playerId, int newTileIndex, int diceRoll) async {
     if (state.currentPhase == GamePhase.finished) return;
 
     final currentPlayer = state.players.firstWhere((p) => p.id == playerId);
 
-    // Actualizar la lista de jugadores con la nueva posición
-    final updatedPlayers = state.players.map((p) {
-      if (p.id == playerId) {
-        return p.copyWith(currentTileIndex: newTileIndex);
-      }
-      return p; // Los demás jugadores se quedan igual
-    }).toList();
+    String newMessage = "${currentPlayer.username} sacó un $diceRoll.";
 
-    // Comprobar si alguien ha ganado (basado en la meta)
-    // Se actualiza la fase siguiente del juego en base a la actual
-    GamePhase nextPhase = state.currentPhase;
-    String newMessage = "\${currentPlayer.username} sacó un $diceRoll.";
-    // Comprobar condición de victoria
-    if (newTileIndex >= totalTiles - 1) {
-      nextPhase = GamePhase.finished;
-      newMessage = "¡\${currentPlayer.username} HA GANADO LA PARTIDA!";
+    // Animación de movimiento paso a paso
+    for (int i = currentPlayer.currentTileIndex + 1; i <= newTileIndex; i++) {
+      await Future.delayed(const Duration(milliseconds: 350));
+      
+      final stepPlayers = state.players.map((p) {
+        if (p.id == playerId) {
+          return p.copyWith(currentTileIndex: i);
+        }
+        return p;
+      }).toList();
+
+      state = state.copyWith(
+        players: stepPlayers, 
+        serverMessage: newMessage, 
+        lastDiceResult: diceRoll
+      );
     }
 
-    // Preparar qué jugador va a tirar después (simplificado)
+    GamePhase nextPhase = state.currentPhase;
+
+    if (newTileIndex >= totalTiles - 1) {
+      nextPhase = GamePhase.finished;
+      newMessage = "¡${currentPlayer.username} HA GANADO LA PARTIDA!";
+    }
+
     int nextPlayerIndex =
         (state.activePlayerIndex + 1) % state.turnOrder.length;
 
-    // Actualizar el estado
     state = state.copyWith(
-      players: updatedPlayers,
-      lastDiceResult: diceRoll,
       activePlayerIndex: nextPlayerIndex,
       serverMessage: newMessage,
       currentPhase: nextPhase,

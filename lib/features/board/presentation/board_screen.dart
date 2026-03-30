@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'controllers/game_provider.dart';
 import '../domain/gamemodels.dart';
-import '../domain/websocket_service.dart';
+import '../data/websocket_service.dart';
 import '../../auth/presentation/controllers/auth_provider.dart';
 
 // ============================================================

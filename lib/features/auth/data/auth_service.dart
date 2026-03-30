@@ -3,7 +3,7 @@ import 'dart:convert'; // Proporciona el jsonDecode() y el jsonEncode() para la 
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';   // Libreria que guarda los datos encriptados a nivel de SO.
 import 'package:http/http.dart' as http;  // Libreria para realizar las operaciones http.
 
-// Rutas API y mopdelos que se usan para la autenticación.
+// Rutas API y modelos que se usan para la autenticación.
 import '../../../core/constants/api_constants.dart';
 import '../domain/auth_models.dart';
 

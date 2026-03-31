@@ -91,7 +91,7 @@ class LobbyController extends StateNotifier<LobbyState> {
     // Llama al servicio para crear la partida. Si tiene éxito, guarda el game_id en el estado. Si falla, guarda el error.
     try {
       final response = await _lobbyService.crearPartida(token);
-      state = state.copyWith(gameId: response.gameId, isLoading: false);
+      state = state.copyWith(gameId: response.gameId, playersConnected: [], isLoading: false);
       return true;
     } catch (e) {
       state = state.copyWith(isLoading: false, error: e.toString().replaceFirst('Exception: ', ''),);

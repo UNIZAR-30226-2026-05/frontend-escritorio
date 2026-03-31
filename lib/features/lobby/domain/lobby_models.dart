@@ -6,32 +6,23 @@ class CreatePartidaResponse {
   final String gameId;
   // Constructor de la clase.
   const CreatePartidaResponse({required this.gameId});
-  // Constructor alternativo que crea el objeto desde JSON.
+  // Constructor alternativo que crea el objeto desde JSON (utilizado en la respuesta del servidor).
   factory CreatePartidaResponse.fromJson(Map<String, dynamic> json) =>
       CreatePartidaResponse(gameId: json['game_id'] as String);
 }
 
-// Resumen de una partida devuelta por GET /partidas/
-// Se usa para mostrar la lista de partidas disponibles en el lobby.
-class PartidaResumen {
-  // Identificador único de la partida.
+// Invitación a una partida recibida a través del WebSocket de sesión.
+// Llega con el mensaje 'receive_invite'.
+class GameInvite {
+  // Nombre del usuario que ha enviado la invitación.
+  final String fromUser;
+  // Identificador de la partida a la que se invita.
   final String gameId;
-  // Estado de la partida: 'WAITING' (esperando jugadores) o 'PLAYING' (en curso).
-  final String status;
-  // Lista de nombres de jugadores ya conectados a la partida.
-  final List<String> playersConnected;
   // Constructor de la clase.
-  const PartidaResumen({
-    required this.gameId,
-    required this.status,
-    required this.playersConnected,
-  });
-  // Constructor alternativo que crea el objeto desde JSON.
-  factory PartidaResumen.fromJson(Map<String, dynamic> json) => PartidaResumen(
+  const GameInvite({required this.fromUser, required this.gameId});
+  // Constructor alternativo que crea el objeto desde el JSON del WS (utilizado en el mensaje recibido por WebSocket).
+  factory GameInvite.fromJson(Map<String, dynamic> json) => GameInvite(
+        fromUser: json['from_user'] as String,
         gameId: json['game_id'] as String,
-        status: json['status'] as String? ?? 'WAITING',
-        playersConnected: (json['players_connected'] as List<dynamic>? ?? [])
-            .map((p) => p as String)
-            .toList(),
       );
 }

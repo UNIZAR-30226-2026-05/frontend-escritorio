@@ -5,9 +5,9 @@ import 'package:http/http.dart' as http;
 import '../../../core/constants/api_constants.dart';
 import '../domain/lobby_models.dart';
 
-// Clase que agrupa las operaciones del lobby.
-// Solo hay dos: listar partidas disponibles y crear una nueva.
-// Unirse a una partida se hace directamente conectando el WebSocket.
+// Clase que agrupa las operaciones de ocmunicacion http del lobby.
+// Unirse a una partida se hace conectando el WebSocket con el game_id
+// recibido por invitación a través del WebSocket de sesión.
 class LobbyService {
   // Cabeceras comunes para peticiones autenticadas.
   Map<String, String> _authHeaders(String token) => {
@@ -15,25 +15,8 @@ class LobbyService {
         'Authorization': 'Bearer $token',
       };
 
-  // Obtiene la lista de partidas activas.
-  // Devuelve un Future con la lista de objetos PartidaResumen.
-  Future<List<PartidaResumen>> listarPartidas(String token) async {
-    // Realiza una petición GET al endpoint de listar partidas.
-    final response = await http.get(Uri.parse('${ApiConstants.baseUrl}${ApiConstants.salasEndpoint}'),
-      headers: _authHeaders(token),
-    );
-
-    // Estatus 200 = OK.
-    if (response.statusCode == 200) {
-      // Decodifica la respuesta JSON y mapea cada elemento a un objeto PartidaResumen.
-      final List<dynamic> lista = jsonDecode(response.body) as List<dynamic>;
-      return lista.map((p) => PartidaResumen.fromJson(p as Map<String, dynamic>)).toList();
-    // Cualquier código de error.
-    } else {
-      throw Exception('Error al obtener partidas: ${response.statusCode}');
-    }
-  }
-
+  // Metodo publico que se llama desde el controlador para crear una partida. 
+  // Se encarga de hacer la petición al backend y procesar la respuesta.
   // Crea una nueva partida en el servidor.
   // Devuelve un Future con el game_id de la partida creada.
   Future<CreatePartidaResponse> crearPartida(String token) async {

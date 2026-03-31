@@ -5,7 +5,7 @@ import 'package:http/http.dart' as http;
 import '../../../core/constants/api_constants.dart';
 import '../domain/lobby_models.dart';
 
-// Clase que agrupa las operaciones de ocmunicacion http del lobby.
+// Clase que agrupa las operaciones de comunicacion http del lobby.
 // Unirse a una partida se hace conectando el WebSocket con el game_id
 // recibido por invitación a través del WebSocket de sesión.
 class LobbyService {

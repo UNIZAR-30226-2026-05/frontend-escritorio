@@ -22,17 +22,17 @@ dependencies:
 
 flutter:
   assets:
-    - assets/animations/
+   # - assets/animations/
     - assets/images/board/
     - assets/images/board/casillas/
     - assets/images/characters/
     - assets/images/characters/general/
     - assets/images/characters/tablero/
-    - assets/images/items/
+   # - assets/images/items/
     - assets/images/ui/
-    - assets/sounds/bgm/
-    - assets/sounds/sfx/
-    - assets/data/
+   # - assets/sounds/bgm/
+   # - assets/sounds/sfx/
+   # - assets/data/
 
 
 # TODO Añadir dependencias mientras se va actualizando el código

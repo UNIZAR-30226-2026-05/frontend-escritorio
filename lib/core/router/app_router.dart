@@ -7,6 +7,7 @@ import '../../features/auth/presentation/controllers/auth_provider.dart';
 import '../../features/auth/presentation/login_screen.dart';
 import '../../features/auth/presentation/register_screen.dart';
 import '../../features/board/presentation/board_screen.dart';
+import '../../features/lobby/presentation/lobby_screen.dart';
 
 // ChangeNotifier es el patron observer de Flutter.
 // Notifica a GoRouter cuando cambia el estado de autenticación.
@@ -40,9 +41,9 @@ class _RouterNotifier extends ChangeNotifier {
     // Si no estas autenticado y te encuentras en otra pantalla te devuelve
     // la ruta de la pantalla de login.
     if (!isAuthenticated && !isAuthRoute) return '/login';
-    // Si estas auenticado y te encuentras enn alguna  apntalla de autenticacion
-    // te devuelve la ruta de la pantalla principal del juego.
-    if (isAuthenticated && isAuthRoute) return '/game';
+    // Si estas auenticado y te encuentras en alguna  apntalla de autenticacion
+    // te devuelve la ruta de la pantalla lobby del juego.
+    if (isAuthenticated && isAuthRoute) return '/lobby';
     // Sino devuelve null.
     return null;
   }
@@ -69,6 +70,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/register',
         builder: (_, __) => const RegisterScreen(),
+      ),
+      GoRoute(
+        path: '/lobby',
+        builder: (_, __) => const LobbyScreen(),
       ),
       GoRoute(
         path: '/game',

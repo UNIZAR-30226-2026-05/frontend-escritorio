@@ -74,6 +74,8 @@ class LobbyWebSocketService {
       // Si el mensaje contiene una clave 'error', se asume que es un error genérico y se maneja con onWsError.
       if (decoded.containsKey('error')) {
         _ref.read(lobbyProvider.notifier).onWsError(decoded['error'] as String);
+        // La conexión no es válida (partida llena, no encontrada, etc.): desconectar.
+        disconnect();
         return;
       }
 

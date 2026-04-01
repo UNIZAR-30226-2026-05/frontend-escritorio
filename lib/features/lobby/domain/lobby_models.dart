@@ -8,7 +8,7 @@ class CreatePartidaResponse {
   const CreatePartidaResponse({required this.gameId});
   // Constructor alternativo que crea el objeto desde JSON (utilizado en la respuesta del servidor).
   factory CreatePartidaResponse.fromJson(Map<String, dynamic> json) =>
-      CreatePartidaResponse(gameId: json['game_id'] as String);
+      CreatePartidaResponse(gameId: json['game_id'].toString());
 }
 
 // Invitación a una partida recibida a través del WebSocket de sesión.

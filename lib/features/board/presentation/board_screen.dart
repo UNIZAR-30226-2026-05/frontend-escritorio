@@ -4,6 +4,7 @@ import 'controllers/game_provider.dart';
 import '../domain/gamemodels.dart';
 import '../data/websocket_service.dart';
 import '../../auth/presentation/controllers/auth_provider.dart';
+import '../../lobby/presentation/controllers/lobby_provider.dart';
 
 // ============================================================
 // BoardScreen — Pantalla principal del tablero de juego
@@ -17,7 +18,6 @@ class BoardScreen extends ConsumerStatefulWidget {
 }
 
 class _BoardScreenState extends ConsumerState<BoardScreen> {
-  final String _gameId = "1";
   bool _isShopOpen = false;
 
   // Coordenadas de los centros de las casillas en el tablero
@@ -107,7 +107,10 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
     Future.microtask(() {
       final token = ref.read(authProvider).token;
       if (token != null) {
-        ref.read(webSocketProvider).connect(_gameId, token);
+        // Conectamos el WebSocket del juego usando el gameId guardado en el estado del lobby 
+        // (si se viene de lobby) y el token de autenticación.
+        final gameId = ref.read(lobbyProvider).gameId ?? '1';
+        ref.read(webSocketProvider).connect(gameId, token);
       }
     });
   }

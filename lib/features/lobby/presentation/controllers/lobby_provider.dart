@@ -153,9 +153,20 @@ class LobbyController extends StateNotifier<LobbyState> {
   }
 
   // Llamado por el WebSocket cuando llega 'force_disconnect'.
-  // Marca el estado para que la UI cierre la pantalla de lobby.
+  // Otro dispositivo tomó la conexión: limpia la sesión y avisa a la UI.
   void onForceDisconnect(String message) {
-    state = state.copyWith(forceDisconnected: true, serverMessage: message,);
+    state = state.copyWith(
+      forceDisconnected: true,
+      serverMessage: message,
+      clearGameId: true,
+      playersConnected: [],
+      gameStarted: false,
+    );
+  }
+
+  // Resetea el flag forceDisconnected una vez que la UI ha mostrado el aviso.
+  void clearForceDisconnected() {
+    state = state.copyWith(forceDisconnected: false, serverMessage: '');
   }
 
   // Llamado por el WebSocket cuando llega 'reconnect_success' con status WAITING.
@@ -164,12 +175,30 @@ class LobbyController extends StateNotifier<LobbyState> {
     state = state.copyWith(serverMessage: 'Reconectado correctamente');
   }
 
-  // Llamado por el WebSocket cuando el backend envía un error genérico.
+  // Llamado por el WebSocket cuando el backend envía un error genérico
+  // (p.ej. "La partida esta llena", "Partida no encontrada").
+  // Limpia el gameId y jugadores porque la conexión no fue aceptada.
   void onWsError(String errorMessage) {
-    state = state.copyWith(error: errorMessage);
+    state = state.copyWith(
+      error: errorMessage,
+      clearGameId: true,
+      playersConnected: [],
+    );
   }
 
-  
+  // Limpia únicamente los datos de la sesión de partida actual
+  // (gameId, jugadores, mensajes, gameStarted) sin tocar invites ni amigos.
+  // Útil antes de crear o unirse a una nueva partida.
+  void clearGameSession() {
+    state = state.copyWith(
+      clearGameId: true,
+      playersConnected: [],
+      gameStarted: false,
+      serverMessage: '',
+      clearError: true,
+    );
+  }
+
   // Utilidades.
   // -------------------------------------------------------------------------
   // Metodo para limpiar el error del estado, usado antes de iniciar 

@@ -23,14 +23,10 @@ class LobbyService {
     final response = await http.post(
       Uri.parse('${ApiConstants.baseUrl}${ApiConstants.crearPartidaEndpoint}'),headers: _authHeaders(token),);
 
-    // 200 o 201 = OK. El backend puede devolver el game_id como entero suelto
-    // o como objeto JSON: ambos casos se normalizan a String en fromJson.
-    if (response.statusCode == 200 || response.statusCode == 201) {
+    // 201 = OK. El backend devuelve el game_id como entero suelto.
+    if (response.statusCode == 201) {
       final decoded = jsonDecode(response.body);
-      final Map<String, dynamic> json = decoded is Map<String, dynamic>
-          ? decoded
-          : {'game_id': decoded};
-      return CreatePartidaResponse.fromJson(json);
+      return CreatePartidaResponse.fromJson({'game_id': decoded});
     // Estatus 401 = Unauthorized.
     } else if (response.statusCode == 401) {
       throw Exception('No autenticado');

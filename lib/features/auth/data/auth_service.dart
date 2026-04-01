@@ -12,7 +12,7 @@ import '../domain/auth_models.dart';
 class AuthService {
   // Definimos varibales estaticas compartidas por toda la clase (no cmabian).
   // Instancia de FlytterSecureStorage que maneja el almacenamiento seguro encriptado.
-  static const _storage = FlutterSecureStorage(); 
+  static const _storage = FlutterSecureStorage();
   // Claves para guardar/recuperar datos del almacenamiento seguro.
   static const _tokenKey = 'auth_token';
   static const _usernameKey = 'auth_username';
@@ -24,7 +24,7 @@ class AuthService {
     final response = await http.post(
       Uri.parse('${ApiConstants.baseUrl}${ApiConstants.loginEndpoint}'),    // Construye la URL con las constantes.
       headers: {'Content-Type': 'application/x-www-form-urlencoded'},       // Especifica el formato del contenido.
-      body: {'username': username, 'password': password},                   // Cupero de la petición (http convierte 
+      body: {'username': username, 'password': password},                   // Cupero de la petición (http convierte
                                                                             // lo que hay al formato especificado anteriormente).
     );
 

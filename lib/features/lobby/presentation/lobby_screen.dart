@@ -24,6 +24,12 @@ class _LobbyScreenState extends ConsumerState<LobbyScreen> {
     super.dispose();
   }
 
+  // Desconecta el WS y limpia la sesión de partida actual (abandonar partida).
+  void _abandonarPartida() {
+    ref.read(lobbyWebSocketProvider).disconnect();
+    ref.read(lobbyProvider.notifier).clearGameSession();
+  }
+
   // Crea una nueva partida y conecta el WS del lobby con el game_id obtenido.
   Future<void> _crearPartida() async {
     // Desconecta el WS y limpia la sesión anterior por si ya estaba en otra partida.
@@ -47,7 +53,8 @@ class _LobbyScreenState extends ConsumerState<LobbyScreen> {
     // Desconecta y limpia la sesión anterior antes de intentar unirse.
     ref.read(lobbyWebSocketProvider).disconnect();
     ref.read(lobbyProvider.notifier).clearGameSession();
-    ref.read(lobbyProvider.notifier).unirseAPartida(code);
+    // El gameId se guarda solo si el backend confirma con lobby_update.
+    // Si el código no existe, onWsError limpiará el estado antes de que se muestre.
     ref.read(lobbyWebSocketProvider).connect(code, token);
   }
 
@@ -125,6 +132,11 @@ class _LobbyScreenState extends ConsumerState<LobbyScreen> {
             const SizedBox(height: 24),
 
             // --- Info de la partida creada/unida ---
+            if (lobbyState.gameId == null)
+              const Text(
+                'Crea una partida para obtener un código',
+                style: TextStyle(fontSize: 16, color: Colors.grey),
+              ),
             if (lobbyState.gameId != null) ...[
               Text(
                 'Código de partida: ${lobbyState.gameId}',
@@ -134,7 +146,16 @@ class _LobbyScreenState extends ConsumerState<LobbyScreen> {
               const SizedBox(height: 8),
               if (lobbyState.serverMessage.isNotEmpty)
                 Text(lobbyState.serverMessage),
-              const SizedBox(height: 16),
+              const SizedBox(height: 8),
+              TextButton.icon(
+                onPressed: _abandonarPartida,
+                icon: const Icon(Icons.exit_to_app, color: Colors.red),
+                label: const Text(
+                  'Abandonar partida',
+                  style: TextStyle(color: Colors.red),
+                ),
+              ),
+              const SizedBox(height: 8),
 
               // --- Slots de jugadores (máximo 4) ---
               Row(

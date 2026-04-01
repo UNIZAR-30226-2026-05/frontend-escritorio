@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'core/router/app_router.dart';
 import 'features/lobby/data/lobby_websocket_service.dart';
+import 'features/lobby/presentation/controllers/lobby_provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -41,10 +42,14 @@ class _SnowPartyAppState extends ConsumerState<SnowPartyApp>
   }
 
   // Se ejecuta cuando el usuario intenta cerrar la ventana (solo escritorio).
-  // Desconecta el WS del lobby antes de permitir el cierre.
+  // Solo desconecta el WS del lobby si la partida sigue en estado WAITING.
+  // Si ya empezó (PLAYING), el lobby WS ya estaba desconectado al recibir game_start.
   @override
   Future<AppExitResponse> didRequestAppExit() async {
-    ref.read(lobbyWebSocketProvider).disconnect();
+    final gameStarted = ref.read(lobbyProvider).gameStarted;
+    if (!gameStarted) {
+      ref.read(lobbyWebSocketProvider).disconnect();
+    }
     return AppExitResponse.exit;
   }
 

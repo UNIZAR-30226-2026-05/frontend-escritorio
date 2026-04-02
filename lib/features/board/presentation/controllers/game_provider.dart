@@ -1,4 +1,3 @@
-import 'dart:math';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../domain/gamemodels.dart';
 
@@ -51,59 +50,6 @@ class GameController extends StateNotifier<GameState> {
           serverMessage: "¡Comienza el juego!",
         ));
 
-  // Función para tirar los dados
-  void rollDice() async {
-    if (state.currentPhase == GamePhase.finished) return;
-
-    final diceRoll = Random().nextInt(6) + 1;
-
-    final activePlayerId = state.turnOrder[state.activePlayerIndex];
-    final currentPlayer =
-        state.players.firstWhere((p) => p.id == activePlayerId);
-
-    int targetTileIndex = currentPlayer.currentTileIndex + diceRoll;
-
-    if (targetTileIndex >= totalTiles - 1) {
-      targetTileIndex = totalTiles - 1;
-    }
-
-    String newMessage = "${currentPlayer.username} sacó un $diceRoll.";
-
-    // Animación de movimiento paso a paso
-    for (int i = currentPlayer.currentTileIndex + 1; i <= targetTileIndex; i++) {
-      await Future.delayed(const Duration(milliseconds: 350));
-      
-      final stepPlayers = state.players.map((p) {
-        if (p.id == activePlayerId) {
-          return p.copyWith(currentTileIndex: i);
-        }
-        return p;
-      }).toList();
-
-      state = state.copyWith(
-        players: stepPlayers, 
-        serverMessage: newMessage, 
-        lastDiceResult: diceRoll
-      );
-    }
-
-    int nextPlayerIndex =
-        (state.activePlayerIndex + 1) % state.turnOrder.length;
-
-    GamePhase nextPhase = state.currentPhase;
-
-    if (targetTileIndex == totalTiles - 1) {
-      nextPhase = GamePhase.finished;
-      newMessage = "¡${currentPlayer.username} HA GANADO LA PARTIDA!";
-    }
-
-    state = state.copyWith(
-      activePlayerIndex: nextPlayerIndex,
-      serverMessage: newMessage,
-      currentPhase: nextPhase,
-    );
-  }
-
   // Método para recibir datos del backend sobre el movimiento de un jugador
   void updatePlayerFromBackend(
       String playerId, int newTileIndex, int diceRoll) async {
@@ -116,7 +62,7 @@ class GameController extends StateNotifier<GameState> {
     // Animación de movimiento paso a paso
     for (int i = currentPlayer.currentTileIndex + 1; i <= newTileIndex; i++) {
       await Future.delayed(const Duration(milliseconds: 350));
-      
+
       final stepPlayers = state.players.map((p) {
         if (p.id == playerId) {
           return p.copyWith(currentTileIndex: i);
@@ -125,10 +71,9 @@ class GameController extends StateNotifier<GameState> {
       }).toList();
 
       state = state.copyWith(
-        players: stepPlayers, 
-        serverMessage: newMessage, 
-        lastDiceResult: diceRoll
-      );
+          players: stepPlayers,
+          serverMessage: newMessage,
+          lastDiceResult: diceRoll);
     }
 
     GamePhase nextPhase = state.currentPhase;
@@ -145,6 +90,76 @@ class GameController extends StateNotifier<GameState> {
       activePlayerIndex: nextPlayerIndex,
       serverMessage: newMessage,
       currentPhase: nextPhase,
+    );
+  }
+
+  // Método para sincronizar el estado completo desde el backend en una reconexión
+  void syncBoardState(Map<String, dynamic> boardState, String gameStatus) {
+    // Si la partida está jugandose en el servidor, actualizamos la fase
+    GamePhase newPhase =
+        gameStatus == "PLAYING" ? GamePhase.boardTurn : state.currentPhase;
+
+    final positions = boardState['positions'] as Map<String, dynamic>? ?? {};
+    final balances = boardState['balances'] as Map<String, dynamic>? ?? {};
+    final characters = boardState['characters'] as Map<String, dynamic>? ?? {};
+    final order = boardState['order'] as Map<String, dynamic>? ?? {};
+
+    // Reconstruimos la lista de jugadores basándonos en los datos del backend
+    List<Player> updatedPlayers = [];
+    List<String> newTurnOrder = List.filled(positions.length, '');
+
+    positions.forEach((username, pos) {
+      final String id =
+          username; // El backend ahora mismo usa el nombre como ID/key
+
+      final playerOrder = (order[username] as int?) ?? 1;
+
+      // Intentamos mantener los datos que ya teníamos si existen
+      Player existingPlayer = state.players.firstWhere(
+        (p) => p.id == id,
+        orElse: () => Player(
+          id: id,
+          username: username,
+          characterClass:
+              CharacterClass.banquero, // Default si no se ha elegido
+        ),
+      );
+
+      // Convertimos el string del character a nuestro Enum
+      CharacterClass charClass = existingPlayer.characterClass;
+      if (characters.containsKey(username)) {
+        final charString = characters[username].toString().toLowerCase();
+        if (charString.contains('escapista'))
+          charClass = CharacterClass.escapista;
+        else if (charString.contains('vidente'))
+          charClass = CharacterClass.vidente;
+        else if (charString.contains('videojugador'))
+          charClass = CharacterClass.videojugador;
+        else
+          charClass = CharacterClass.banquero;
+      }
+
+      updatedPlayers.add(existingPlayer.copyWith(
+        currentTileIndex:
+            (pos as int) - 1, // El backend usa 1-indexed, nosotros 0-indexed
+        coins: balances[username] as int? ?? 0,
+        characterClass: charClass,
+      ));
+
+      // Guardar el orden de turno (el backend da base 1, array base 0)
+      if (playerOrder > 0 && playerOrder <= newTurnOrder.length) {
+        newTurnOrder[playerOrder - 1] = id;
+      }
+    });
+
+    // Filtramos vacíos por si alguien falta en el order (ej: test con 1 player)
+    final cleanTurnOrder = newTurnOrder.where((id) => id.isNotEmpty).toList();
+
+    state = state.copyWith(
+      currentPhase: newPhase,
+      players: updatedPlayers.isNotEmpty ? updatedPlayers : state.players,
+      turnOrder: cleanTurnOrder.isNotEmpty ? cleanTurnOrder : state.turnOrder,
+      serverMessage: "Sincronizado con el servidor",
     );
   }
 }

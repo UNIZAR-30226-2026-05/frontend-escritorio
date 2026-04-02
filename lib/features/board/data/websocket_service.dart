@@ -56,17 +56,29 @@ class WebSocketService {
       final decoded = jsonDecode(message) as Map<String, dynamic>;
 
       switch (decoded['type']) {
-        // Tipo de mensaje de tirar los dados
-        case 'rolled_dice':
+        // Tipo de mensaje de movimiento de jugador (tras tirar dados)
+        case 'player_moved':
           // El backend nos informa que alguien ha tirado el dado y se ha movido
           final String userId = decoded['user'];
-          final int result = decoded['result'];
           final int newTile = decoded['nueva_casilla'];
+          // El backend envía dado1 y dado2 por separado, los sumamos
+          final int dado1 = decoded['dado1'] ?? 0;
+          final int dado2 = decoded['dado2'] ?? 0;
+          final int diceTotal = dado1 + dado2;
 
           // Usar Riverpod para enviar los datos al gameProvider
           _ref
               .read(gameProvider.notifier)
-              .updatePlayerFromBackend(userId, newTile, result);
+              .updatePlayerFromBackend(userId, newTile, diceTotal);
+          break;
+
+        // Tipo de mensaje de reconexión exitosa (o nueva conexión en la que ya había datos)
+        case 'reconnect_success':
+          print("Reconexión exitosa. Sincronizando tablero...");
+          final String gameStatus = decoded['game_status'] ?? 'WAITING';
+          final Map<String, dynamic> currentBoard = decoded['current_board'] ?? {};
+          
+          _ref.read(gameProvider.notifier).syncBoardState(currentBoard, gameStatus);
           break;
 
         // Tipo de mensaje de comenzar el juego
@@ -87,6 +99,18 @@ class WebSocketService {
           // TODO Realizar acción pertinente cuando se soporte
           break;
 
+        // Tipo de mensaje sobre en qué tipo de casilla ha caído el jugador
+        case 'tipo_casilla':
+          print("El jugador ha caído en una casilla de tipo: \${decoded['casilla']}");
+          // TODO: Mostrar algún tipo de feedback en la UI (ej. animación u objeto obtenido)
+          break;
+
+        // Tipo de mensaje cuando el jugador cae en una casilla de objeto y le toca intercambiar
+        case 'intercambiar_objeto':
+          print("Debes elegir un jugador para intercambiar un objeto: \${decoded['message']}");
+          // TODO: Abrir un modal en la UI para elegir al jugador
+          break;
+
         // Tipo de mensaje por defecto
         default:
           print('Mensaje WebSocket parseado, pero no manejado: $decoded');
@@ -96,18 +120,16 @@ class WebSocketService {
     }
   }
 
-  // TODO Modificar la función para que funcione con el backend
-  // Función que manda mensajes a la api a través del canal
-  //
+  // Función que manda la acción de mover jugador (tirar dados) al backend
   void rollDiceCommand(String gameId, String userId) {
     // Solo manda si el canal existe y está conectado
     if (_channel != null && _isConnected) {
-      // Crear paquete con la acción de tirar dado
-      final payload = {'action': 'tirar_dado', 'payload': {}};
+      // Crear paquete con la acción move_player (el backend calcula los dados)
+      final payload = {'action': 'move_player', 'payload': {}};
       // Mandar el paquete codificado al back
       _channel!.sink.add(jsonEncode(payload));
     } else {
-      print("No se pudo enviar 'tirar_dado' porque no hay conexión.");
+      print("No se pudo enviar 'move_player' porque no hay conexión.");
     }
   }
 

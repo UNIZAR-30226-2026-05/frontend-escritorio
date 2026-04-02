@@ -117,6 +117,8 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
 
   @override
   void dispose() {
+    // Desconexión limpia del WebSocket cuando se destruye la pantalla (Issue #25)
+    ref.read(webSocketProvider).disconnect();
     super.dispose();
   }
 
@@ -286,7 +288,11 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
                       text: 'TIRAR DADO',
                       onPressed: gameState.currentPhase == GamePhase.finished
                           ? null
-                          : () => ref.read(gameProvider.notifier).rollDice(),
+                          : () {
+                              final gameId = ref.read(lobbyProvider).gameId ?? '1';
+                              final username = ref.read(authProvider).username ?? '';
+                              ref.read(webSocketProvider).rollDiceCommand(gameId, username);
+                            },
                     ),
                   ],
                 ),

@@ -5,7 +5,7 @@ class ShopRepository {
   static const List<ShopItem> catalog = [
     ShopItem(
       id: 'item_advance',
-      name: 'Avanzar casillas',
+      name: 'Avanzar Casillas',
       price: 1, 
       description: 'Suma casillas extra a tu próxima tirada.',
       icon: '👟',
@@ -13,7 +13,7 @@ class ShopRepository {
     ),
     ShopItem(
       id: 'item_silver_dice',
-      name: 'Mejorar dados',
+      name: 'Mejorar Dados',
       price: 3,
       description: 'Mejora tu segundo dado a un dado de plata (1-4).',
       icon: '🎲',
@@ -21,7 +21,7 @@ class ShopRepository {
     ),
     ShopItem(
       id: 'item_block_barrier',
-      name: 'Barreras de bloqueo temporal',
+      name: 'Barrera',
       price: 10,
       description: 'Bloquea el turno de un jugador a tu elección.',
       icon: '🚧',
@@ -29,7 +29,7 @@ class ShopRepository {
     ),
     ShopItem(
       id: 'item_lifesaver',
-      name: 'Salvavidas',
+      name: 'Salvavidas bloqueo',
       price: 10,
       description: 'Te libra de una penalización de bloqueo del tablero.',
       icon: '🛟',

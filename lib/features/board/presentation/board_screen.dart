@@ -5,6 +5,8 @@ import '../domain/gamemodels.dart';
 import '../data/websocket_service.dart';
 import '../../auth/presentation/controllers/auth_provider.dart';
 import '../../lobby/presentation/controllers/lobby_provider.dart';
+import 'widgets/inventory_panel.dart';
+import '../../shop/presentation/controllers/shop_providers.dart';
 
 // ============================================================
 // BoardScreen — Pantalla principal del tablero de juego
@@ -21,7 +23,7 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
   bool _isShopOpen = false;
 
   // Coordenadas de los centros de las casillas en el tablero
-    final Map<int, Offset> tileCenters = {
+  final Map<int, Offset> tileCenters = {
     0: const Offset(285, 900),
     1: const Offset(441, 952),
     2: const Offset(540, 952),
@@ -364,9 +366,36 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
               ),
 
               // ============================================
+              // UI OVERLAY: Panel de Inventario (bottom-left, encima de tienda)
+              // ============================================
+              Positioned(
+                bottom: 80,
+                left: 16,
+                child: InventoryPanel(
+                  items: gameState.players.firstWhere((p) => p.id == activePlayerId).itemInventory,
+                ),
+              ),
+
+              // ============================================
               // UI OVERLAY: Modal de la Tienda
               // ============================================
-              if (_isShopOpen) ..._buildShopOverlay(gameState),
+              if (_isShopOpen)
+                Positioned.fill(
+                  child: Stack(
+                    children: [
+                      GestureDetector(
+                        onTap: () => setState(() => _isShopOpen = false),
+                        child: Container(color: Colors.black.withOpacity(0.6)),
+                      ),
+                      Center(
+                        child: ShopModal(
+                          playerCoins: gameState.players.firstWhere((p) => p.id == activePlayerId).coins,
+                          onClose: () => setState(() => _isShopOpen = false),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
             ],
           );
         },
@@ -619,268 +648,6 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
             ),
           ),
         ),
-      ),
-    );
-  }
-
-  // ============================================================
-  // WIDGET: Overlay de la Tienda (fondo oscuro + modal)
-  // ============================================================
-  List<Widget> _buildShopOverlay(GameState gameState) {
-    return [
-      // Fondo oscuro semi-transparente
-      Positioned.fill(
-        child: GestureDetector(
-          onTap: () => setState(() => _isShopOpen = false),
-          child: Container(
-            color: Colors.black.withOpacity(0.6),
-          ),
-        ),
-      ),
-      // Modal centrado
-      Center(
-        child: _buildShopModal(gameState),
-      ),
-    ];
-  }
-
-  Widget _buildShopModal(GameState gameState) {
-    final activePlayerId = gameState.turnOrder[gameState.activePlayerIndex];
-    final currentPlayer =
-        gameState.players.firstWhere((p) => p.id == activePlayerId);
-
-    return Container(
-      width: 520,
-      padding: const EdgeInsets.all(0),
-      decoration: BoxDecoration(
-        color: const Color(0xFF2D1B4E),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.white, width: 2),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.7),
-            blurRadius: 20,
-            spreadRadius: 4,
-          ),
-        ],
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // Header
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            decoration: const BoxDecoration(
-              color: Color(0xFF6C3FA0),
-              borderRadius: BorderRadius.only(
-                topLeft: Radius.circular(6),
-                topRight: Radius.circular(6),
-              ),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Row(
-                  children: [
-                    const Text(
-                      'TIENDA DE OBJETOS',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
-                        letterSpacing: 1.5,
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-                    // Monedas del jugador actual
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 8, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: const Color(0x33FFFFFF),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Text('🪙', style: TextStyle(fontSize: 14)),
-                          const SizedBox(width: 4),
-                          Text(
-                            '${currentPlayer.coins}',
-                            style: const TextStyle(
-                              color: Color(0xFFFFD700),
-                              fontWeight: FontWeight.bold,
-                              fontSize: 14,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-                // Botón cerrar
-                GestureDetector(
-                  onTap: () => setState(() => _isShopOpen = false),
-                  child: Container(
-                    width: 28,
-                    height: 28,
-                    decoration: BoxDecoration(
-                      color: const Color(0x44FFFFFF),
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                    child: const Center(
-                      child: Text(
-                        '✕',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          // Grid de items
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Wrap(
-              spacing: 12,
-              runSpacing: 12,
-              children: [
-                _buildShopItemCard(
-                  icon: '👟',
-                  name: 'Avanzar 3 casillas',
-                  price: 2,
-                  playerCoins: currentPlayer.coins,
-                ),
-                _buildShopItemCard(
-                  icon: '🎲',
-                  name: 'Dado de Plata',
-                  price: 3,
-                  playerCoins: currentPlayer.coins,
-                ),
-                _buildShopItemCard(
-                  icon: '🚧',
-                  name: 'Barrera de bloqueo',
-                  price: 6,
-                  playerCoins: currentPlayer.coins,
-                ),
-                _buildShopItemCard(
-                  icon: '💰',
-                  name: 'Robar 2 monedas',
-                  price: 3,
-                  playerCoins: currentPlayer.coins,
-                ),
-                _buildShopItemCard(
-                  icon: '🎡',
-                  name: 'Ruleta',
-                  price: 4,
-                  playerCoins: currentPlayer.coins,
-                ),
-                _buildShopItemCard(
-                  icon: '🛟',
-                  name: 'Salvavidas',
-                  price: 3,
-                  playerCoins: currentPlayer.coins,
-                ),
-                _buildShopItemCard(
-                  icon: '🛑',
-                  name: 'Quitar turno',
-                  price: 6,
-                  playerCoins: currentPlayer.coins,
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildShopItemCard({
-    required String icon,
-    required String name,
-    required int price,
-    required int playerCoins,
-  }) {
-    final canAfford = playerCoins >= price;
-
-    return Container(
-      width: 150,
-      padding: const EdgeInsets.all(10),
-      decoration: BoxDecoration(
-        color: const Color(0xFF3D2660),
-        borderRadius: BorderRadius.circular(6),
-        border: Border.all(color: const Color(0x88FFFFFF), width: 1),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // Icono
-          Text(icon, style: const TextStyle(fontSize: 32)),
-          const SizedBox(height: 6),
-          // Nombre
-          Text(
-            name,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 11,
-              fontWeight: FontWeight.w500,
-            ),
-            textAlign: TextAlign.center,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-          ),
-          const SizedBox(height: 6),
-          // Precio
-          Text(
-            '${price}¢',
-            style: const TextStyle(
-              color: Color(0xFFFFD700),
-              fontSize: 14,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 8),
-          // Botón comprar
-          GestureDetector(
-            onTap: canAfford
-                ? () {
-                    // TODO: Implementar lógica de compra
-                  }
-                : null,
-            child: Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(vertical: 6),
-              decoration: BoxDecoration(
-                color: canAfford
-                    ? const Color(0xFF2E8B57)
-                    : const Color(0xFF555555),
-                borderRadius: BorderRadius.circular(4),
-                border: Border.all(
-                  color: canAfford
-                      ? const Color(0xFF3CB371)
-                      : const Color(0xFF777777),
-                  width: 1,
-                ),
-              ),
-              child: Text(
-                'Comprar',
-                style: TextStyle(
-                  color: canAfford
-                      ? Colors.white
-                      : const Color(0xFF999999),
-                  fontWeight: FontWeight.bold,
-                  fontSize: 12,
-                ),
-                textAlign: TextAlign.center,
-              ),
-            ),
-          ),
-        ],
       ),
     );
   }

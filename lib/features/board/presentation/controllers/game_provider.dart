@@ -269,4 +269,19 @@ class GameController extends StateNotifier<GameState> {
       serverMessage: "Sincronizado con el servidor",
     );
   }
+
+  // Método para actualizar monedas e inventario
+  void updateInventoryAndBalance(String playerId, {List<ItemType>? newInventory, int? newBalance}) {
+    final updatedPlayers = state.players.map((p) {
+      if (p.id == playerId) {
+        return p.copyWith(
+          itemInventory: newInventory ?? p.itemInventory,
+          coins: newBalance ?? p.coins,
+        );
+      }
+      return p;
+    }).toList();
+    state = state.copyWith(players: updatedPlayers);
+  }
+
 }

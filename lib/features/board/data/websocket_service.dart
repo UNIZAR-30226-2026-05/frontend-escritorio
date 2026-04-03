@@ -5,6 +5,7 @@ import 'package:web_socket_channel/web_socket_channel.dart';
 import '../../board/presentation/controllers/game_provider.dart';
 import '../domain/gamemodels.dart';
 import '../../auth/presentation/controllers/auth_provider.dart';
+import '../../shop/data/shop_repository.dart';
 
 // Este Provider nos permite acceder al WebSocketService en toda la app de forma segura
 final webSocketProvider = Provider<WebSocketService>((ref) {
@@ -139,6 +140,25 @@ class WebSocketService {
           // TODO: Abrir un modal en la UI para elegir al jugador
           break;
 
+        // Tipo de mensaje para actualizar inventario
+        case 'inventory_updated':
+          final userId = decoded['user'];
+          final stringList = List<String>.from(decoded['inventario_actual']);
+          
+          // Mapeamos los strings del back a tus ItemType
+          final enumList = stringList.map((str) => ShopRepository.parseItemType(str)).toList();
+          
+          _ref.read(gameProvider.notifier).updateInventoryAndBalance(userId, newInventory: enumList);
+          break;
+
+        // Tipo de mensaje para actualizar balances (monedas)
+        case 'balances_changed':
+          final balances = decoded['balances'] as Map<String, dynamic>;
+          balances.forEach((userId, coins) {
+            _ref.read(gameProvider.notifier).updateInventoryAndBalance(userId, newBalance: coins as int);
+          });
+          break;
+
         // Tipo de mensaje por defecto
         default:
           print('Mensaje WebSocket parseado, pero no manejado: $decoded');
@@ -188,6 +208,15 @@ class WebSocketService {
         'payload': {}
       };
       _channel!.sink.add(jsonEncode(payload));
+    }
+  }
+
+  // Método para enviar acciones genéricas al backend (como compras o uso de objetos)
+  void sendGenericAction(Map<String, dynamic> payload) {
+    if (_channel != null && _isConnected) {
+      _channel!.sink.add(jsonEncode(payload));
+    } else {
+      print("No se pudo enviar la acción porque no hay conexión.");
     }
   }
 }

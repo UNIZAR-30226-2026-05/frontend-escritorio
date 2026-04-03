@@ -21,7 +21,7 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
   bool _isShopOpen = false;
 
   // Coordenadas de los centros de las casillas en el tablero
-  final Map<int, Offset> tileCenters = {
+    final Map<int, Offset> tileCenters = {
     0: const Offset(285, 900),
     1: const Offset(441, 952),
     2: const Offset(540, 952),
@@ -34,67 +34,67 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
     9: const Offset(1233, 952),
     10: const Offset(1332, 952),
     11: const Offset(1431, 952),
-    12: const Offset(1434, 945),
-    13: const Offset(1539, 909),
-    14: const Offset(1621, 852),
-    15: const Offset(1695, 780),
-    16: const Offset(1751, 691),
-    17: const Offset(1788, 587),
-    18: const Offset(1783, 488),
-    19: const Offset(1767, 382),
-    20: const Offset(1717, 283),
-    21: const Offset(1638, 207),
-    22: const Offset(1542, 155),
-    23: const Offset(1431, 138),
-    24: const Offset(1330, 138),
-    25: const Offset(1230, 138),
-    26: const Offset(1133, 137),
-    27: const Offset(1035, 138),
-    28: const Offset(937, 139),
-    29: const Offset(836, 139),
-    30: const Offset(738, 139),
-    31: const Offset(636, 139),
-    32: const Offset(539, 139),
-    33: const Offset(440, 139),
-    34: const Offset(342, 155),
-    35: const Offset(255, 242),
-    36: const Offset(203, 332),
-    37: const Offset(181, 442),
-    38: const Offset(192, 544),
-    39: const Offset(239, 641),
-    40: const Offset(337, 707),
-    41: const Offset(441, 721),
-    42: const Offset(539, 721),
-    43: const Offset(640, 721),
-    44: const Offset(738, 722),
-    45: const Offset(836, 720),
-    46: const Offset(935, 720),
-    47: const Offset(1035, 721),
-    48: const Offset(1131, 722),
-    49: const Offset(1232, 722),
-    50: const Offset(1331, 720),
-    51: const Offset(1443, 694),
-    52: const Offset(1519, 604),
-    53: const Offset(1518, 489),
-    54: const Offset(1439, 396),
-    55: const Offset(1331, 369),
-    56: const Offset(1233, 369),
-    57: const Offset(1134, 369),
-    58: const Offset(1035, 369),
-    59: const Offset(936, 369),
-    60: const Offset(837, 369),
-    61: const Offset(736, 368),
-    62: const Offset(637, 360),
-    63: const Offset(527, 380),
-    64: const Offset(449, 486),
-    65: const Offset(532, 587),
-    66: const Offset(638, 597),
-    67: const Offset(737, 596),
-    68: const Offset(835, 597),
-    69: const Offset(935, 596),
-    70: const Offset(1034, 595),
-    71: const Offset(1132, 597),
-    72: const Offset(1307, 550),
+    12: const Offset(1539, 909),
+    13: const Offset(1621, 852),
+    14: const Offset(1695, 780),
+    15: const Offset(1751, 691),
+    16: const Offset(1788, 587),
+    17: const Offset(1783, 488),
+    18: const Offset(1767, 382),
+    19: const Offset(1717, 283),
+    20: const Offset(1638, 207),
+    21: const Offset(1542, 155),
+    22: const Offset(1431, 138),
+    23: const Offset(1330, 138),
+    24: const Offset(1230, 138),
+    25: const Offset(1133, 137),
+    26: const Offset(1035, 138),
+    27: const Offset(937, 139),
+    28: const Offset(836, 139),
+    29: const Offset(738, 139),
+    30: const Offset(636, 139),
+    31: const Offset(539, 139),
+    32: const Offset(440, 139),
+    33: const Offset(342, 155),
+    34: const Offset(255, 242),
+    35: const Offset(203, 332),
+    36: const Offset(181, 442),
+    37: const Offset(192, 544),
+    38: const Offset(239, 641),
+    39: const Offset(337, 707),
+    40: const Offset(441, 721),
+    41: const Offset(539, 721),
+    42: const Offset(640, 721),
+    43: const Offset(738, 722),
+    44: const Offset(836, 720),
+    45: const Offset(935, 720),
+    46: const Offset(1035, 721),
+    47: const Offset(1131, 722),
+    48: const Offset(1232, 722),
+    49: const Offset(1331, 720),
+    50: const Offset(1443, 694),
+    51: const Offset(1519, 604),
+    52: const Offset(1518, 489),
+    53: const Offset(1439, 396),
+    54: const Offset(1331, 369),
+    55: const Offset(1233, 369),
+    56: const Offset(1134, 369),
+    57: const Offset(1035, 369),
+    58: const Offset(936, 369),
+    59: const Offset(837, 369),
+    60: const Offset(736, 368),
+    61: const Offset(637, 360),
+    62: const Offset(527, 380),
+    63: const Offset(449, 486),
+    64: const Offset(532, 587),
+    65: const Offset(638, 597),
+    66: const Offset(737, 596),
+    67: const Offset(835, 597),
+    68: const Offset(935, 596),
+    69: const Offset(1034, 595),
+    70: const Offset(1132, 597),
+    71: const Offset(1307, 550),
+    72: const Offset(1307, 500),
   };
 
   // Dimensiones originales de la imagen del tablero
@@ -248,6 +248,71 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
               ),
 
               // ============================================
+              // UI OVERLAY: DEBUG - Mostrar estado detallado (top-center)
+              // ============================================
+              Positioned(
+                top: 20,
+                left: 0,
+                right: 0,
+                child: Center(
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF1a1a2e),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: const Color(0xFF00FF00), width: 2),
+                    ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        // Línea 1: Jugador actual
+                        Text(
+                          '👤 ${gameState.players.firstWhere((p) => p.id == activePlayerId).username} (ID: $activePlayerId)',
+                          style: const TextStyle(
+                            color: Color(0xFFFFFFFF),
+                            fontSize: 13,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        // Línea 2: Posición actual
+                        Text(
+                          '📍 Casilla: ${gameState.players.firstWhere((p) => p.id == activePlayerId).currentTileIndex} / 72',
+                          style: const TextStyle(
+                            color: Color(0xFF00FF00),
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        // Línea 3: Dado y turno
+                        Text(
+                          '🎲 Dado: ${gameState.lastDiceResult ?? "—"} | Turno: ${gameState.activePlayerIndex % gameState.turnOrder.length + 1}',
+                          style: TextStyle(
+                            color: gameState.lastDiceResult != null
+                                ? const Color(0xFFFFD700)
+                                : Colors.grey,
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        // Línea 4: Fase del juego
+                        Text(
+                          '⚙️ Fase: ${gameState.currentPhase.name} | Ronda: ${gameState.currentRound}',
+                          style: const TextStyle(
+                            color: Color(0xFF00CCFF),
+                            fontSize: 11,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+
+              // ============================================
               // UI OVERLAY: Panel de jugadores (top-left)
               // ============================================
               Positioned(
@@ -290,8 +355,8 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
                           ? null
                           : () {
                               final gameId = ref.read(lobbyProvider).gameId ?? '1';
-                              final username = ref.read(authProvider).username ?? '';
-                              ref.read(webSocketProvider).rollDiceCommand(gameId, username);
+                              final activePlayerId = gameState.turnOrder[gameState.activePlayerIndex];
+                              ref.read(webSocketProvider).rollDiceCommand(gameId, activePlayerId);
                             },
                     ),
                   ],

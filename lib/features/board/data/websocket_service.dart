@@ -3,6 +3,8 @@ import '../../../core/constants/api_constants.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 import '../../board/presentation/controllers/game_provider.dart';
+import '../domain/gamemodels.dart';
+import '../../auth/presentation/controllers/auth_provider.dart';
 
 // Este Provider nos permite acceder al WebSocketService en toda la app de forma segura
 final webSocketProvider = Provider<WebSocketService>((ref) {
@@ -13,6 +15,8 @@ class WebSocketService {
   final Ref _ref;
   WebSocketChannel? _channel;
   bool _isConnected = false;
+  bool _isActionLocked = false;
+
 
   WebSocketService(this._ref);
 
@@ -66,10 +70,34 @@ class WebSocketService {
           final int dado2 = decoded['dado2'] ?? 0;
           final int diceTotal = dado1 + dado2;
 
+            // DEBUG: Imprimir exactamente qué recibió del backend
+            print('═══════════════════════════════════════════');
+            print(' PLAYER_MOVED recibido del backend:');
+            print('  • User ID: $userId');
+            print('  • Dado 1: $dado1');
+            print('  • Dado 2: $dado2');
+            if (diceTotal != 0) {
+              print('  • Total dado: $diceTotal');
+            }
+            print('  • Nueva casilla (backend): $newTile');
+            print('═══════════════════════════════════════════');
+
           // Usar Riverpod para enviar los datos al gameProvider
           _ref
               .read(gameProvider.notifier)
-              .updatePlayerFromBackend(userId, newTile, diceTotal);
+              .updatePlayerFromBackend(userId, newTile, diceTotal)
+              .then((_) {
+                // Solo avisamos al backend si no quedan animaciones pendientes
+                final isQueueEmpty = _ref.read(gameProvider.notifier).isAnimationQueueEmpty;
+                final gameState = _ref.read(gameProvider);
+                
+                final myUsername = _ref.read(authProvider).username; 
+                
+                // Comparamos el userId del backend con nuestro username
+                if (isQueueEmpty && gameState.currentPhase != GamePhase.finished && userId == myUsername) {
+                  _sendEndRound();
+                }
+              });
           break;
 
         // Tipo de mensaje de reconexión exitosa (o nueva conexión en la que ya había datos)
@@ -124,6 +152,11 @@ class WebSocketService {
   void rollDiceCommand(String gameId, String userId) {
     // Solo manda si el canal existe y está conectado
     if (_channel != null && _isConnected) {
+      
+      // PARA QUE NO HAYA DOBLES CLICS
+      if (_isActionLocked) return; // SI ESTÁ BLOQUEADO, IGNORAR CLIC
+      _isActionLocked = true;
+
       // Crear paquete con la acción move_player (el backend calcula los dados)
       final payload = {'action': 'move_player', 'payload': {}};
       // Mandar el paquete codificado al back
@@ -132,9 +165,29 @@ class WebSocketService {
       print("No se pudo enviar 'move_player' porque no hay conexión.");
     }
   }
+  
+  void _sendEndRound() {
+    if (_channel != null && _isConnected) {
+      final payload = {'action': 'end_round', 'payload': {}};
+      print(' Enviando END_ROUND al backend');
+      _channel!.sink.add(jsonEncode(payload));
+
+      _isActionLocked = false; // LIBERA EL DADO PARA EL PRÓXIMO TURNO
+    }
+  }
 
   void disconnect() {
     _channel?.sink.close();
     _isConnected = false;
+  }
+
+  void endRound(String gameId) {
+    if (_channel != null && _isConnected) {
+      final payload = {
+        'action': 'end_round',
+        'payload': {}
+      };
+      _channel!.sink.add(jsonEncode(payload));
+    }
   }
 }

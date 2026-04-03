@@ -165,6 +165,12 @@ class GameState {
   final String serverMessage;
   final int? lastDiceResult; // Solo para mostrar visualmente cuánto sacó
 
+  // Minijuegos
+  final String? minigameName;
+  final String? minigameDescription;
+  final Map<String, dynamic>? minigameDetails;
+  final Map<String, dynamic>? minigameResults;
+
   //Constructor de la clase
   GameState({
     this.currentPhase = GamePhase.waitingForPlayers,
@@ -174,6 +180,10 @@ class GameState {
     this.activePlayerIndex = 0,
     this.serverMessage = "Esperando jugadores...",
     this.lastDiceResult,
+    this.minigameName,
+    this.minigameDescription,
+    this.minigameDetails,
+    this.minigameResults,
   });
 
   GameState copyWith({
@@ -184,6 +194,10 @@ class GameState {
     int? activePlayerIndex,
     String? serverMessage,
     int? lastDiceResult,
+    String? minigameName,
+    String? minigameDescription,
+    Map<String, dynamic>? minigameDetails,
+    Map<String, dynamic>? minigameResults,
   }) {
     return GameState(
       currentPhase: currentPhase ?? this.currentPhase,
@@ -193,6 +207,10 @@ class GameState {
       activePlayerIndex: activePlayerIndex ?? this.activePlayerIndex,
       serverMessage: serverMessage ?? this.serverMessage,
       lastDiceResult: lastDiceResult ?? this.lastDiceResult,
+      minigameName: minigameName ?? this.minigameName,
+      minigameDescription: minigameDescription ?? this.minigameDescription,
+      minigameDetails: minigameDetails ?? this.minigameDetails,
+      minigameResults: minigameResults ?? this.minigameResults,
     );
   }
 }

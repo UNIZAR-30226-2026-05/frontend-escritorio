@@ -10,7 +10,7 @@
 import 'package:flutter/material.dart';
 
 // TODO: Importar aquí los minijuegos cuando se implementen
-// import 'reflejos_game.dart';
+import 'reflejos_game.dart';
 // import 'tren_game.dart';
 // import 'cronometro_game.dart';
 // import 'cortar_pan_game.dart';
@@ -28,8 +28,8 @@ class MinigameFactory {
   }) {
     switch (minigameName) {
       // TODO: Descomentar cuando se implemente cada minijuego
-      // case 'Reflejos':
-      //   return ReflejosGame(onFinish: onFinish, details: details);
+      case 'Reflejos':
+        return ReflejosGame(onFinish: onFinish, details: details);
       // case 'Tren':
       //   return TrenGame(onFinish: onFinish, details: details);
       // case 'Cronometro ciego':

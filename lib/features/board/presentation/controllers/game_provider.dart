@@ -270,6 +270,41 @@ class GameController extends StateNotifier<GameState> {
     );
   }
 
+  // ============================================================
+  // Minijuegos
+  // ============================================================
+
+  void startMinigame({
+    required String name,
+    String? description,
+    Map<String, dynamic>? details,
+  }) {
+    state = state.copyWith(
+      currentPhase: GamePhase.minigameOrder,
+      minigameName: name,
+      minigameDescription: description,
+      minigameDetails: details,
+      minigameResults: null,
+    );
+  }
+
+  void setMinigameResults(Map<String, dynamic> results, List<String> newOrder) {
+    state = state.copyWith(
+      minigameResults: results,
+      turnOrder: newOrder,
+    );
+  }
+
+  void finishMinigame() {
+    state = state.copyWith(
+      currentPhase: GamePhase.boardTurn,
+      minigameName: null,
+      minigameDescription: null,
+      minigameDetails: null,
+      minigameResults: null,
+    );
+  }
+
   // Método para actualizar monedas e inventario
   void updateInventoryAndBalance(String playerId, {List<ItemType>? newInventory, int? newBalance}) {
     final updatedPlayers = state.players.map((p) {

@@ -140,6 +140,34 @@ class WebSocketService {
           // TODO: Abrir un modal en la UI para elegir al jugador
           break;
 
+        // Tipo de mensaje de inicio de minijuego
+        case 'ini_minijuego':
+          print("Minijuego iniciado.");
+          final String? name = decoded['minijuego'];
+          final String? desc = decoded['descripcion'];
+          final Map<String, dynamic>? details = decoded['detalles'] != null 
+              ? Map<String, dynamic>.from(decoded['detalles']) 
+              : null;
+          if (name != null) {
+            _ref.read(gameProvider.notifier).startMinigame(
+              name: name,
+              description: desc,
+              details: details,
+            );
+          }
+          break;
+
+        // Tipo de mensaje de resultados de minijuego
+        case 'minijuego_resultados':
+          final order = (decoded['order'] as List).map((e) => e.toString()).toList();
+          final results = decoded['resultados'] != null 
+              ? Map<String, dynamic>.from(decoded['resultados']) 
+              : null;
+          if (results != null) {
+            _ref.read(gameProvider.notifier).setMinigameResults(results, order);
+          }
+          break;
+
         // Tipo de mensaje para actualizar inventario
         case 'inventory_updated':
           final userId = decoded['user'];
@@ -193,6 +221,16 @@ class WebSocketService {
       _channel!.sink.add(jsonEncode(payload));
 
       _isActionLocked = false; // LIBERA EL DADO PARA EL PRÓXIMO TURNO
+    }
+  }
+
+  void sendMinigameScore(int score) {
+    if (_channel != null && _isConnected) {
+      final payload = {
+        'action': 'score_minijuego',
+        'payload': {'score': score}
+      };
+      _channel!.sink.add(jsonEncode(payload));
     }
   }
 

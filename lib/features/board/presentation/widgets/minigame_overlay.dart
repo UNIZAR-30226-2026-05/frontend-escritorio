@@ -16,7 +16,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../controllers/game_provider.dart';
 import '../../data/websocket_service.dart';
-import '../../domain/gamemodels.dart';
+
 import 'minigames/minigame_factory.dart';
 
 class MinigameOverlay extends ConsumerStatefulWidget {
@@ -66,6 +66,17 @@ class _MinigameOverlayState extends ConsumerState<MinigameOverlay> {
 
   @override
   Widget build(BuildContext context) {
+    // Escuchar cambios en los resultados para disparar el cierre automático una sola vez
+    ref.listen(gameProvider.select((s) => s.minigameResults), (prev, next) {
+      if (prev == null && next != null) {
+        Future.delayed(const Duration(seconds: 5), () {
+          if (mounted && ref.read(gameProvider).minigameResults != null) {
+            ref.read(gameProvider.notifier).finishMinigame();
+          }
+        });
+      }
+    });
+
     final gameState = ref.watch(gameProvider);
     final results = gameState.minigameResults;
 
@@ -73,48 +84,60 @@ class _MinigameOverlayState extends ConsumerState<MinigameOverlay> {
       color: Colors.black.withOpacity(0.85),
       width: double.infinity,
       height: double.infinity,
-      child: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            // ── Header: Título y descripción (siempre visible) ──
-            Text(
-              gameState.minigameName?.toUpperCase() ?? 'MINIJUEGO',
-              style: const TextStyle(
-                color: Colors.amber,
-                fontSize: 32,
-                fontWeight: FontWeight.bold,
-                letterSpacing: 4,
-              ),
-            ),
-            const SizedBox(height: 8),
-            if (gameState.minigameDescription != null)
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 32),
-                child: Text(
-                  gameState.minigameDescription!,
-                  style: const TextStyle(color: Colors.white70, fontSize: 16),
-                  textAlign: TextAlign.center,
-                ),
-              ),
-            const SizedBox(height: 48),
-
-            // ── Contenido dinámico según el estado ──
-            if (results != null)
-              // Estado 3: Han llegado los resultados → Mostrar podio
-              _buildResultsScreen(results)
-            else if (_countdownFinished)
-              // Estado 2: Cuenta atrás terminada → Cargar el minijuego
-              MinigameFactory.buildGame(
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          // 1. Minijuego (se dibuja ocupando todo el fondo por detrás del texto)
+          if (_countdownFinished && results == null)
+            Positioned.fill(
+              child: MinigameFactory.buildGame(
                 minigameName: gameState.minigameName ?? '',
                 onFinish: _onMinigameFinish,
                 details: gameState.minigameDetails ?? {},
-              )
-            else
-              // Estado 1: Cuenta atrás activa
-              _buildCountdownScreen(),
-          ],
-        ),
+              ),
+            ),
+
+          // 2. Elementos de UI superpuestos
+          Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              // ── Header: Título y descripción (siempre visible) ──
+              Text(
+                gameState.minigameName?.toUpperCase() ?? 'MINIJUEGO',
+                style: const TextStyle(
+                  color: Colors.amber,
+                  fontSize: 32,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 4,
+                  shadows: [Shadow(color: Colors.black, blurRadius: 4, offset: Offset(2, 2))],
+                ),
+              ),
+              const SizedBox(height: 8),
+              if (gameState.minigameDescription != null)
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 32),
+                  child: Text(
+                    gameState.minigameDescription!,
+                    style: const TextStyle(
+                      color: Colors.white, 
+                      fontSize: 16,
+                      shadows: [Shadow(color: Colors.black, blurRadius: 4, offset: Offset(1, 1))],
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+              const SizedBox(height: 48),
+
+              // ── Contenido dinámico según el estado ──
+              if (results != null)
+                // Estado 3: Han llegado los resultados → Mostrar podio
+                _buildResultsScreen(results)
+              else if (!_countdownFinished)
+                // Estado 1: Cuenta atrás activa
+                _buildCountdownScreen(),
+            ],
+          ),
+        ],
       ),
     );
   }
@@ -147,13 +170,6 @@ class _MinigameOverlayState extends ConsumerState<MinigameOverlay> {
 
   // Pantalla de resultados (Podio) con cierre automático
   Widget _buildResultsScreen(Map<String, dynamic> results) {
-    // Cierre automático: volver al tablero tras 5 segundos
-    Future.delayed(const Duration(seconds: 5), () {
-      if (mounted) {
-        ref.read(gameProvider.notifier).finishMinigame();
-      }
-    });
-
     // Ordenar los resultados por posición
     final sortedEntries = results.entries.toList()
       ..sort((a, b) {

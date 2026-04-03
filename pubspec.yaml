@@ -30,6 +30,7 @@ flutter:
     - assets/images/characters/tablero/
    # - assets/images/items/
     - assets/images/ui/
+    - assets/images/minigames/reflejos/
    # - assets/sounds/bgm/
    # - assets/sounds/sfx/
    # - assets/data/

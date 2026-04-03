@@ -7,6 +7,7 @@ import '../../auth/presentation/controllers/auth_provider.dart';
 import '../../lobby/presentation/controllers/lobby_provider.dart';
 import 'widgets/inventory_panel.dart';
 import '../../shop/presentation/controllers/shop_providers.dart';
+import 'widgets/minigame_overlay.dart';
 
 // ============================================================
 // BoardScreen — Pantalla principal del tablero de juego
@@ -395,6 +396,15 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
                       ),
                     ],
                   ),
+                ),
+
+              // ============================================
+              // UI OVERLAY: Minijuego
+              // ============================================
+              if (gameState.currentPhase == GamePhase.minigameOrder ||
+                  gameState.currentPhase == GamePhase.minigameTile)
+                const Positioned.fill(
+                  child: MinigameOverlay(),
                 ),
             ],
           );

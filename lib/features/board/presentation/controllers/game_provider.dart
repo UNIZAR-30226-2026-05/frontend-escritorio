@@ -15,7 +15,7 @@ class GameController extends StateNotifier<GameState> {
   // Para manejar animaciones secuenciales de movimiento
   final List<Future<void> Function()> _animationQueue = [];
   bool _isAnimating = false;
-  bool get isAnimationQueueEmpty => _animationQueue.isEmpty;
+  bool get isAnimationQueueEmpty => _animationQueue.isEmpty && !_isAnimating;
 
   // 3. Estado Inicial de la Partida — 4 jugadores según el diseño del tablero
   GameController()

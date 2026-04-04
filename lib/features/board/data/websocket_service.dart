@@ -88,16 +88,19 @@ class WebSocketService {
               .read(gameProvider.notifier)
               .updatePlayerFromBackend(userId, newTile, diceTotal)
               .then((_) {
-                // Solo avisamos al backend si no quedan animaciones pendientes
-                final isQueueEmpty = _ref.read(gameProvider.notifier).isAnimationQueueEmpty;
-                final gameState = _ref.read(gameProvider);
-                
-                final myUsername = _ref.read(authProvider).username; 
-                
-                // Comparamos el userId del backend con nuestro username
-                if (isQueueEmpty && gameState.currentPhase != GamePhase.finished && userId == myUsername) {
-                  _sendEndRound();
-                }
+                // Para evitar que cuente como turno los movimientos de avanzar y retroceder por casillas
+                Future.delayed(const Duration(milliseconds: 100), () {
+                  // Solo avisamos al backend si no quedan animaciones pendientes
+                  final isQueueEmpty = _ref.read(gameProvider.notifier).isAnimationQueueEmpty;
+                  final gameState = _ref.read(gameProvider);
+                  
+                  final myUsername = _ref.read(authProvider).username; 
+                  
+                  // Comparamos el userId del backend con nuestro username
+                  if (isQueueEmpty && gameState.currentPhase != GamePhase.finished && userId == myUsername) {
+                    _sendEndRound();
+                  }
+                });
               });
           break;
 

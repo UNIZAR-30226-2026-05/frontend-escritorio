@@ -46,16 +46,19 @@ class _LobbyScreenState extends ConsumerState<LobbyScreen> {
 
   // Une al usuario a una partida existente mediante el código introducido.
   // Desconecta el WS actual antes de conectar al nuevo para evitar conexiones huérfanas.
-  void _unirseConCodigo() {
+  Future<void> _unirseConCodigo() async {
     final code = _codeController.text.trim();
     if (code.isEmpty) return;
     final token = ref.read(authProvider).token!;
     // Desconecta y limpia la sesión anterior antes de intentar unirse.
     ref.read(lobbyWebSocketProvider).disconnect();
     ref.read(lobbyProvider.notifier).clearGameSession();
-    // El gameId se guarda solo si el backend confirma con lobby_update.
-    // Si el código no existe, onWsError limpiará el estado antes de que se muestre.
-    ref.read(lobbyWebSocketProvider).connect(code, token);
+    // Primero valida que la partida existe y tiene hueco.
+    // Solo si el servidor acepta conectamos el WS.
+    final accepted = await ref.read(lobbyProvider.notifier).unirsePartida(code, token);
+    if (accepted) {
+      ref.read(lobbyWebSocketProvider).connect(code, token);
+    }
   }
 
   // Cierra sesión, resetea el estado del lobby y desconecta el WS.
@@ -85,6 +88,13 @@ class _LobbyScreenState extends ConsumerState<LobbyScreen> {
           ),
         );
         ref.read(lobbyProvider.notifier).clearForceDisconnected();
+      }
+      // Si el error es de autenticación, cierra sesión y GoRouter redirige a /login.
+      if (prev != null && next.error != null && next.error != prev.error) {
+        final error = next.error!.toLowerCase();
+        if (error.contains('autenticad') || error.contains('unauthorized') || error.contains('401')) {
+          _logout();
+        }
       }
     });
 

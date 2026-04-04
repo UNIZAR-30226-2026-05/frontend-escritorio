@@ -99,8 +99,22 @@ class LobbyController extends StateNotifier<LobbyState> {
     }
   }
 
-  // Guarda el game_id de una partida existente a la que el usuario quiere unirse.
-  // Unirse como tal se hace conectando el WebSocket con ese game_id.
+  // Llama al endpoint para validar que la partida existe y tiene hueco.
+  // Si el servidor acepta, devuelve true y el caller conecta el WebSocket.
+  // Si falla, guarda el error en el estado y devuelve false.
+  Future<bool> unirsePartida(String gameId, String token) async {
+    state = state.copyWith(isLoading: true, clearError: true);
+    try {
+      await _lobbyService.unirsePartida(gameId, token);
+      state = state.copyWith(isLoading: false);
+      return true;
+    } catch (e) {
+      state = state.copyWith(isLoading: false, error: e.toString().replaceFirst('Exception: ', ''));
+      return false;
+    }
+  }
+
+  // Guarda el game_id cuando el WS confirma con lobby_update que el jugador está dentro.
   void unirseAPartida(String gameId) {
     state = state.copyWith(gameId: gameId);
   }

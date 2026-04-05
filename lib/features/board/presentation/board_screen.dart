@@ -129,6 +129,8 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
   Widget build(BuildContext context) {
     final gameState = ref.watch(gameProvider);
     final activePlayerId = gameState.turnOrder[gameState.activePlayerIndex];
+    final myUsername = ref.watch(authProvider).username;
+    final isMyTurn = myUsername == activePlayerId;
 
     return Scaffold(
       body: LayoutBuilder(
@@ -321,7 +323,7 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
               Positioned(
                 top: 16,
                 left: 16,
-                child: _buildPlayerPanel(gameState, activePlayerId),
+                child: _buildPlayerPanel(gameState, activePlayerId, myUsername ?? ''),
               ),
 
               // ============================================
@@ -354,12 +356,11 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
                     // Botón tirar dado
                     _buildPixelButton(
                       text: 'TIRAR DADO',
-                      onPressed: gameState.currentPhase == GamePhase.finished
+                      onPressed: (gameState.currentPhase == GamePhase.finished || !isMyTurn)
                           ? null
                           : () {
                               final gameId = ref.read(lobbyProvider).gameId ?? '1';
-                              final activePlayerId = gameState.turnOrder[gameState.activePlayerIndex];
-                              ref.read(webSocketProvider).rollDiceCommand(gameId, activePlayerId);
+                              ref.read(webSocketProvider).rollDiceCommand(gameId, myUsername!);
                             },
                     ),
                   ],
@@ -416,7 +417,7 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
   // ============================================================
   // WIDGET: Panel de Jugadores
   // ============================================================
-  Widget _buildPlayerPanel(GameState gameState, String activePlayerId) {
+  Widget _buildPlayerPanel(GameState gameState, String activePlayerId, String myUsername) {
     return Container(
       width: 220,
       decoration: BoxDecoration(
@@ -459,22 +460,24 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
           // Lista de jugadores
           ...gameState.players.map((player) {
             final isActive = player.id == activePlayerId;
-            return _buildPlayerRow(player, isActive);
+            final isMe = player.id == myUsername || player.username == myUsername;
+            return _buildPlayerRow(player, isActive, isMe);
           }),
         ],
       ),
     );
   }
 
-  Widget _buildPlayerRow(Player player, bool isActive) {
+  Widget _buildPlayerRow(Player player, bool isActive, bool isMe) {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 10),
       decoration: BoxDecoration(
         color: isActive
             ? const Color(0x33FFFFFF)
-            : Colors.transparent,
-        border: const Border(
-          bottom: BorderSide(color: Color(0x33FFFFFF), width: 1),
+            : (isMe ? Colors.green.withOpacity(0.15) : Colors.transparent),
+        border: Border(
+          bottom: const BorderSide(color: Color(0x33FFFFFF), width: 1),
+          left: isMe ? const BorderSide(color: Colors.greenAccent, width: 4) : BorderSide.none,
         ),
       ),
       child: Row(
@@ -507,11 +510,12 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  player.username,
+                  player.username + (isMe ? ' (TÚ)' : ''),
                   style: TextStyle(
-                    color: isActive ? Colors.amber : Colors.white,
-                    fontWeight:
-                        isActive ? FontWeight.bold : FontWeight.normal,
+                    color: isMe 
+                        ? Colors.greenAccent 
+                        : (isActive ? Colors.amber : Colors.white),
+                    fontWeight: (isActive || isMe) ? FontWeight.bold : FontWeight.normal,
                     fontSize: 12,
                   ),
                   overflow: TextOverflow.ellipsis,

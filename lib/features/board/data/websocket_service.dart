@@ -192,8 +192,20 @@ class WebSocketService {
 
         // Tipo de mensaje por defecto
         default:
-          print('Mensaje WebSocket parseado, pero no manejado: $decoded');
+          if (decoded.containsKey('error')) {
+            print('Error desde el backend: ${decoded['error']}');
+            _isActionLocked = false; // Liberamos acción en caso de error
+          } else {
+            print('Mensaje WebSocket parseado, pero no manejado: $decoded');
+          }
       }
+      
+      // Capturamos también errores directos si vienen fuera de type
+      if (decoded.containsKey('error') && decoded['type'] == null) {
+         print('Error desde el backend: ${decoded['error']}');
+         _isActionLocked = false;
+      }
+
     } catch (e) {
       print('Error decodificando el mensaje de WebSocket: $e');
     }

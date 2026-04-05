@@ -39,8 +39,7 @@ class _LobbyScreenState extends ConsumerState<LobbyScreen> {
     ref.read(lobbyWebSocketProvider).disconnect();
     ref.read(lobbyProvider.notifier).clearGameSession();
     final token = ref.read(authProvider).token!;
-    final success =
-        await ref.read(lobbyProvider.notifier).crearPartida(token);
+    final success = await ref.read(lobbyProvider.notifier).crearPartida(token);
     if (success && mounted) {
       final gameId = ref.read(lobbyProvider).gameId!;
       ref.read(lobbyWebSocketProvider).connect(gameId, token);
@@ -58,7 +57,8 @@ class _LobbyScreenState extends ConsumerState<LobbyScreen> {
     ref.read(lobbyProvider.notifier).clearGameSession();
     // Primero valida que la partida existe y tiene hueco.
     // Solo si el servidor acepta conectamos el WS.
-    final accepted = await ref.read(lobbyProvider.notifier).unirsePartida(code, token);
+    final accepted =
+        await ref.read(lobbyProvider.notifier).unirsePartida(code, token);
     if (accepted) {
       ref.read(lobbyWebSocketProvider).connect(code, token);
     }
@@ -75,7 +75,9 @@ class _LobbyScreenState extends ConsumerState<LobbyScreen> {
   Widget build(BuildContext context) {
     // Cuando todos los jugadores han seleccionado personaje, navega al tablero.
     ref.listen<LobbyState>(lobbyProvider, (prev, next) {
-      if (prev != null && !prev.allCharactersSelected && next.allCharactersSelected) {
+      if (prev != null &&
+          !prev.allCharactersSelected &&
+          next.allCharactersSelected) {
         ref.read(lobbyWebSocketProvider).disconnect();
         context.go('/game');
       }
@@ -95,7 +97,9 @@ class _LobbyScreenState extends ConsumerState<LobbyScreen> {
       // Si el error es de autenticación, cierra sesión y GoRouter redirige a /login.
       if (prev != null && next.error != null && next.error != prev.error) {
         final error = next.error!.toLowerCase();
-        if (error.contains('autenticad') || error.contains('unauthorized') || error.contains('401')) {
+        if (error.contains('autenticad') ||
+            error.contains('unauthorized') ||
+            error.contains('401')) {
           _logout();
         }
       }
@@ -104,18 +108,23 @@ class _LobbyScreenState extends ConsumerState<LobbyScreen> {
     final lobbyState = ref.watch(lobbyProvider);
     final username = ref.watch(authProvider).username ?? '';
 
-    // Si el juego ha empezado pero no todos han elegido personaje, 
+    // Si el juego ha empezado pero no todos han elegido personaje,
     // mostramos la interfaz de selección.
-    if (lobbyState.gameId != null && lobbyState.gameStarted && !lobbyState.allCharactersSelected) {
+    if (lobbyState.gameId != null &&
+        lobbyState.gameStarted &&
+        !lobbyState.allCharactersSelected) {
       return Scaffold(
-        extendBodyBehindAppBar: true, // Para que la imagen cubra todo hasta arriba
+        extendBodyBehindAppBar:
+            true, // Para que la imagen cubra todo hasta arriba
         appBar: AppBar(
-          title: Text('Menú de Selección — $username', style: const TextStyle(color: Colors.white)),
+          title: Text('Menú de Selección — $username',
+              style: const TextStyle(color: Colors.white)),
           backgroundColor: Colors.transparent,
           elevation: 0,
           iconTheme: const IconThemeData(color: Colors.white),
         ),
-        body: CharacterSelectionView(lobbyState: lobbyState, currentUsername: username),
+        body: CharacterSelectionView(
+            lobbyState: lobbyState, currentUsername: username),
       );
     }
 
@@ -134,7 +143,6 @@ class _LobbyScreenState extends ConsumerState<LobbyScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-
             // --- Mensaje de error ---
             if (lobbyState.error != null)
               Text(
@@ -168,8 +176,8 @@ class _LobbyScreenState extends ConsumerState<LobbyScreen> {
             if (lobbyState.gameId != null) ...[
               Text(
                 'Código de partida: ${lobbyState.gameId}',
-                style: const TextStyle(
-                    fontSize: 20, fontWeight: FontWeight.bold),
+                style:
+                    const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 8),
               if (lobbyState.serverMessage.isNotEmpty)
@@ -252,11 +260,18 @@ class CharacterSelectionView extends ConsumerStatefulWidget {
   });
 
   @override
-  ConsumerState<CharacterSelectionView> createState() => _CharacterSelectionViewState();
+  ConsumerState<CharacterSelectionView> createState() =>
+      _CharacterSelectionViewState();
 }
 
-class _CharacterSelectionViewState extends ConsumerState<CharacterSelectionView> {
-  final List<String> _availableCharacters = ['Banquero', 'Videojugador', 'Escapista', 'Vidente'];
+class _CharacterSelectionViewState
+    extends ConsumerState<CharacterSelectionView> {
+  final List<String> _availableCharacters = [
+    'Banquero',
+    'Videojugador',
+    'Escapista',
+    'Vidente'
+  ];
   Timer? _timer;
   int _timeLeft = 10;
   bool _isMyTurn = false;
@@ -271,7 +286,8 @@ class _CharacterSelectionViewState extends ConsumerState<CharacterSelectionView>
   void didUpdateWidget(CharacterSelectionView oldWidget) {
     super.didUpdateWidget(oldWidget);
     // Si cambia el número de personajes seleccionados, revisamos si ahora es nuestro turno
-    if (oldWidget.lobbyState.selectedCharacters.length != widget.lobbyState.selectedCharacters.length) {
+    if (oldWidget.lobbyState.selectedCharacters.length !=
+        widget.lobbyState.selectedCharacters.length) {
       _checkTurnAndStartTimer();
     }
   }
@@ -287,12 +303,14 @@ class _CharacterSelectionViewState extends ConsumerState<CharacterSelectionView>
     // order = selectedCharacters.length + 1
     // Y comparamos con nuestra posición en la lista de playersConnected
     final numPersonajes = widget.lobbyState.selectedCharacters.length;
-    final miOrden = widget.lobbyState.playersConnected.indexOf(widget.currentUsername) + 1;
+    final miOrden =
+        widget.lobbyState.playersConnected.indexOf(widget.currentUsername) + 1;
 
     final ahoraEsMiTurno = (numPersonajes + 1) == miOrden;
 
     // Si ya he seleccionado, ya no es mi turno
-    final yaHeSeleccionado = widget.lobbyState.selectedCharacters.containsKey(widget.currentUsername);
+    final yaHeSeleccionado = widget.lobbyState.selectedCharacters
+        .containsKey(widget.currentUsername);
 
     if (ahoraEsMiTurno && !yaHeSeleccionado) {
       if (!_isMyTurn) {
@@ -322,8 +340,11 @@ class _CharacterSelectionViewState extends ConsumerState<CharacterSelectionView>
   }
 
   void _autoSelectRandomCharacter() {
-    final takenCharacters = widget.lobbyState.selectedCharacters.values.toList();
-    final remaining = _availableCharacters.where((c) => !takenCharacters.contains(c)).toList();
+    final takenCharacters =
+        widget.lobbyState.selectedCharacters.values.toList();
+    final remaining = _availableCharacters
+        .where((c) => !takenCharacters.contains(c))
+        .toList();
     if (remaining.isNotEmpty) {
       final randomChar = remaining[Random().nextInt(remaining.length)];
       ref.read(lobbyWebSocketProvider).sendCharacterSelection(randomChar);
@@ -332,14 +353,14 @@ class _CharacterSelectionViewState extends ConsumerState<CharacterSelectionView>
 
   void _selectCharacter(String character) {
     if (!_isMyTurn) return;
-    
+
     // Comprobar si no está pillado
     if (widget.lobbyState.selectedCharacters.containsValue(character)) return;
 
     // Cancelamos timer para que no salte
     _timer?.cancel();
     setState(() => _isMyTurn = false);
-    
+
     // Enviamos petición por socket
     ref.read(lobbyWebSocketProvider).sendCharacterSelection(character);
   }
@@ -369,7 +390,7 @@ class _CharacterSelectionViewState extends ConsumerState<CharacterSelectionView>
             color: Colors.black.withOpacity(0.75), // Oscurecimiento superpuesto
           ),
         ),
-        
+
         // Contenido interactivo
         SafeArea(
           child: Padding(
@@ -377,7 +398,8 @@ class _CharacterSelectionViewState extends ConsumerState<CharacterSelectionView>
             child: Column(
               children: [
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                   decoration: BoxDecoration(
                     color: Colors.black.withOpacity(0.5),
                     borderRadius: BorderRadius.circular(16),
@@ -389,9 +411,11 @@ class _CharacterSelectionViewState extends ConsumerState<CharacterSelectionView>
                   child: Column(
                     children: [
                       Text(
-                        _isMyTurn ? '¡ES TU TURNO!' : 'Turno de: $jugadorActual',
+                        _isMyTurn
+                            ? '¡ES TU TURNO!'
+                            : 'Turno de: $jugadorActual',
                         style: TextStyle(
-                          fontSize: 26, 
+                          fontSize: 26,
                           fontWeight: FontWeight.bold,
                           color: _isMyTurn ? Colors.greenAccent : Colors.white,
                         ),
@@ -400,7 +424,10 @@ class _CharacterSelectionViewState extends ConsumerState<CharacterSelectionView>
                         const SizedBox(height: 8),
                         Text(
                           'Tiempo restante: $_timeLeft s',
-                          style: const TextStyle(fontSize: 20, color: Colors.orangeAccent, fontWeight: FontWeight.bold),
+                          style: const TextStyle(
+                              fontSize: 20,
+                              color: Colors.orangeAccent,
+                              fontWeight: FontWeight.bold),
                         ),
                       ]
                     ],
@@ -412,15 +439,17 @@ class _CharacterSelectionViewState extends ConsumerState<CharacterSelectionView>
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: _availableCharacters.map((character) {
                       // Estado del personaje
-                      final isTaken = widget.lobbyState.selectedCharacters.containsValue(character);
+                      final isTaken = widget.lobbyState.selectedCharacters
+                          .containsValue(character);
                       String takenBy = '';
                       if (isTaken) {
                         // Buscar quién lo tiene
-                        widget.lobbyState.selectedCharacters.forEach((user, char) {
+                        widget.lobbyState.selectedCharacters
+                            .forEach((user, char) {
                           if (char == character) takenBy = user;
                         });
                       }
-                      
+
                       final isMySelection = takenBy == widget.currentUsername;
 
                       return Expanded(
@@ -434,19 +463,26 @@ class _CharacterSelectionViewState extends ConsumerState<CharacterSelectionView>
                             child: AnimatedContainer(
                               duration: const Duration(milliseconds: 300),
                               decoration: BoxDecoration(
-                                color: isMySelection 
-                                    ? Colors.green.withOpacity(0.3) 
-                                    : (isTaken ? Colors.grey.withOpacity(0.5) : Colors.white.withOpacity(0.1)),
+                                color: isMySelection
+                                    ? Colors.green.withOpacity(0.3)
+                                    : (isTaken
+                                        ? Colors.grey.withOpacity(0.5)
+                                        : Colors.white.withOpacity(0.1)),
                                 borderRadius: BorderRadius.circular(16),
                                 border: Border.all(
-                                  color: isMySelection 
-                                      ? Colors.greenAccent 
-                                      : (isTaken ? Colors.transparent : Colors.white54),
+                                  color: isMySelection
+                                      ? Colors.greenAccent
+                                      : (isTaken
+                                          ? Colors.transparent
+                                          : Colors.white54),
                                   width: 3,
                                 ),
                                 boxShadow: [
                                   if (isMySelection)
-                                    const BoxShadow(color: Colors.greenAccent, blurRadius: 10, spreadRadius: 2)
+                                    const BoxShadow(
+                                        color: Colors.greenAccent,
+                                        blurRadius: 10,
+                                        spreadRadius: 2)
                                 ],
                               ),
                               child: ClipRRect(
@@ -457,9 +493,13 @@ class _CharacterSelectionViewState extends ConsumerState<CharacterSelectionView>
                                     // Imagen del personaje
                                     Positioned.fill(
                                       child: Opacity(
-                                        opacity: isTaken && !isMySelection ? 0.3 : 1.0,
+                                        opacity: isTaken && !isMySelection
+                                            ? 0.3
+                                            : 1.0,
                                         child: Padding(
-                                          padding: const EdgeInsets.only(bottom: 60.0), // Dejar espacio para textos
+                                          padding: const EdgeInsets.only(
+                                              bottom:
+                                                  60.0), // Dejar espacio para textos
                                           child: Image.asset(
                                             _getImageForCharacter(character),
                                             fit: BoxFit.contain,
@@ -467,7 +507,7 @@ class _CharacterSelectionViewState extends ConsumerState<CharacterSelectionView>
                                         ),
                                       ),
                                     ),
-                                    
+
                                     // Textos abajo
                                     Positioned(
                                       bottom: 0,
@@ -475,7 +515,8 @@ class _CharacterSelectionViewState extends ConsumerState<CharacterSelectionView>
                                       right: 0,
                                       child: Container(
                                         color: Colors.black.withOpacity(0.7),
-                                        padding: const EdgeInsets.symmetric(vertical: 12),
+                                        padding: const EdgeInsets.symmetric(
+                                            vertical: 12),
                                         child: Column(
                                           children: [
                                             Text(
@@ -483,19 +524,21 @@ class _CharacterSelectionViewState extends ConsumerState<CharacterSelectionView>
                                               style: TextStyle(
                                                 fontWeight: FontWeight.bold,
                                                 fontSize: 18,
-                                                color: isTaken && !isMySelection ? Colors.grey : Colors.white,
+                                                color: isTaken && !isMySelection
+                                                    ? Colors.grey
+                                                    : Colors.white,
                                               ),
                                               textAlign: TextAlign.center,
                                             ),
                                             if (isTaken) ...[
                                               const SizedBox(height: 4),
                                               Text(
-                                                '✓ $takenBy',
+                                                'Elegido por $takenBy',
                                                 style: const TextStyle(
-                                                  color: Colors.redAccent, 
-                                                  fontSize: 14,
-                                                  fontWeight: FontWeight.bold
-                                                ),
+                                                    color: Colors.redAccent,
+                                                    fontSize: 14,
+                                                    fontWeight:
+                                                        FontWeight.bold),
                                                 textAlign: TextAlign.center,
                                               ),
                                             ]
@@ -503,14 +546,6 @@ class _CharacterSelectionViewState extends ConsumerState<CharacterSelectionView>
                                         ),
                                       ),
                                     ),
-                                    
-                                    // Icono de bloqueo gigante si está cogido por otros
-                                    if (isTaken && !isMySelection)
-                                      const Icon(
-                                        Icons.lock,
-                                        size: 80,
-                                        color: Colors.white54,
-                                      )
                                   ],
                                 ),
                               ),
@@ -531,11 +566,16 @@ class _CharacterSelectionViewState extends ConsumerState<CharacterSelectionView>
 
   String _getImageForCharacter(String character) {
     switch (character) {
-      case 'Banquero': return 'assets/images/characters/general/banquero_frente_der.png';
-      case 'Videojugador': return 'assets/images/characters/general/videojugador_frente_der.png';
-      case 'Escapista': return 'assets/images/characters/general/escapista_frente_der.png';
-      case 'Vidente': return 'assets/images/characters/general/vidente_frente_der.png';
-      default: return 'assets/images/characters/general/banquero_frente_der.png';
+      case 'Banquero':
+        return 'assets/images/characters/general/banquero_frente_der.png';
+      case 'Videojugador':
+        return 'assets/images/characters/general/videojugador_frente_der.png';
+      case 'Escapista':
+        return 'assets/images/characters/general/escapista_frente_der.png';
+      case 'Vidente':
+        return 'assets/images/characters/general/vidente_frente_der.png';
+      default:
+        return 'assets/images/characters/general/banquero_frente_der.png';
     }
   }
 }

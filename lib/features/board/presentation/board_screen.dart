@@ -29,6 +29,7 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
 
   // Coordenadas de los centros de las casillas en el tablero
   final Map<int, Offset> tileCenters = {
+    -1: const Offset(129, 952), // Casilla de espera o especial a la izquierda del inicio
     0: const Offset(285, 900),
     1: const Offset(441, 952),
     2: const Offset(540, 952),

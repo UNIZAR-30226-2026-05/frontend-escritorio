@@ -155,6 +155,19 @@ class LobbyWebSocketService {
           _ref.read(lobbyProvider.notifier).onGameStart();
           break;
 
+        // Un jugador ha confirmado su personaje.
+        case 'player_selected':
+          final user = decoded['user'] as String;
+          final character = decoded['character'] as String;
+          _ref.read(lobbyProvider.notifier).onPlayerSelected(user, character);
+          break;
+
+        // Todos los jugadores han elegido, termina la fase de LOBBY y empieza la parte de tablero del juego.
+        case 'all_players_selected':
+          _ref.read(lobbyProvider.notifier).onAllPlayersSelected();
+          // NOTA: Cuando all_players_selected se recibe, la UI reaccionará y navegará.
+          break;
+
         // Un jugador se desconectó antes de que empezara la partida.
         case 'player_disconnected':
           final List<String> players =(decoded['players_connected'] as List<dynamic>? ?? []).map((p) => p as String).toList();
@@ -201,5 +214,17 @@ class LobbyWebSocketService {
     _pendingGameId = null;
     _savedGameId = null;
     _savedToken = null;
+  }
+
+  // Envía la selección del personaje del jugador actual al backend.
+  void sendCharacterSelection(String character) {
+    if (!_isConnected || _channel == null) return;
+    final Map<String, dynamic> msg = {
+      "action": "select_player",
+      "payload": {
+        "character": character
+      }
+    };
+    _channel!.sink.add(jsonEncode(msg));
   }
 }

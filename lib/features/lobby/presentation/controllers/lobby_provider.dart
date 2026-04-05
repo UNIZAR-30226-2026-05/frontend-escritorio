@@ -22,6 +22,10 @@ class LobbyState {
   final String serverMessage;
   // Variable que representa el estado de espera de una respuesta de la API.
   final bool isLoading;       // True = esperando respuesta.
+  // Estado de los personajes elegidos: username -> personaje
+  final Map<String, String> selectedCharacters;
+  // Indica si la fase de selección de personajes ha concluido.
+  final bool allCharactersSelected;
   // Mensaje de error a mostrar si alguna operación falla.
   final String? error;
 
@@ -32,6 +36,8 @@ class LobbyState {
     this.invites = const [],
     this.onlineFriends = const {},
     this.gameStarted = false,
+    this.selectedCharacters = const {},
+    this.allCharactersSelected = false,
     this.forceDisconnected = false,
     this.serverMessage = '',
     this.isLoading = false,
@@ -47,6 +53,8 @@ class LobbyState {
     List<GameInvite>? invites,
     Set<String>? onlineFriends,
     bool? gameStarted,
+    Map<String, String>? selectedCharacters,
+    bool? allCharactersSelected,
     bool? forceDisconnected,
     String? serverMessage,
     bool? isLoading,
@@ -61,6 +69,8 @@ class LobbyState {
         invites: invites ?? this.invites,
         onlineFriends: onlineFriends ?? this.onlineFriends,
         gameStarted: gameStarted ?? this.gameStarted,
+        selectedCharacters: selectedCharacters ?? this.selectedCharacters,
+        allCharactersSelected: allCharactersSelected ?? this.allCharactersSelected,
         forceDisconnected: forceDisconnected ?? this.forceDisconnected,
         serverMessage: serverMessage ?? this.serverMessage,
         isLoading: isLoading ?? this.isLoading,
@@ -160,6 +170,19 @@ class LobbyController extends StateNotifier<LobbyState> {
     state = state.copyWith(gameStarted: true);
   }
 
+  // Llamado por el WebSocket cuando un jugador selecciona personaje.
+  void onPlayerSelected(String user, String character) {
+    // Actualizamos el mapa de seleccionados.
+    final updated = Map<String, String>.from(state.selectedCharacters);
+    updated[user] = character;
+    state = state.copyWith(selectedCharacters: updated);
+  }
+
+  // Llamado por el WebSocket cuando todos han terminado de elegir.
+  void onAllPlayersSelected() {
+    state = state.copyWith(allCharactersSelected: true);
+  }
+
   // Llamado por el WebSocket cuando llega 'player_disconnected'.
   // Actualiza la lista de jugadores conectados a la partida y el mensaje del servidor para informar al usuario.
   void onPlayerDisconnected(List<String> players, String message) {
@@ -175,6 +198,8 @@ class LobbyController extends StateNotifier<LobbyState> {
       clearGameId: true,
       playersConnected: [],
       gameStarted: false,
+      selectedCharacters: {},
+      allCharactersSelected: false,
     );
   }
 
@@ -208,6 +233,8 @@ class LobbyController extends StateNotifier<LobbyState> {
       clearGameId: true,
       playersConnected: [],
       gameStarted: false,
+      selectedCharacters: {},
+      allCharactersSelected: false,
       serverMessage: '',
       clearError: true,
     );

@@ -47,3 +47,9 @@ app.*.map.json
 
 # Archivos de configuración local de Claude (no subir al repo)
 .claude/
+
+# Para tener la carpeta del back y no tener que abrir dos ventanas
+/back
+
+# Documentación interna 
+doc.md

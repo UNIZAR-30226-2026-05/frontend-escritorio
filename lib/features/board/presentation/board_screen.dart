@@ -214,14 +214,8 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
                         final total = playersHere.length;
                         final slot = playersHere.indexOf(p);
 
-                        // Escala
-                        final double shrinkFactor = total == 1
-                            ? 1.0
-                            : total == 2
-                                ? 0.70
-                                : total == 3
-                                    ? 0.55
-                                    : 0.45;
+                        // Escala: No los hacemos diminutos, solo un poco más pequeños para que quepan (85%).
+                        final double shrinkFactor = total == 1 ? 1.0 : 0.85;
                         final spriteSize = 80.0 * scale * shrinkFactor;
 
                         bool isFacingRight = true;
@@ -236,32 +230,28 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
                           }
                         }
 
-                        // Offsets para no solaparse
+                        // Offsets para posicionamiento lógico (lado a lado y delante/detrás)
+                        // Slots más altos tendrán mayor 'dy' para aparecer "delante" visualmente en el Stack.
                         Offset playerOffset = Offset.zero;
-                        final spread =
-                            80.0 * scale * 0.5; // Relativo al tamaño base
+                        final double stepX = 25.0 * scale;
+                        final double stepY = 15.0 * scale;
+
                         if (total == 2) {
+                          // Uno atrás-izquierda, otro adelante-derecha
                           playerOffset = slot == 0
-                              ? Offset(-spread, 0)
-                              : Offset(spread, 0);
+                              ? Offset(-stepX, -stepY)
+                              : Offset(stepX, stepY);
                         } else if (total == 3) {
-                          if (slot == 0) {
-                            playerOffset = Offset(-spread, -spread * 0.4);
-                          } else if (slot == 1) {
-                            playerOffset = Offset(spread, -spread * 0.4);
-                          } else {
-                            playerOffset = Offset(0, spread * 0.6);
-                          }
+                          // Dos atrás, uno adelante centrado
+                          if (slot == 0) playerOffset = Offset(-stepX, -stepY);
+                          else if (slot == 1) playerOffset = Offset(stepX, -stepY);
+                          else playerOffset = Offset(0, stepY);
                         } else if (total >= 4) {
-                          if (slot == 0) {
-                            playerOffset = Offset(-spread, -spread * 0.5);
-                          } else if (slot == 1) {
-                            playerOffset = Offset(spread, -spread * 0.5);
-                          } else if (slot == 2) {
-                            playerOffset = Offset(-spread, spread * 0.5);
-                          } else {
-                            playerOffset = Offset(spread, spread * 0.5);
-                          }
+                          // Formación en cuadrícula/rombo escalonado
+                          if (slot == 0) playerOffset = Offset(-stepX, -stepY);
+                          else if (slot == 1) playerOffset = Offset(stepX, -stepY);
+                          else if (slot == 2) playerOffset = Offset(-stepX * 0.6, stepY);
+                          else playerOffset = Offset(stepX * 0.6, stepY);
                         }
 
                         // Calculamos top/left final superponiendo al centro

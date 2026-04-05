@@ -7,7 +7,7 @@ import '../domain/gamemodels.dart';
 import '../data/websocket_service.dart';
 import '../../auth/presentation/controllers/auth_provider.dart';
 import '../../lobby/presentation/controllers/lobby_provider.dart';
-import 'widgets/inventory_panel.dart';
+
 import '../../shop/presentation/controllers/shop_providers.dart';
 import 'widgets/minigame_overlay.dart';
 
@@ -26,10 +26,16 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
   bool _isShopOpen = false;
   Timer? _choiceTimer;
   int _choiceCountdown = 10;
+  bool _hasRolledThisTurn = false;
+
+  // Resultado de dados a mostrar brevemente (animación)
+  bool _showingDiceResult = false;
+  Timer? _diceResultTimer;
 
   // Coordenadas de los centros de las casillas en el tablero
   final Map<int, Offset> tileCenters = {
-    -1: const Offset(129, 952), // Casilla de espera o especial a la izquierda del inicio
+    -1: const Offset(
+        129, 952), // Casilla de espera o especial a la izquierda del inicio
     0: const Offset(285, 900),
     1: const Offset(441, 952),
     2: const Offset(540, 952),
@@ -171,6 +177,35 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
       },
     );
 
+    // Resetear _hasRolledThisTurn cuando cambia el jugador activo
+    ref.listen(
+      gameProvider.select((s) => s.activePlayerIndex),
+      (prev, next) {
+        if (prev != next && mounted) {
+          setState(() => _hasRolledThisTurn = false);
+        }
+      },
+    );
+
+    // Mostrar el resultado de los dados durante 1.2 segundos al recibir un resultado
+    ref.listen(
+      gameProvider.select((s) =>
+          (s.lastDice1, s.lastDice2, s.lastDiceResult, s.lastDiceRollId)),
+      (prev, next) {
+        final (d1, d2, total, rollId) = next;
+        // Solo mostramos si hay un resultado válido y no es una corrección (total > 0)
+        if (total != null && total > 0 && mounted) {
+          _diceResultTimer?.cancel();
+          setState(() => _showingDiceResult = true);
+          _diceResultTimer = Timer(const Duration(milliseconds: 2200), () {
+            if (mounted) {
+              setState(() => _showingDiceResult = false);
+            }
+          });
+        }
+      },
+    );
+
     return Scaffold(
       body: LayoutBuilder(
         builder: (context, constraints) {
@@ -244,15 +279,22 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
                               : Offset(stepX, stepY);
                         } else if (total == 3) {
                           // Dos atrás, uno adelante centrado
-                          if (slot == 0) playerOffset = Offset(-stepX, -stepY);
-                          else if (slot == 1) playerOffset = Offset(stepX, -stepY);
-                          else playerOffset = Offset(0, stepY);
+                          if (slot == 0)
+                            playerOffset = Offset(-stepX, -stepY);
+                          else if (slot == 1)
+                            playerOffset = Offset(stepX, -stepY);
+                          else
+                            playerOffset = Offset(0, stepY);
                         } else if (total >= 4) {
                           // Formación en cuadrícula/rombo escalonado
-                          if (slot == 0) playerOffset = Offset(-stepX, -stepY);
-                          else if (slot == 1) playerOffset = Offset(stepX, -stepY);
-                          else if (slot == 2) playerOffset = Offset(-stepX * 0.6, stepY);
-                          else playerOffset = Offset(stepX * 0.6, stepY);
+                          if (slot == 0)
+                            playerOffset = Offset(-stepX, -stepY);
+                          else if (slot == 1)
+                            playerOffset = Offset(stepX, -stepY);
+                          else if (slot == 2)
+                            playerOffset = Offset(-stepX * 0.6, stepY);
+                          else
+                            playerOffset = Offset(stepX * 0.6, stepY);
                         }
 
                         // Calculamos top/left final superponiendo al centro
@@ -283,73 +325,6 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
               ),
 
               // ============================================
-              // UI OVERLAY: DEBUG - Mostrar estado detallado (top-center)
-              // ============================================
-              Positioned(
-                top: 20,
-                left: 0,
-                right: 0,
-                child: Center(
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 20, vertical: 14),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF1a1a2e),
-                      borderRadius: BorderRadius.circular(8),
-                      border:
-                          Border.all(color: const Color(0xFF00FF00), width: 2),
-                    ),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        // Línea 1: Jugador actual
-                        Text(
-                          '👤 ${gameState.players.firstWhere((p) => p.id == activePlayerId).username} (ID: $activePlayerId)',
-                          style: const TextStyle(
-                            color: Color(0xFFFFFFFF),
-                            fontSize: 13,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(height: 6),
-                        // Línea 2: Posición actual
-                        Text(
-                          '📍 Casilla: ${gameState.players.firstWhere((p) => p.id == activePlayerId).currentTileIndex} / 72',
-                          style: const TextStyle(
-                            color: Color(0xFF00FF00),
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        // Línea 3: Dado y turno
-                        Text(
-                          '🎲 Dado: ${gameState.lastDiceResult ?? "—"} | Turno: ${gameState.activePlayerIndex % gameState.turnOrder.length + 1}',
-                          style: TextStyle(
-                            color: gameState.lastDiceResult != null
-                                ? const Color(0xFFFFD700)
-                                : Colors.grey,
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        // Línea 4: Fase del juego
-                        Text(
-                          '⚙️ Fase: ${gameState.currentPhase.name} | Ronda: ${gameState.currentRound}',
-                          style: const TextStyle(
-                            color: Color(0xFF00CCFF),
-                            fontSize: 11,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-
-              // ============================================
               // UI OVERLAY: Panel de jugadores (top-left)
               // ============================================
               Positioned(
@@ -373,73 +348,24 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
                 ),
               ),
 
-              // ============================================
-              // UI OVERLAY: Dado + Botón TIRAR DADO (bottom-right)
-              // ============================================
-              Positioned(
-                bottom: 16,
-                right: 16,
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    // Display del dado
-                    _buildDiceDisplay(gameState),
-                    const SizedBox(width: 12),
-                    // Botón tirar dado
-                    _buildPixelButton(
-                      text: 'TIRAR DADO',
-                      onPressed:
-                          (gameState.currentPhase == GamePhase.finished ||
-                                  !isMyTurn)
-                              ? null
-                              : () {
-                                  final gameId =
-                                      ref.read(lobbyProvider).gameId ?? '1';
-                                  ref
-                                      .read(webSocketProvider)
-                                      .rollDiceCommand(gameId, myUsername!);
-                                },
-                    ),
-                  ],
-                ),
-              ),
+              // El Modal de la tienda se movió más abajo para prioridad de z-index
 
               // ============================================
-              // UI OVERLAY: Panel de Inventario (bottom-left, encima de tienda)
+              // UI OVERLAY: Dado (Solo si es mi turno y no he tirado aun)
               // ============================================
-              Positioned(
-                bottom: 80,
-                left: 16,
-                child: InventoryPanel(
-                  items: gameState.players
-                      .firstWhere((p) => p.id == activePlayerId)
-                      .itemInventory,
-                ),
-              ),
+              if (isMyTurn &&
+                  gameState.currentPhase == GamePhase.boardTurn &&
+                  !_hasRolledThisTurn &&
+                  !gameState.isMovementActive &&
+                  !gameState.isWaitingForMinigameChoice &&
+                  (gameState.minigameChoices == null ||
+                      gameState.minigameChoices!.isEmpty))
+                _buildCenterDiceOverlay(gameState, myUsername ?? ''),
 
               // ============================================
-              // UI OVERLAY: Modal de la Tienda
+              // UI OVERLAY: Resultado de dados Animado
               // ============================================
-              if (_isShopOpen)
-                Positioned.fill(
-                  child: Stack(
-                    children: [
-                      GestureDetector(
-                        onTap: () => setState(() => _isShopOpen = false),
-                        child: Container(color: Colors.black.withOpacity(0.6)),
-                      ),
-                      Center(
-                        child: ShopModal(
-                          playerCoins: gameState.players
-                              .firstWhere((p) => p.id == activePlayerId)
-                              .coins,
-                          onClose: () => setState(() => _isShopOpen = false),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
+              if (_showingDiceResult) _buildDiceResultOverlay(gameState),
 
               // ============================================
               // UI OVERLAY: Elegir minijuego (Videojugador)
@@ -462,11 +388,347 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
                 const Positioned.fill(
                   child: MinigameOverlay(),
                 ),
+
+              // ============================================
+              // UI OVERLAY: Modal de la Tienda (ENCIMA DE TODO EL TABLERO)
+              // ============================================
+              if (_isShopOpen)
+                Positioned.fill(
+                  child: Stack(
+                    children: [
+                      GestureDetector(
+                        onTap: () => setState(() => _isShopOpen = false),
+                        child: Container(color: Colors.black.withOpacity(0.6)),
+                      ),
+                      Center(
+                        child: ShopModal(
+                          playerCoins: gameState.players
+                              .firstWhere((p) => p.id == activePlayerId)
+                              .coins,
+                          onClose: () => setState(() => _isShopOpen = false),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
             ],
           );
         },
       ),
     );
+  }
+
+  // ============================================================
+  // WIDGET: Overlay de dados en el centro de la pantalla
+  // Solo se muestra cuando es el turno del jugador local
+  // ============================================================
+  Widget _buildCenterDiceOverlay(GameState gameState, String myUsername) {
+    // Inferir el tipo de dado extra a partir de la posición en el ranking
+    final myRankIndex = gameState.turnOrder.indexOf(myUsername);
+    final myRank = myRankIndex + 1; // 1-indexed
+
+    // REGLA: En la primera ronda NO hay dados especiales, solo uno.
+    final bool isRoundOne = gameState.currentRound <= 1;
+    final hasTwoDice =
+        !isRoundOne && myRank != 4 && myRank != 0; // rank 1-3 tienen dado extra
+
+    final gameId = ref.read(lobbyProvider).gameId ?? '1';
+
+    return Center(
+      child: Container(
+        padding: const EdgeInsets.all(32),
+        decoration: BoxDecoration(
+          color: Colors.black.withOpacity(0.4),
+          borderRadius: BorderRadius.circular(24),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Texto de instrucción
+            const Text(
+              'ES TU TURNO',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 2,
+              ),
+            ),
+            const SizedBox(height: 30),
+            // Fila de dados
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _buildDiceWidget(
+                  diceColor: Colors.white,
+                  borderColor: const Color(0xFF444466),
+                  label: '1-6',
+                  labelColor: Colors.black54,
+                ),
+                if (hasTwoDice) ...[
+                  const SizedBox(width: 28),
+                  _buildDiceWidget(
+                    diceColor: _extraDiceColor(myRank),
+                    borderColor: _extraDiceBorderColor(myRank),
+                    label: _extraDiceLabel(myRank),
+                    labelColor: _extraDiceLabelColor(myRank),
+                    glowColor: _extraDiceGlowColor(myRank),
+                  ),
+                ],
+              ],
+            ),
+            const SizedBox(height: 40),
+            // Botón específico para tirar
+            _buildPixelButton(
+              text: 'TIRAR DADOS',
+              onPressed: () {
+                setState(() => _hasRolledThisTurn = true);
+                ref.read(webSocketProvider).rollDiceCommand(gameId, myUsername);
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Widget individual de un dado (icono cuadrado con estilo)
+  Widget _buildDiceWidget({
+    required Color diceColor,
+    required Color borderColor,
+    required String label,
+    required Color labelColor,
+    Color? glowColor,
+  }) {
+    return Container(
+      width: 100,
+      height: 100,
+      decoration: BoxDecoration(
+        color: diceColor,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: borderColor, width: 3),
+        boxShadow: [
+          if (glowColor != null)
+            BoxShadow(
+              color: glowColor.withOpacity(0.6),
+              blurRadius: 24,
+              spreadRadius: 4,
+            ),
+          BoxShadow(
+            color: Colors.black.withOpacity(0.4),
+            blurRadius: 8,
+            offset: const Offset(2, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Text(
+            '?',
+            style: TextStyle(
+              fontSize: 40,
+              fontWeight: FontWeight.bold,
+              color: Colors.black38,
+            ),
+          ),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
+              color: labelColor,
+              letterSpacing: 1,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ============================================================
+  // WIDGET: Overlay de resultado de dados (Animado)
+  // ============================================================
+  Widget _buildDiceResultOverlay(GameState gameState) {
+    final d1 = gameState.lastDice1;
+    final d2 = gameState.lastDice2;
+    final total = gameState.lastDiceResult ?? (d1 + d2);
+
+    // Obtener el ranking del jugador que acaba de tirar para los colores del dado 2
+    // Pero espera, el provider cambia el activePlayerIndex JUSTO después de tirar.
+    // Necesitamos el estilo del jugador que TIRÓ, no del que va ahora.
+    // Para simplificar, si d2 > 0 asumimos que es el dado por ranking.
+    final myRankIndex = (gameState.activePlayerIndex - 1) %
+        (gameState.turnOrder.isEmpty ? 1 : gameState.turnOrder.length);
+    final rank = myRankIndex + 1;
+
+    return Positioned.fill(
+      child: Container(
+        color: Colors.black.withOpacity(0.4),
+        child: Center(
+          child: TweenAnimationBuilder<double>(
+            tween: Tween(begin: 0.0, end: 1.0),
+            duration: const Duration(milliseconds: 300),
+            curve: Curves.elasticOut,
+            builder: (context, value, child) {
+              return Transform.scale(
+                scale: value,
+                child: Opacity(
+                  opacity: value.clamp(0.0, 1.0),
+                  child: child,
+                ),
+              );
+            },
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 30),
+              decoration: BoxDecoration(
+                color: const Color(0xEE1a1a2e),
+                borderRadius: BorderRadius.circular(24),
+                border: Border.all(color: Colors.amber.withOpacity(0.5), width: 2),
+                boxShadow: const [
+                  BoxShadow(color: Colors.black54, blurRadius: 20, spreadRadius: 5)
+                ],
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text(
+                    'RESULTADO',
+                    style: TextStyle(
+                      color: Colors.white70,
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 4,
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      _buildDiceFace(d1, Colors.white, Colors.black87),
+                      if (d2 > 0) ...[
+                        const SizedBox(width: 20),
+                        _buildDiceFace(
+                          d2,
+                          _extraDiceColor(rank),
+                          _extraDiceLabelColor(rank),
+                        ),
+                      ],
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+                  Text(
+                    '$total',
+                    style: const TextStyle(
+                      color: Colors.amber,
+                      fontSize: 48,
+                      fontWeight: FontWeight.bold,
+                      shadows: [
+                        Shadow(color: Colors.orange, blurRadius: 10),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDiceFace(int value, Color bgColor, Color textColor) {
+    return Container(
+      width: 80,
+      height: 80,
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.3),
+            blurRadius: 4,
+            offset: const Offset(2, 2),
+          )
+        ],
+      ),
+      child: Center(
+        child: Text(
+          '$value',
+          style: TextStyle(
+            color: textColor,
+            fontSize: 40,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      ),
+    );
+  }
+
+  // Helpers para el color del dado extra por ranking
+  Color _extraDiceColor(int rank) {
+    switch (rank) {
+      case 1:
+        return const Color(0xFFFFD700); // Oro
+      case 2:
+        return const Color(0xFFC0C0C0); // Plata
+      case 3:
+        return const Color(0xFFCD7F32); // Bronce
+      default:
+        return Colors.white;
+    }
+  }
+
+  Color _extraDiceBorderColor(int rank) {
+    switch (rank) {
+      case 1:
+        return const Color(0xFFB8860B);
+      case 2:
+        return const Color(0xFF909090);
+      case 3:
+        return const Color(0xFF8B4513);
+      default:
+        return Colors.grey;
+    }
+  }
+
+  Color _extraDiceGlowColor(int rank) {
+    switch (rank) {
+      case 1:
+        return Colors.amber;
+      case 2:
+        return Colors.blueGrey;
+      case 3:
+        return Colors.orange;
+      default:
+        return Colors.white;
+    }
+  }
+
+  String _extraDiceLabel(int rank) {
+    switch (rank) {
+      case 1:
+        return '1-6 ORO';
+      case 2:
+        return '1-4 PLATA';
+      case 3:
+        return '1-2 BRONCE';
+      default:
+        return '';
+    }
+  }
+
+  Color _extraDiceLabelColor(int rank) {
+    switch (rank) {
+      case 1:
+        return const Color(0xFF7A5C00);
+      case 2:
+        return const Color(0xFF505050);
+      case 3:
+        return const Color(0xFF5C2800);
+      default:
+        return Colors.black54;
+    }
   }
 
   // ============================================================
@@ -784,68 +1046,6 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
         return 'ESCAPISTA';
       case CharacterClass.vidente:
         return 'VIDENTE';
-    }
-  }
-
-  // ============================================================
-  // WIDGET: Dado display
-  // ============================================================
-  Widget _buildDiceDisplay(GameState gameState) {
-    return Container(
-      padding: const EdgeInsets.all(8),
-      decoration: BoxDecoration(
-        color: const Color(0xDD2D1B4E),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: const Color(0xFF6C3FA0), width: 2),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // Icono del dado
-          Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(6),
-              border: Border.all(color: const Color(0xFF333333), width: 2),
-            ),
-            child: Center(
-              child: Text(
-                gameState.lastDiceResult != null
-                    ? _getDiceFace(gameState.lastDiceResult!)
-                    : '🎲',
-                style: const TextStyle(fontSize: 22),
-              ),
-            ),
-          ),
-          const SizedBox(width: 8),
-          // Icono del turno
-          const Text(
-            '🔄',
-            style: TextStyle(fontSize: 20),
-          ),
-        ],
-      ),
-    );
-  }
-
-  String _getDiceFace(int value) {
-    switch (value) {
-      case 1:
-        return '⚀';
-      case 2:
-        return '⚁';
-      case 3:
-        return '⚂';
-      case 4:
-        return '⚃';
-      case 5:
-        return '⚄';
-      case 6:
-        return '⚅';
-      default:
-        return '🎲';
     }
   }
 

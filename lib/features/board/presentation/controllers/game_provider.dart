@@ -57,17 +57,17 @@ class GameController extends StateNotifier<GameState> {
         ));
 
   Future<void> updatePlayerFromBackend(
-      String playerId, int newTileIndex, int diceRoll) async {
+      String playerId, int newTileIndex, int diceRoll,
+      {int dice1 = 0, int dice2 = 0}) async {
     final completer = Completer<void>();
 
     _animationQueue.add(() async {
-      await _performUpdatePlayer(playerId, newTileIndex, diceRoll);
+      await _performUpdatePlayer(playerId, newTileIndex, diceRoll,
+          dice1: dice1, dice2: dice2);
       completer.complete();
     });
 
     _processQueue();
-    // Devolvemos el future para que el websocket_service espere a que termine ESTA animación
-    // antes de enviar el _sendEndRound()
     return completer.future;
   }
 
@@ -85,8 +85,23 @@ class GameController extends StateNotifier<GameState> {
 
   // Método para recibir datos del backend sobre el movimiento de un jugador
   Future<void> _performUpdatePlayer(
-      String playerId, int newTileIndex, int diceRoll) async {
+      String playerId, int newTileIndex, int diceRoll,
+      {int dice1 = 0, int dice2 = 0}) async {
     if (state.currentPhase == GamePhase.finished) return;
+
+    // Bloqueamos la UI mientras hay movimiento o resultado de dado
+    // ACTUALIZAMOS EL RESULTADO DEL DADO INMEDIATAMENTE PARA QUE SE VEA EL OVERLAY
+    state = state.copyWith(
+      isMovementActive: true,
+      lastDiceResult: diceRoll,
+      lastDice1: dice1,
+      lastDice2: dice2,
+      lastDiceRollId: state.lastDiceRollId + 1, // Incrementamos para que la UI lo detecte
+      serverMessage: "${state.players.firstWhere((p) => p.id == playerId).username} sacó un $diceRoll.",
+    );
+
+    // ESPERA de 2 segundos para que se vea el resultado del dado ANTES de mover
+    await Future.delayed(const Duration(seconds: 2));
 
     final currentPlayer = state.players.firstWhere((p) => p.id == playerId);
 
@@ -134,7 +149,9 @@ class GameController extends StateNotifier<GameState> {
         state = state.copyWith(
             players: stepPlayers,
             serverMessage: newMessage,
-            lastDiceResult: diceRoll == 0 ? state.lastDiceResult : diceRoll);
+            lastDiceResult: diceRoll == 0 ? state.lastDiceResult : diceRoll,
+            lastDice1: diceRoll == 0 ? state.lastDice1 : dice1,
+            lastDice2: diceRoll == 0 ? state.lastDice2 : dice2);
 
         await Future.delayed(const Duration(milliseconds: 350));
       }
@@ -153,7 +170,9 @@ class GameController extends StateNotifier<GameState> {
         state = state.copyWith(
             players: stepPlayers,
             serverMessage: newMessage,
-            lastDiceResult: diceRoll == 0 ? state.lastDiceResult : diceRoll);
+            lastDiceResult: diceRoll == 0 ? state.lastDiceResult : diceRoll,
+            lastDice1: diceRoll == 0 ? state.lastDice1 : dice1,
+            lastDice2: diceRoll == 0 ? state.lastDice2 : dice2);
 
         await Future.delayed(const Duration(milliseconds: 350));
       }
@@ -181,11 +200,13 @@ class GameController extends StateNotifier<GameState> {
         currentRound: nextRound,
         serverMessage: newMessage,
         currentPhase: nextPhase,
+        isMovementActive: false, // Desbloqueo al final del turno
       );
     } else {
       state = state.copyWith(
         serverMessage: newMessage,
         currentPhase: nextPhase,
+        isMovementActive: false, // FIN de movimiento y desbloqueo
       );
     }
   }

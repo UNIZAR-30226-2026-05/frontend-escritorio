@@ -164,6 +164,9 @@ class GameState {
   // UI / Feedback
   final String serverMessage;
   final int? lastDiceResult; // Solo para mostrar visualmente cuánto sacó
+  final int lastDice1;       // Valor del dado 1 individual
+  final int lastDice2;       // Valor del dado 2 individual (0 si no hubo segundo dado)
+  final int lastDiceRollId;  // Contador incremental para detectar rollos seguidos idénticos
 
   // Minijuegos
   final String? minigameName;
@@ -172,6 +175,9 @@ class GameState {
   final Map<String, dynamic>? minigameResults;
   final List<String>? minigameChoices;
   final bool isWaitingForMinigameChoice;
+
+  // Animaciones / Locks
+  final bool isMovementActive;
 
   //Constructor de la clase
   GameState({
@@ -182,12 +188,16 @@ class GameState {
     this.activePlayerIndex = 0,
     this.serverMessage = "Esperando jugadores...",
     this.lastDiceResult,
+    this.lastDice1 = 0,
+    this.lastDice2 = 0,
+    this.lastDiceRollId = 0,
     this.minigameName,
     this.minigameDescription,
     this.minigameDetails,
     this.minigameResults,
     this.minigameChoices,
     this.isWaitingForMinigameChoice = false,
+    this.isMovementActive = false,
   });
 
   GameState copyWith({
@@ -198,12 +208,16 @@ class GameState {
     int? activePlayerIndex,
     String? serverMessage,
     int? lastDiceResult,
+    int? lastDice1,
+    int? lastDice2,
+    int? lastDiceRollId,
     String? minigameName,
     String? minigameDescription,
     Map<String, dynamic>? minigameDetails,
     Map<String, dynamic>? minigameResults,
     List<String>? minigameChoices,
     bool? isWaitingForMinigameChoice,
+    bool? isMovementActive,
   }) {
     return GameState(
       currentPhase: currentPhase ?? this.currentPhase,
@@ -213,12 +227,17 @@ class GameState {
       activePlayerIndex: activePlayerIndex ?? this.activePlayerIndex,
       serverMessage: serverMessage ?? this.serverMessage,
       lastDiceResult: lastDiceResult ?? this.lastDiceResult,
+      lastDice1: lastDice1 ?? this.lastDice1,
+      lastDice2: lastDice2 ?? this.lastDice2,
+      lastDiceRollId: lastDiceRollId ?? this.lastDiceRollId,
       minigameName: minigameName ?? this.minigameName,
       minigameDescription: minigameDescription ?? this.minigameDescription,
       minigameDetails: minigameDetails ?? this.minigameDetails,
       minigameResults: minigameResults ?? this.minigameResults,
       minigameChoices: minigameChoices ?? this.minigameChoices,
-      isWaitingForMinigameChoice: isWaitingForMinigameChoice ?? this.isWaitingForMinigameChoice,
+      isWaitingForMinigameChoice:
+          isWaitingForMinigameChoice ?? this.isWaitingForMinigameChoice,
+      isMovementActive: isMovementActive ?? this.isMovementActive,
     );
   }
 }

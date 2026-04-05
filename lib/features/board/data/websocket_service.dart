@@ -89,7 +89,8 @@ class WebSocketService {
           // Usar Riverpod para enviar los datos al gameProvider
           _ref
               .read(gameProvider.notifier)
-              .updatePlayerFromBackend(userId, newTile, diceTotal)
+              .updatePlayerFromBackend(userId, newTile, diceTotal,
+                  dice1: dado1, dice2: dado2)
               .then((_) {
             // Para evitar que cuente como turno los movimientos de avanzar y retroceder por casillas
             Future.delayed(const Duration(milliseconds: 100), () {
@@ -219,7 +220,10 @@ class WebSocketService {
           // Si este jugador ya terminó su ronda y el backend manda el balance
           // de fin de ronda (ocurre cuando TODOS los jugadores han terminado),
           // mostramos la pantalla de espera del Videojugador para todos.
-          if (_localPlayerSentEndRound) {
+          // Solo disparamos si activePlayerIndex es 0 (vuelta al inicio),
+          // indicando que el último jugador ya sumó su movimiento.
+          if (_localPlayerSentEndRound &&
+              _ref.read(gameProvider).activePlayerIndex == 0) {
             _localPlayerSentEndRound = false;
             _ref.read(gameProvider.notifier).setWaitingForMinigameChoice(true);
           }

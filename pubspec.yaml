@@ -21,6 +21,10 @@ dependencies:
   go_router: ^14.0.0
 
 flutter:
+  fonts:
+    - family: Retro Gaming
+      fonts:
+        - asset: assets/images/fonts/Retro Gaming.ttf
   assets:
    # - assets/animations/
     - assets/images/board/
@@ -34,7 +38,6 @@ flutter:
    # - assets/sounds/bgm/
    # - assets/sounds/sfx/
    # - assets/data/
-
 
 # TODO Añadir dependencias mientras se va actualizando el código
 # como por ejemplo GoRouter para navegar entre el tablero y los minijuegos

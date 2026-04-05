@@ -61,6 +61,7 @@ class _SnowPartyAppState extends ConsumerState<SnowPartyApp>
       theme: ThemeData(
         primarySwatch: Colors.blue,
         useMaterial3: true,
+        fontFamily: 'Retro Gaming',
       ),
       routerConfig: router,
       debugShowCheckedModeBanner: false,

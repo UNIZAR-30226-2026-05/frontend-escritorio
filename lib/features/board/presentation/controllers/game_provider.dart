@@ -56,8 +56,8 @@ class GameController extends StateNotifier<GameState> {
           serverMessage: "¡Comienza el juego!",
         ));
 
-
-  Future<void> updatePlayerFromBackend(String playerId, int newTileIndex, int diceRoll) async {
+  Future<void> updatePlayerFromBackend(
+      String playerId, int newTileIndex, int diceRoll) async {
     final completer = Completer<void>();
 
     _animationQueue.add(() async {
@@ -68,7 +68,7 @@ class GameController extends StateNotifier<GameState> {
     _processQueue();
     // Devolvemos el future para que el websocket_service espere a que termine ESTA animación
     // antes de enviar el _sendEndRound()
-    return completer.future; 
+    return completer.future;
   }
 
   Future<void> _processQueue() async {
@@ -84,7 +84,8 @@ class GameController extends StateNotifier<GameState> {
   }
 
   // Método para recibir datos del backend sobre el movimiento de un jugador
-  Future<void> _performUpdatePlayer(String playerId, int newTileIndex, int diceRoll) async {
+  Future<void> _performUpdatePlayer(
+      String playerId, int newTileIndex, int diceRoll) async {
     if (state.currentPhase == GamePhase.finished) return;
 
     final currentPlayer = state.players.firstWhere((p) => p.id == playerId);
@@ -96,23 +97,27 @@ class GameController extends StateNotifier<GameState> {
     print('  Dado tirado: $diceRoll');
     print('  Nueva casilla (del backend): $newTileIndex');
     print('  Diferencia: ${newTileIndex - currentPlayer.currentTileIndex}');
-    print('  ¿Coincide dado con diferencia?: ${diceRoll == (newTileIndex - currentPlayer.currentTileIndex)}');
+    print(
+        '  ¿Coincide dado con diferencia?: ${diceRoll == (newTileIndex - currentPlayer.currentTileIndex)}');
     print('  Total jugadores: ${state.players.length}');
     print('  Turno order: ${state.turnOrder}');
     print('  Active player index actual: ${state.activePlayerIndex}');
-    print('  Próximo index: ${(state.activePlayerIndex + 1) % state.turnOrder.length}');
+    print(
+        '  Próximo index: ${(state.activePlayerIndex + 1) % state.turnOrder.length}');
     print('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
 
     // Mensaje según si es movimiento o corrección
     String newMessage = diceRoll == 0
-      ? "${currentPlayer.username} ajusta su posición."
-      : "${currentPlayer.username} sacó un $diceRoll.";
+        ? "${currentPlayer.username} ajusta su posición."
+        : "${currentPlayer.username} sacó un $diceRoll.";
 
     // Animación de movimiento paso a paso (funciona tanto para avance como retroceso)
     final startPos = currentPlayer.currentTileIndex;
 
     // Nos aseguramos de que el nuevo índice no supere el máximo del tablero
-    final endPos = newTileIndex >= totalTiles - 1 ? totalTiles - 1 : newTileIndex;    final isMovingForward = endPos > startPos;
+    final endPos =
+        newTileIndex >= totalTiles - 1 ? totalTiles - 1 : newTileIndex;
+    final isMovingForward = endPos > startPos;
 
     if (isMovingForward) {
       // Avance: 5 → 9 (5, 6, 7, 8, 9)
@@ -162,7 +167,8 @@ class GameController extends StateNotifier<GameState> {
     }
 
     if (diceRoll != 0) {
-      int nextPlayerIndex = (state.activePlayerIndex + 1) % state.turnOrder.length;
+      int nextPlayerIndex =
+          (state.activePlayerIndex + 1) % state.turnOrder.length;
       int nextRound = state.currentRound;
 
       // Si el índice vuelve a 0, significa que ha dado la vuelta completa a todos los jugadores
@@ -255,12 +261,13 @@ class GameController extends StateNotifier<GameState> {
     // Filtramos vacíos por si alguien falta en el order (ej: test con 1 player)
     final cleanTurnOrder = newTurnOrder.where((id) => id.isNotEmpty).toList();
 
-      print('✅ Jugadores cargados del backend:');
-      for (var p in updatedPlayers) {
-        print('  • ${p.username} (ID: ${p.id}) - Casilla ${p.currentTileIndex} - ${p.characterClass.name}');
-      }
-      print('  Turno order: $cleanTurnOrder');
-      print('═══════════════════════════════════════════');
+    print('✅ Jugadores cargados del backend:');
+    for (var p in updatedPlayers) {
+      print(
+          '  • ${p.username} (ID: ${p.id}) - Casilla ${p.currentTileIndex} - ${p.characterClass.name}');
+    }
+    print('  Turno order: $cleanTurnOrder');
+    print('═══════════════════════════════════════════');
 
     state = state.copyWith(
       currentPhase: newPhase,
@@ -279,12 +286,23 @@ class GameController extends StateNotifier<GameState> {
     String? description,
     Map<String, dynamic>? details,
   }) {
-    state = state.copyWith(
+    // Usamos el constructor directamente porque copyWith no puede poner
+    // campos nullable a null (null ?? valorAnterior = valorAnterior).
+    // Si llamamos copyWith(minigameResults: null), el ?? devuelve el
+    // resultado de la ronda anterior y la pantalla de resultados persiste.
+    state = GameState(
       currentPhase: GamePhase.minigameOrder,
+      currentRound: state.currentRound,
+      players: state.players,
+      turnOrder: state.turnOrder,
+      activePlayerIndex: state.activePlayerIndex,
+      serverMessage: state.serverMessage,
       minigameName: name,
       minigameDescription: description,
       minigameDetails: details,
-      minigameResults: null,
+      // minigameResults: null (por defecto) — reset intencional
+      // minigameChoices: null (por defecto)
+      isWaitingForMinigameChoice: false,
     );
   }
 
@@ -296,17 +314,23 @@ class GameController extends StateNotifier<GameState> {
   }
 
   void finishMinigame() {
-    state = state.copyWith(
+    // Igual que startMinigame: construimos el estado directamente para
+    // poder poner todos los campos de minijuego a null de verdad.
+    state = GameState(
       currentPhase: GamePhase.boardTurn,
-      minigameName: null,
-      minigameDescription: null,
-      minigameDetails: null,
-      minigameResults: null,
+      currentRound: state.currentRound,
+      players: state.players,
+      turnOrder: state.turnOrder,
+      activePlayerIndex: state.activePlayerIndex,
+      serverMessage: state.serverMessage,
+      // minigameName, Description, Details, Results, Choices: null por defecto
+      isWaitingForMinigameChoice: false,
     );
   }
 
   // Método para actualizar monedas e inventario
-  void updateInventoryAndBalance(String playerId, {List<ItemType>? newInventory, int? newBalance}) {
+  void updateInventoryAndBalance(String playerId,
+      {List<ItemType>? newInventory, int? newBalance}) {
     final updatedPlayers = state.players.map((p) {
       if (p.id == playerId) {
         return p.copyWith(
@@ -319,4 +343,15 @@ class GameController extends StateNotifier<GameState> {
     state = state.copyWith(players: updatedPlayers);
   }
 
+  void setMinigameChoices(List<String> choices) {
+    state = state.copyWith(minigameChoices: choices);
+  }
+
+  void clearMinigameChoices() {
+    state = state.copyWith(minigameChoices: []);
+  }
+
+  void setWaitingForMinigameChoice(bool waiting) {
+    state = state.copyWith(isWaitingForMinigameChoice: waiting);
+  }
 }

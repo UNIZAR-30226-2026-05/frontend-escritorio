@@ -33,14 +33,38 @@ class _MinigameOverlayState extends ConsumerState<MinigameOverlay> {
 
   int _countdown = 3;
   bool _countdownFinished = false;
+  ProviderSubscription<Map<String, dynamic>?>? _resultsSubscription;
 
   @override
   void initState() {
     super.initState();
     _startCountdown();
+    // Registramos el listener UNA SOLA VEZ para disparar el cierre automático.
+    // Guardamos la suscripción para cancelarla en dispose() y evitar leaks
+    // entre rondas (que causaban que finishMinigame se llamara dos veces).
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _resultsSubscription = ref.listenManual(
+        gameProvider.select((s) => s.minigameResults),
+        (prev, next) {
+          if (prev == null && next != null) {
+            Future.delayed(const Duration(seconds: 5), () {
+              if (mounted && ref.read(gameProvider).minigameResults != null) {
+                ref.read(gameProvider.notifier).finishMinigame();
+              }
+            });
+          }
+        },
+      );
+    });
   }
 
-  // Cuenta atrás de 3 segundos antes de mostrar el minijuego
+  @override
+  void dispose() {
+    _resultsSubscription?.close();
+    super.dispose();
+  }
+
   void _startCountdown() {
     Timer.periodic(const Duration(seconds: 1), (timer) {
       if (_countdown > 1) {
@@ -66,17 +90,6 @@ class _MinigameOverlayState extends ConsumerState<MinigameOverlay> {
 
   @override
   Widget build(BuildContext context) {
-    // Escuchar cambios en los resultados para disparar el cierre automático una sola vez
-    ref.listen(gameProvider.select((s) => s.minigameResults), (prev, next) {
-      if (prev == null && next != null) {
-        Future.delayed(const Duration(seconds: 5), () {
-          if (mounted && ref.read(gameProvider).minigameResults != null) {
-            ref.read(gameProvider.notifier).finishMinigame();
-          }
-        });
-      }
-    });
-
     final gameState = ref.watch(gameProvider);
     final results = gameState.minigameResults;
 
@@ -109,7 +122,12 @@ class _MinigameOverlayState extends ConsumerState<MinigameOverlay> {
                   fontSize: 32,
                   fontWeight: FontWeight.bold,
                   letterSpacing: 4,
-                  shadows: [Shadow(color: Colors.black, blurRadius: 4, offset: Offset(2, 2))],
+                  shadows: [
+                    Shadow(
+                        color: Colors.black,
+                        blurRadius: 4,
+                        offset: Offset(2, 2))
+                  ],
                 ),
               ),
               const SizedBox(height: 8),
@@ -119,9 +137,14 @@ class _MinigameOverlayState extends ConsumerState<MinigameOverlay> {
                   child: Text(
                     gameState.minigameDescription!,
                     style: const TextStyle(
-                      color: Colors.white, 
+                      color: Colors.white,
                       fontSize: 16,
-                      shadows: [Shadow(color: Colors.black, blurRadius: 4, offset: Offset(1, 1))],
+                      shadows: [
+                        Shadow(
+                            color: Colors.black,
+                            blurRadius: 4,
+                            offset: Offset(1, 1))
+                      ],
                     ),
                     textAlign: TextAlign.center,
                   ),
@@ -173,8 +196,10 @@ class _MinigameOverlayState extends ConsumerState<MinigameOverlay> {
     // Ordenar los resultados por posición
     final sortedEntries = results.entries.toList()
       ..sort((a, b) {
-        final posA = (a.value as Map<String, dynamic>)['posicion'] as int? ?? 99;
-        final posB = (b.value as Map<String, dynamic>)['posicion'] as int? ?? 99;
+        final posA =
+            (a.value as Map<String, dynamic>)['posicion'] as int? ?? 99;
+        final posB =
+            (b.value as Map<String, dynamic>)['posicion'] as int? ?? 99;
         return posA.compareTo(posB);
       });
 
@@ -184,9 +209,7 @@ class _MinigameOverlayState extends ConsumerState<MinigameOverlay> {
         const Text(
           '🏆 RESULTADOS',
           style: TextStyle(
-              color: Colors.amber,
-              fontSize: 28,
-              fontWeight: FontWeight.bold),
+              color: Colors.amber, fontSize: 28, fontWeight: FontWeight.bold),
         ),
         const SizedBox(height: 24),
         Container(
@@ -239,7 +262,8 @@ class _MinigameOverlayState extends ConsumerState<MinigameOverlay> {
                     ),
                     Text(
                       '$score',
-                      style: const TextStyle(color: Colors.white70, fontSize: 16),
+                      style:
+                          const TextStyle(color: Colors.white70, fontSize: 16),
                     ),
                   ],
                 ),

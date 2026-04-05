@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'controllers/game_provider.dart';
@@ -22,6 +24,8 @@ class BoardScreen extends ConsumerStatefulWidget {
 
 class _BoardScreenState extends ConsumerState<BoardScreen> {
   bool _isShopOpen = false;
+  Timer? _choiceTimer;
+  int _choiceCountdown = 10;
 
   // Coordenadas de los centros de las casillas en el tablero
   final Map<int, Offset> tileCenters = {
@@ -110,7 +114,7 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
     Future.microtask(() {
       final token = ref.read(authProvider).token;
       if (token != null) {
-        // Conectamos el WebSocket del juego usando el gameId guardado en el estado del lobby 
+        // Conectamos el WebSocket del juego usando el gameId guardado en el estado del lobby
         // (si se viene de lobby) y el token de autenticación.
         final gameId = ref.read(lobbyProvider).gameId ?? '1';
         ref.read(webSocketProvider).connect(gameId, token);
@@ -120,7 +124,7 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
 
   @override
   void dispose() {
-    // Desconexión limpia del WebSocket cuando se destruye la pantalla (Issue #25)
+    _choiceTimer?.cancel();
     ref.read(webSocketProvider).disconnect();
     super.dispose();
   }
@@ -131,6 +135,40 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
     final activePlayerId = gameState.turnOrder[gameState.activePlayerIndex];
     final myUsername = ref.watch(authProvider).username;
     final isMyTurn = myUsername == activePlayerId;
+
+    // Arrancar / cancelar el timer de selección cuando el Videojugador recibe sus opciones
+    ref.listen(
+      gameProvider.select((s) => s.minigameChoices),
+      (prev, next) {
+        final hasChoices = next != null && next.isNotEmpty;
+        if (hasChoices && (prev == null || prev.isEmpty)) {
+          // Acaban de aparecer las opciones → reset y arrancamos cuenta atrás
+          setState(() => _choiceCountdown = 10);
+          _choiceTimer?.cancel();
+          _choiceTimer = Timer.periodic(const Duration(seconds: 1), (t) {
+            if (!mounted) {
+              t.cancel();
+              return;
+            }
+            setState(() => _choiceCountdown--);
+            if (_choiceCountdown <= 0) {
+              t.cancel();
+              // Selección aleatoria automática
+              final choices = ref.read(gameProvider).minigameChoices ?? [];
+              if (choices.isNotEmpty) {
+                final random = choices[
+                    DateTime.now().millisecondsSinceEpoch % choices.length];
+                ref.read(webSocketProvider).sendMinigameChoice(random);
+                ref.read(gameProvider.notifier).clearMinigameChoices();
+              }
+            }
+          });
+        } else if (!hasChoices) {
+          // Las opciones desaparecieron → cancelamos el timer
+          _choiceTimer?.cancel();
+        }
+      },
+    );
 
     return Scaffold(
       body: LayoutBuilder(
@@ -185,7 +223,7 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
                                     ? 0.55
                                     : 0.45;
                         final spriteSize = 80.0 * scale * shrinkFactor;
-                        
+
                         bool isFacingRight = true;
                         if (index > 0) {
                           final current = tileCenters[index];
@@ -200,7 +238,8 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
 
                         // Offsets para no solaparse
                         Offset playerOffset = Offset.zero;
-                        final spread = 80.0 * scale * 0.5; // Relativo al tamaño base
+                        final spread =
+                            80.0 * scale * 0.5; // Relativo al tamaño base
                         if (total == 2) {
                           playerOffset = slot == 0
                               ? Offset(-spread, 0)
@@ -261,11 +300,13 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
                 right: 0,
                 child: Center(
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 20, vertical: 14),
                     decoration: BoxDecoration(
                       color: const Color(0xFF1a1a2e),
                       borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: const Color(0xFF00FF00), width: 2),
+                      border:
+                          Border.all(color: const Color(0xFF00FF00), width: 2),
                     ),
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
@@ -323,7 +364,8 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
               Positioned(
                 top: 16,
                 left: 16,
-                child: _buildPlayerPanel(gameState, activePlayerId, myUsername ?? ''),
+                child: _buildPlayerPanel(
+                    gameState, activePlayerId, myUsername ?? ''),
               ),
 
               // ============================================
@@ -356,12 +398,17 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
                     // Botón tirar dado
                     _buildPixelButton(
                       text: 'TIRAR DADO',
-                      onPressed: (gameState.currentPhase == GamePhase.finished || !isMyTurn)
-                          ? null
-                          : () {
-                              final gameId = ref.read(lobbyProvider).gameId ?? '1';
-                              ref.read(webSocketProvider).rollDiceCommand(gameId, myUsername!);
-                            },
+                      onPressed:
+                          (gameState.currentPhase == GamePhase.finished ||
+                                  !isMyTurn)
+                              ? null
+                              : () {
+                                  final gameId =
+                                      ref.read(lobbyProvider).gameId ?? '1';
+                                  ref
+                                      .read(webSocketProvider)
+                                      .rollDiceCommand(gameId, myUsername!);
+                                },
                     ),
                   ],
                 ),
@@ -374,7 +421,9 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
                 bottom: 80,
                 left: 16,
                 child: InventoryPanel(
-                  items: gameState.players.firstWhere((p) => p.id == activePlayerId).itemInventory,
+                  items: gameState.players
+                      .firstWhere((p) => p.id == activePlayerId)
+                      .itemInventory,
                 ),
               ),
 
@@ -391,13 +440,28 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
                       ),
                       Center(
                         child: ShopModal(
-                          playerCoins: gameState.players.firstWhere((p) => p.id == activePlayerId).coins,
+                          playerCoins: gameState.players
+                              .firstWhere((p) => p.id == activePlayerId)
+                              .coins,
                           onClose: () => setState(() => _isShopOpen = false),
                         ),
                       ),
                     ],
                   ),
                 ),
+
+              // ============================================
+              // UI OVERLAY: Elegir minijuego (Videojugador)
+              // ============================================
+              if (gameState.minigameChoices != null &&
+                  gameState.minigameChoices!.isNotEmpty)
+                _buildVideojugadorChoiceOverlay(gameState, myUsername ?? '')
+
+              // ============================================
+              // UI OVERLAY: Espera para no-Videojugadores
+              // ============================================
+              else if (gameState.isWaitingForMinigameChoice)
+                _buildWaitingForVideojugadorOverlay(gameState),
 
               // ============================================
               // UI OVERLAY: Minijuego
@@ -415,9 +479,174 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
   }
 
   // ============================================================
+  // WIDGET: Overlay de selección de minijuego (Videojugador)
+  // ============================================================
+  Widget _buildVideojugadorChoiceOverlay(
+      GameState gameState, String myUsername) {
+    return Positioned.fill(
+      child: Container(
+        color: Colors.black.withOpacity(0.85),
+        child: Center(
+          child: Container(
+            padding: const EdgeInsets.all(32),
+            decoration: BoxDecoration(
+              color: const Color(0xDD2D1B4E),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: Colors.purpleAccent, width: 4),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.purple.withOpacity(0.5),
+                  blurRadius: 20,
+                  spreadRadius: 5,
+                )
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text(
+                  'TU HABILIDAD',
+                  style: TextStyle(
+                    color: Colors.purpleAccent,
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 3,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                const Text(
+                  'ELIGE EL SIGUIENTE MINIJUEGO',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                // Cuenta atrás
+                Text(
+                  '$_choiceCountdown',
+                  style: TextStyle(
+                    color:
+                        _choiceCountdown <= 3 ? Colors.redAccent : Colors.amber,
+                    fontSize: 40,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 24),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: gameState.minigameChoices!.map((choice) {
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: _buildPixelButton(
+                        text: choice.toUpperCase(),
+                        onPressed: () {
+                          _choiceTimer?.cancel();
+                          ref
+                              .read(webSocketProvider)
+                              .sendMinigameChoice(choice);
+                          ref
+                              .read(gameProvider.notifier)
+                              .clearMinigameChoices();
+                        },
+                      ),
+                    );
+                  }).toList(),
+                )
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ============================================================
+  // WIDGET: Overlay de espera (jugadores sin habilidad de elección)
+  // ============================================================
+  Widget _buildWaitingForVideojugadorOverlay(GameState gameState) {
+    // Tomamos los nombres de los minijuegos del gameState si están, sino usamos placeholders
+    final choices = gameState.minigameChoices ?? ['MINIJUEGO', 'MINIJUEGO'];
+    return Positioned.fill(
+      child: Container(
+        color: Colors.black.withOpacity(0.85),
+        child: Center(
+          child: Container(
+            padding: const EdgeInsets.all(32),
+            decoration: BoxDecoration(
+              color: const Color(0xDD2D1B4E),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: Colors.amber, width: 4),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.amber.withOpacity(0.3),
+                  blurRadius: 20,
+                  spreadRadius: 5,
+                )
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text(
+                  'EL VIDEOJUGADOR ESTÁ ELIGIENDO...',
+                  style: TextStyle(
+                    color: Colors.amber,
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 2,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 8),
+                const Text(
+                  'SIGUIENTE MINIJUEGO',
+                  style: TextStyle(
+                    color: Colors.white54,
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                const SizedBox(height: 24),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: choices.map((choice) {
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      // Botón bloqueado visualmente (sin onPressed)
+                      child: Opacity(
+                        opacity: 0.4,
+                        child: _buildPixelButton(
+                          text: choice.toUpperCase(),
+                          onPressed: null,
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                ),
+                const SizedBox(height: 16),
+                const SizedBox(
+                  width: 24,
+                  height: 24,
+                  child: CircularProgressIndicator(
+                    color: Colors.amber,
+                    strokeWidth: 2,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ============================================================
   // WIDGET: Panel de Jugadores
   // ============================================================
-  Widget _buildPlayerPanel(GameState gameState, String activePlayerId, String myUsername) {
+  Widget _buildPlayerPanel(
+      GameState gameState, String activePlayerId, String myUsername) {
     return Container(
       width: 220,
       decoration: BoxDecoration(
@@ -460,7 +689,8 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
           // Lista de jugadores
           ...gameState.players.map((player) {
             final isActive = player.id == activePlayerId;
-            final isMe = player.id == myUsername || player.username == myUsername;
+            final isMe =
+                player.id == myUsername || player.username == myUsername;
             return _buildPlayerRow(player, isActive, isMe);
           }),
         ],
@@ -477,7 +707,9 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
             : (isMe ? Colors.green.withOpacity(0.15) : Colors.transparent),
         border: Border(
           bottom: const BorderSide(color: Color(0x33FFFFFF), width: 1),
-          left: isMe ? const BorderSide(color: Colors.greenAccent, width: 4) : BorderSide.none,
+          left: isMe
+              ? const BorderSide(color: Colors.greenAccent, width: 4)
+              : BorderSide.none,
         ),
       ),
       child: Row(
@@ -489,9 +721,7 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(4),
               border: Border.all(
-                color: isActive
-                    ? Colors.amber
-                    : const Color(0x55FFFFFF),
+                color: isActive ? Colors.amber : const Color(0x55FFFFFF),
                 width: isActive ? 2 : 1,
               ),
             ),
@@ -512,10 +742,12 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
                 Text(
                   player.username + (isMe ? ' (TÚ)' : ''),
                   style: TextStyle(
-                    color: isMe 
-                        ? Colors.greenAccent 
+                    color: isMe
+                        ? Colors.greenAccent
                         : (isActive ? Colors.amber : Colors.white),
-                    fontWeight: (isActive || isMe) ? FontWeight.bold : FontWeight.normal,
+                    fontWeight: (isActive || isMe)
+                        ? FontWeight.bold
+                        : FontWeight.normal,
                     fontSize: 12,
                   ),
                   overflow: TextOverflow.ellipsis,
@@ -609,13 +841,20 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
 
   String _getDiceFace(int value) {
     switch (value) {
-      case 1: return '⚀';
-      case 2: return '⚁';
-      case 3: return '⚂';
-      case 4: return '⚃';
-      case 5: return '⚄';
-      case 6: return '⚅';
-      default: return '🎲';
+      case 1:
+        return '⚀';
+      case 2:
+        return '⚁';
+      case 3:
+        return '⚂';
+      case 4:
+        return '⚃';
+      case 5:
+        return '⚄';
+      case 6:
+        return '⚅';
+      default:
+        return '🎲';
     }
   }
 

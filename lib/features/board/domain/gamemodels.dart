@@ -170,6 +170,8 @@ class GameState {
   final String? minigameDescription;
   final Map<String, dynamic>? minigameDetails;
   final Map<String, dynamic>? minigameResults;
+  final List<String>? minigameChoices;
+  final bool isWaitingForMinigameChoice;
 
   //Constructor de la clase
   GameState({
@@ -184,6 +186,8 @@ class GameState {
     this.minigameDescription,
     this.minigameDetails,
     this.minigameResults,
+    this.minigameChoices,
+    this.isWaitingForMinigameChoice = false,
   });
 
   GameState copyWith({
@@ -198,6 +202,8 @@ class GameState {
     String? minigameDescription,
     Map<String, dynamic>? minigameDetails,
     Map<String, dynamic>? minigameResults,
+    List<String>? minigameChoices,
+    bool? isWaitingForMinigameChoice,
   }) {
     return GameState(
       currentPhase: currentPhase ?? this.currentPhase,
@@ -211,6 +217,8 @@ class GameState {
       minigameDescription: minigameDescription ?? this.minigameDescription,
       minigameDetails: minigameDetails ?? this.minigameDetails,
       minigameResults: minigameResults ?? this.minigameResults,
+      minigameChoices: minigameChoices ?? this.minigameChoices,
+      isWaitingForMinigameChoice: isWaitingForMinigameChoice ?? this.isWaitingForMinigameChoice,
     );
   }
 }

@@ -17,7 +17,10 @@ class WebSocketService {
   WebSocketChannel? _channel;
   bool _isConnected = false;
   bool _isActionLocked = false;
-
+  // Indica que este jugador ya envió end_round y espera la señal del fin de ronda.
+  // El backend, al recibir todos los end_round, manda balances_changed a todos.
+  // Eso es cuando activamos el overlay de espera del Videojugador para todos.
+  bool _localPlayerSentEndRound = false;
 
   WebSocketService(this._ref);
 
@@ -71,46 +74,52 @@ class WebSocketService {
           final int dado2 = decoded['dado2'] ?? 0;
           final int diceTotal = dado1 + dado2;
 
-            // DEBUG: Imprimir exactamente qué recibió del backend
-            print('═══════════════════════════════════════════');
-            print(' PLAYER_MOVED recibido del backend:');
-            print('  • User ID: $userId');
-            print('  • Dado 1: $dado1');
-            print('  • Dado 2: $dado2');
-            if (diceTotal != 0) {
-              print('  • Total dado: $diceTotal');
-            }
-            print('  • Nueva casilla (backend): $newTile');
-            print('═══════════════════════════════════════════');
+          // DEBUG: Imprimir exactamente qué recibió del backend
+          print('═══════════════════════════════════════════');
+          print(' PLAYER_MOVED recibido del backend:');
+          print('  • User ID: $userId');
+          print('  • Dado 1: $dado1');
+          print('  • Dado 2: $dado2');
+          if (diceTotal != 0) {
+            print('  • Total dado: $diceTotal');
+          }
+          print('  • Nueva casilla (backend): $newTile');
+          print('═══════════════════════════════════════════');
 
           // Usar Riverpod para enviar los datos al gameProvider
           _ref
               .read(gameProvider.notifier)
               .updatePlayerFromBackend(userId, newTile, diceTotal)
               .then((_) {
-                // Para evitar que cuente como turno los movimientos de avanzar y retroceder por casillas
-                Future.delayed(const Duration(milliseconds: 100), () {
-                  // Solo avisamos al backend si no quedan animaciones pendientes
-                  final isQueueEmpty = _ref.read(gameProvider.notifier).isAnimationQueueEmpty;
-                  final gameState = _ref.read(gameProvider);
-                  
-                  final myUsername = _ref.read(authProvider).username; 
-                  
-                  // Comparamos el userId del backend con nuestro username
-                  if (isQueueEmpty && gameState.currentPhase != GamePhase.finished && userId == myUsername) {
-                    _sendEndRound();
-                  }
-                });
-              });
+            // Para evitar que cuente como turno los movimientos de avanzar y retroceder por casillas
+            Future.delayed(const Duration(milliseconds: 100), () {
+              // Solo avisamos al backend si no quedan animaciones pendientes
+              final isQueueEmpty =
+                  _ref.read(gameProvider.notifier).isAnimationQueueEmpty;
+              final gameState = _ref.read(gameProvider);
+
+              final myUsername = _ref.read(authProvider).username;
+
+              // Comparamos el userId del backend con nuestro username
+              if (isQueueEmpty &&
+                  gameState.currentPhase != GamePhase.finished &&
+                  userId == myUsername) {
+                _sendEndRound();
+              }
+            });
+          });
           break;
 
         // Tipo de mensaje de reconexión exitosa (o nueva conexión en la que ya había datos)
         case 'reconnect_success':
           print("Reconexión exitosa. Sincronizando tablero...");
           final String gameStatus = decoded['game_status'] ?? 'WAITING';
-          final Map<String, dynamic> currentBoard = decoded['current_board'] ?? {};
-          
-          _ref.read(gameProvider.notifier).syncBoardState(currentBoard, gameStatus);
+          final Map<String, dynamic> currentBoard =
+              decoded['current_board'] ?? {};
+
+          _ref
+              .read(gameProvider.notifier)
+              .syncBoardState(currentBoard, gameStatus);
           break;
 
         // Tipo de mensaje de comenzar el juego
@@ -133,41 +142,54 @@ class WebSocketService {
 
         // Tipo de mensaje sobre en qué tipo de casilla ha caído el jugador
         case 'tipo_casilla':
-          print("El jugador ha caído en una casilla de tipo: \${decoded['casilla']}");
+          print(
+              "El jugador ha caído en una casilla de tipo: \${decoded['casilla']}");
           // TODO: Mostrar algún tipo de feedback en la UI (ej. animación u objeto obtenido)
           break;
 
         // Tipo de mensaje cuando el jugador cae en una casilla de objeto y le toca intercambiar
         case 'intercambiar_objeto':
-          print("Debes elegir un jugador para intercambiar un objeto: \${decoded['message']}");
+          print(
+              "Debes elegir un jugador para intercambiar un objeto: \${decoded['message']}");
           // TODO: Abrir un modal en la UI para elegir al jugador
           break;
 
         // Tipo de mensaje de inicio de minijuego
         case 'ini_minijuego':
           print("Minijuego iniciado.");
+          _localPlayerSentEndRound = false; // Nueva ronda: resetear bandera
           final String? name = decoded['minijuego'];
           final String? desc = decoded['descripcion'];
-          final Map<String, dynamic>? details = decoded['detalles'] != null 
-              ? Map<String, dynamic>.from(decoded['detalles']) 
+          final Map<String, dynamic>? details = decoded['detalles'] != null
+              ? Map<String, dynamic>.from(decoded['detalles'])
               : null;
           if (name != null) {
             _ref.read(gameProvider.notifier).startMinigame(
-              name: name,
-              description: desc,
-              details: details,
-            );
+                  name: name,
+                  description: desc,
+                  details: details,
+                );
           }
           break;
 
         // Tipo de mensaje de resultados de minijuego
         case 'minijuego_resultados':
-          final order = (decoded['order'] as List).map((e) => e.toString()).toList();
-          final results = decoded['resultados'] != null 
-              ? Map<String, dynamic>.from(decoded['resultados']) 
+          // El backend envía "nuevo_orden" como un Map {jugador: posicion},
+          // NO como una lista "order". Ordenamos por valor ascendente para
+          // reconstruir el turno correcto: posicion 1 primero, 4 último.
+          final Map<String, dynamic> rawOrder =
+              Map<String, dynamic>.from(decoded['nuevo_orden'] ?? {});
+          final order = rawOrder.entries.toList()
+            ..sort((a, b) => (a.value as int).compareTo(b.value as int));
+          final turnOrder = order.map((e) => e.key).toList();
+
+          final results = decoded['resultados'] != null
+              ? Map<String, dynamic>.from(decoded['resultados'])
               : null;
           if (results != null) {
-            _ref.read(gameProvider.notifier).setMinigameResults(results, order);
+            _ref
+                .read(gameProvider.notifier)
+                .setMinigameResults(results, turnOrder);
           }
           break;
 
@@ -175,19 +197,40 @@ class WebSocketService {
         case 'inventory_updated':
           final userId = decoded['user'];
           final stringList = List<String>.from(decoded['inventario_actual']);
-          
+
           // Mapeamos los strings del back a tus ItemType
-          final enumList = stringList.map((str) => ShopRepository.parseItemType(str)).toList();
-          
-          _ref.read(gameProvider.notifier).updateInventoryAndBalance(userId, newInventory: enumList);
+          final enumList = stringList
+              .map((str) => ShopRepository.parseItemType(str))
+              .toList();
+
+          _ref
+              .read(gameProvider.notifier)
+              .updateInventoryAndBalance(userId, newInventory: enumList);
           break;
 
         // Tipo de mensaje para actualizar balances (monedas)
         case 'balances_changed':
           final balances = decoded['balances'] as Map<String, dynamic>;
           balances.forEach((userId, coins) {
-            _ref.read(gameProvider.notifier).updateInventoryAndBalance(userId, newBalance: coins as int);
+            _ref
+                .read(gameProvider.notifier)
+                .updateInventoryAndBalance(userId, newBalance: coins as int);
           });
+          // Si este jugador ya terminó su ronda y el backend manda el balance
+          // de fin de ronda (ocurre cuando TODOS los jugadores han terminado),
+          // mostramos la pantalla de espera del Videojugador para todos.
+          if (_localPlayerSentEndRound) {
+            _localPlayerSentEndRound = false;
+            _ref.read(gameProvider.notifier).setWaitingForMinigameChoice(true);
+          }
+          break;
+
+        case 'choose_minijuego':
+          print("El backend pide elegir minijuego.");
+          // Forzamos Reflejos como nos han pedido
+          _ref
+              .read(gameProvider.notifier)
+              .setMinigameChoices(['Reflejos', 'Reflejos']);
           break;
 
         // Tipo de mensaje por defecto
@@ -199,13 +242,12 @@ class WebSocketService {
             print('Mensaje WebSocket parseado, pero no manejado: $decoded');
           }
       }
-      
+
       // Capturamos también errores directos si vienen fuera de type
       if (decoded.containsKey('error') && decoded['type'] == null) {
-         print('Error desde el backend: ${decoded['error']}');
-         _isActionLocked = false;
+        print('Error desde el backend: ${decoded['error']}');
+        _isActionLocked = false;
       }
-
     } catch (e) {
       print('Error decodificando el mensaje de WebSocket: $e');
     }
@@ -215,7 +257,6 @@ class WebSocketService {
   void rollDiceCommand(String gameId, String userId) {
     // Solo manda si el canal existe y está conectado
     if (_channel != null && _isConnected) {
-      
       // PARA QUE NO HAYA DOBLES CLICS
       if (_isActionLocked) return; // SI ESTÁ BLOQUEADO, IGNORAR CLIC
       _isActionLocked = true;
@@ -228,7 +269,7 @@ class WebSocketService {
       print("No se pudo enviar 'move_player' porque no hay conexión.");
     }
   }
-  
+
   void _sendEndRound() {
     if (_channel != null && _isConnected) {
       final payload = {'action': 'end_round', 'payload': {}};
@@ -236,6 +277,9 @@ class WebSocketService {
       _channel!.sink.add(jsonEncode(payload));
 
       _isActionLocked = false; // LIBERA EL DADO PARA EL PRÓXIMO TURNO
+      // Marcamos que este jugador terminó su turno. La pantalla de espera
+      // se activará en 'balances_changed', que llega cuando TODOS han terminado.
+      _localPlayerSentEndRound = true;
     }
   }
 
@@ -249,6 +293,19 @@ class WebSocketService {
     }
   }
 
+  void sendMinigameChoice(String minigameName) {
+    if (_channel != null && _isConnected) {
+      final payload = {
+        'action': 'ini_round',
+        'payload': {
+          'minijuego': minigameName,
+          'descripcion': '¿Ser rapido es tu virtud?'
+        }
+      };
+      _channel!.sink.add(jsonEncode(payload));
+    }
+  }
+
   void disconnect() {
     _channel?.sink.close();
     _isConnected = false;
@@ -256,10 +313,7 @@ class WebSocketService {
 
   void endRound(String gameId) {
     if (_channel != null && _isConnected) {
-      final payload = {
-        'action': 'end_round',
-        'payload': {}
-      };
+      final payload = {'action': 'end_round', 'payload': {}};
       _channel!.sink.add(jsonEncode(payload));
     }
   }

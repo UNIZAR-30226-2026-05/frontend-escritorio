@@ -234,7 +234,7 @@ class WebSocketService {
           // Forzamos Reflejos como nos han pedido
           _ref
               .read(gameProvider.notifier)
-              .setMinigameChoices(['Reflejos', 'Reflejos']);
+              .setMinigameChoices(['Reflejos', 'Tren']);
           break;
 
         // Tipo de mensaje por defecto
@@ -287,12 +287,18 @@ class WebSocketService {
     }
   }
 
-  void sendMinigameScore(int score) {
+  // Envía la puntuación de un minijuego al backend.
+  // Se hace para aquellos minijuegos que requieren enviar la puntuación (como Reflejos o Tren).
+  void sendMinigameScore(int score, {int? objetivo}) {
+    // Solo manda si el canal existe y está conectado
     if (_channel != null && _isConnected) {
-      final payload = {
-        'action': 'score_minijuego',
-        'payload': {'score': score}
-      };
+      // Creamos inner para el payload con la puntuación.
+      final Map<String, dynamic> inner = {'score': score};
+      // Si se proporciona un objetivo, lo añadimos al payload.
+      if (objetivo != null) inner['objetivo'] = objetivo;
+      // Creamos el payload completo con la acción 'score_minijuego' y el inner con la puntuación.
+      final payload = {'action': 'score_minijuego', 'payload': inner};
+      // Mandamos el paquete codificado al backend.
       _channel!.sink.add(jsonEncode(payload));
     }
   }

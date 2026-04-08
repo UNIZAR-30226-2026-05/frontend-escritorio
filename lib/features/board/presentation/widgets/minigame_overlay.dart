@@ -79,9 +79,20 @@ class _MinigameOverlayState extends ConsumerState<MinigameOverlay> {
     });
   }
 
-  // Callback que recibe la puntuación del minijuego hijo y la envía al backend
+  // Callback que recibe la puntuación del minijuego hijo y la envía al backend.
+  // Utiliza sendMinigameScore del WebSocketService.
+  // Para Tren el backend exige también el campo 'objetivo' en el payload.
   void _onMinigameFinish(int score) {
-    ref.read(webSocketProvider).sendMinigameScore(score);
+    // Leemos el estado actual del juego para saber qué minijuego se ha jugado
+    final gameState = ref.read(gameProvider);
+    // Si el minijuego es Tren, extraemos el 'objetivo' de los detalles y lo incluimos en el envío.
+    // LLamamos al método genérico sendMinigameScore, que se encargará de construir el payload correcto según el minijuego.
+    if (gameState.minigameName == 'Tren') {
+      final objetivo = gameState.minigameDetails?['objetivo'] as int?;
+      ref.read(webSocketProvider).sendMinigameScore(score, objetivo: objetivo);
+    } else {
+      ref.read(webSocketProvider).sendMinigameScore(score);
+    }
   }
 
   // ============================================================

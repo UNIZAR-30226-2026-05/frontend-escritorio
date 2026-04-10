@@ -12,7 +12,7 @@ final webSocketProvider = Provider<WebSocketService>((ref) {
   return WebSocketService(ref);
 });
 
-// Definicion de la clase WebSocketService, que se encarga 
+// Definicion de la clase WebSocketService, que se encarga
 // de gestionar la conexión WebSocket con el backend
 class WebSocketService {
   // Referencia a Ref para poder acceder a otros providers (como gameProvider)
@@ -46,7 +46,7 @@ class WebSocketService {
       _isConnected = true;
 
       // Escuchamos los mensajes que llegan del backend a través del canal
-      // El "!" significa que asumimos que _channel no es null en este punto, 
+      // El "!" significa que asumimos que _channel no es null en este punto,
       // porque si la conexión falla se lanza una excepción y no se llega aquí.
       _channel!.stream.listen(
         // Cuando llega un mensaje, se ejecuta esta función con el mensaje recibido
@@ -68,7 +68,7 @@ class WebSocketService {
           print('WebSocket Error: $error');
         },
       );
-    // Si ocurre cualquier error al intentar conectar, se captura aquí
+      // Si ocurre cualquier error al intentar conectar, se captura aquí
     } catch (e) {
       // Si hay un error al conectar, marcamos que no estamos conectados y mostramos el error
       _isConnected = false;
@@ -109,22 +109,28 @@ class WebSocketService {
 
           // Usar Riverpod para enviar los datos al gameProvider
           _ref
-              .read(gameProvider.notifier)    // Accedemos al notifier para poder llamar a métodos que actualizan el estado
+              .read(gameProvider
+                  .notifier) // Accedemos al notifier para poder llamar a métodos que actualizan el estado
               .updatePlayerFromBackend(userId, newTile, diceTotal,
-                  dice1: dado1, dice2: dado2) // Llamamos al método que actualiza la posición del jugador en el estado del juego
+                  dice1: dado1,
+                  dice2:
+                      dado2) // Llamamos al método que actualiza la posición del jugador en el estado del juego
               .then((_) {
             // Para evitar que cuente como turno los movimientos de avanzar y retroceder por casillas
             Future.delayed(const Duration(milliseconds: 100), () {
               // Solo avisamos al backend si no quedan animaciones pendientes
-              final isQueueEmpty = _ref.read(gameProvider.notifier).isAnimationQueueEmpty;
+              final isQueueEmpty =
+                  _ref.read(gameProvider.notifier).isAnimationQueueEmpty;
               // Leemos el estado actual del juego para saber en qué fase estamos
               final gameState = _ref.read(gameProvider);
               // Leemos nuestro username para compararlo con el userId del backend
               final myUsername = _ref.read(authProvider).username;
 
-              // SI NO QUEDAN ANIMACIONES PENDIENTES, NO ESTAMOS EN LA FASE DE FIN DE JUEGO, Y EL MOVIMIENTO LO HIZO ESTE JUGADOR, 
+              // SI NO QUEDAN ANIMACIONES PENDIENTES, NO ESTAMOS EN LA FASE DE FIN DE JUEGO, Y EL MOVIMIENTO LO HIZO ESTE JUGADOR,
               // ENVIAMOS END_ROUND
-              if (isQueueEmpty && gameState.currentPhase != GamePhase.finished && userId == myUsername) {
+              if (isQueueEmpty &&
+                  gameState.currentPhase != GamePhase.finished &&
+                  userId == myUsername) {
                 _sendEndRound();
               }
             });
@@ -133,12 +139,13 @@ class WebSocketService {
 
         // Tipo de mensaje de reconexión exitosa
         case 'reconnect_success':
-          // DEBUG: imprimimos reconexion exitosa 
+          // DEBUG: imprimimos reconexion exitosa
           print("Reconexión exitosa. Sincronizando tablero...");
           // La reconexion es exitosa y guardamos el estado de playing
           final String gameStatus = decoded['game_status'] ?? 'PLAYING';
           // El backend envía el estado completo del tablero en "current_board" para que el cliente se sincronice
-          final Map<String, dynamic> currentBoard = decoded['current_board'] ?? {};
+          final Map<String, dynamic> currentBoard =
+              decoded['current_board'] ?? {};
           // Enviamos el estado del tablero al gameProvider para que actualice su estado interno y la UI se sincronice con el backend
           _ref
               .read(gameProvider.notifier)
@@ -182,14 +189,14 @@ class WebSocketService {
           // DEBUG: imprimimos que llego el mensaje de inicio de minijuego
           print("Minijuego iniciado.");
           // Cuando empieza el minijuego podemos reiniciar el flag de end_round
-          _localPlayerSentEndRound = false; 
+          _localPlayerSentEndRound = false;
           // Guardamos el nombre del minijuego, su descripción y detalles adicionales (si los hay)
           final String? name = decoded['minijuego'];
           final String? desc = decoded['descripcion'];
           final Map<String, dynamic>? details = decoded['detalles'] != null
               ? Map<String, dynamic>.from(decoded['detalles'])
               : null;
-          // Mandamos el nombre del minijuego al gameProvider para que actualice su estado y muestre el overlay correspondiente. 
+          // Mandamos el nombre del minijuego al gameProvider para que actualice su estado y muestre el overlay correspondiente.
           // Si el backend no envía un nombre, no hacemos nada.
           if (name != null) {
             _ref.read(gameProvider.notifier).startMinigame(
@@ -205,18 +212,19 @@ class WebSocketService {
           // El backend envía "nuevo_orden" como un Map {jugador: posicion},
           // NO como una lista "order". Ordenamos por valor ascendente para
           // reconstruir el turno correcto: posicion 1 primero, 4 último.
-          final Map<String, dynamic> rawOrder = Map<String, dynamic>.from(decoded['nuevo_orden'] ?? {});
+          final Map<String, dynamic> rawOrder =
+              Map<String, dynamic>.from(decoded['nuevo_orden'] ?? {});
           // AQUI ORDENAMOS EL MAP POR VALOR Y EXTRAEMOS SOLO LOS NOMBRES DE LOS JUGADORES EN ORDEN
           final order = rawOrder.entries.toList()
             ..sort((a, b) => (a.value as int).compareTo(b.value as int));
           final turnOrder = order.map((e) => e.key).toList();
 
-          // El backend envía "resultados" como un Map {jugador: resultado}, que puede ser la puntuación o simplemente 
+          // El backend envía "resultados" como un Map {jugador: resultado}, que puede ser la puntuación o simplemente
           // "ganador"/"perdedor" dependiendo del minijuego.
           final results = decoded['resultados'] != null
               ? Map<String, dynamic>.from(decoded['resultados'])
               : null;
-          // Mandamos el orden de turno y los resultados al gameProvider para que actualice su estado y 
+          // Mandamos el orden de turno y los resultados al gameProvider para que actualice su estado y
           // muestre la pantalla de resultados del minijuego.
           if (results != null) {
             _ref
@@ -264,13 +272,13 @@ class WebSocketService {
           }
           break;
 
-        // Tipo de mensaje para elegir minijuego 
+        // Tipo de mensaje para elegir minijuego
         case 'choose_minijuego':
           print("El backend pide elegir minijuego.");
-          // HARDCODEADO PARA FORZAR REFLEJOS Y TREN (MINIJUEGOS IMPLMENTADOS)
+          // HARDCODEADO PARA FORZAR REFLEJOS, TREN Y PAN (MINIJUEGOS IMPLMENTADOS)
           _ref
               .read(gameProvider.notifier)
-              .setMinigameChoices(['Reflejos', 'Tren']);
+              .setMinigameChoices(['Reflejos', 'Tren', 'Cortar pan']);
           break;
 
         // Tipo de mensaje por defecto
@@ -309,7 +317,7 @@ class WebSocketService {
       final payload = {'action': 'move_player', 'payload': {}};
       // Mandar el paquete codificado al back
       _channel!.sink.add(jsonEncode(payload));
-    // Si no hay conexion imrpimimos un msj de error
+      // Si no hay conexion imrpimimos un msj de error
     } else {
       print("No se pudo enviar 'move_player' porque no hay conexión.");
     }
@@ -330,7 +338,7 @@ class WebSocketService {
       // Marcamos que este jugador terminó su turno. La pantalla de espera
       // se activará en 'balances_changed', que llega cuando TODOS han terminado.
       _localPlayerSentEndRound = true;
-    // Si no hay conexion imrpimimos un msj de error
+      // Si no hay conexion imrpimimos un msj de error
     } else {
       print("No se pudo enviar 'end_round' porque no hay conexión.");
     }
@@ -338,7 +346,7 @@ class WebSocketService {
 
   // Funcion publica para enviar la puntuación de un minijuego al backend.
   // Se hace para aquellos minijuegos que requieren enviar la puntuación (como Reflejos o Tren).
-  void sendMinigameScore(int score, {int? objetivo}) {
+  void sendMinigameScore(int score, {double? objetivo}) {
     // Solo manda si el canal existe y está conectado
     if (_channel != null && _isConnected) {
       // Creamos inner para el payload con la puntuación.
@@ -349,13 +357,13 @@ class WebSocketService {
       final payload = {'action': 'score_minijuego', 'payload': inner};
       // Mandamos el paquete codificado al backend.
       _channel!.sink.add(jsonEncode(payload));
-    // Si no hay conexion imrpimimos un msj de error
+      // Si no hay conexion imrpimimos un msj de error
     } else {
       print("No se pudo enviar 'score_minijuego' porque no hay conexión.");
     }
   }
 
-  // Funcion pública para enviar la elección de minijuego al backend. 
+  // Funcion pública para enviar la elección de minijuego al backend.
   // Se llama cuando el videojugador elige un minijuego.
   void sendMinigameChoice(String minigameName) {
     if (_channel != null && _isConnected) {
@@ -370,7 +378,7 @@ class WebSocketService {
       };
       // Enviamos el paquete codificado al backend.
       _channel!.sink.add(jsonEncode(payload));
-    // Si no hay conexion imrpimimos un msj de error
+      // Si no hay conexion imrpimimos un msj de error
     } else {
       print("No se pudo enviar 'ini_round' porque no hay conexión.");
     }
@@ -386,7 +394,7 @@ class WebSocketService {
   void sendGenericAction(Map<String, dynamic> payload) {
     if (_channel != null && _isConnected) {
       _channel!.sink.add(jsonEncode(payload));
-    // Si no hay conexion imrpimimos un msj de error
+      // Si no hay conexion imrpimimos un msj de error
     } else {
       print("No se pudo enviar la acción porque no hay conexión.");
     }

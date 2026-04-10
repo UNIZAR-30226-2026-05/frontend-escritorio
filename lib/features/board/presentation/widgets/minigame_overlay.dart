@@ -33,7 +33,6 @@ class _MinigameOverlayState extends ConsumerState<MinigameOverlay> {
 
   int _countdown = 3;
   bool _countdownFinished = false;
-  bool _showingCorrectAnswer = false;
   ProviderSubscription<Map<String, dynamic>?>? _resultsSubscription;
 
   @override
@@ -46,13 +45,8 @@ class _MinigameOverlayState extends ConsumerState<MinigameOverlay> {
         gameProvider.select((s) => s.minigameResults),
         (prev, next) {
           if (prev == null && next != null) {
-            // Mostramos la respuesta correcta 3 s antes del podio
-            setState(() => _showingCorrectAnswer = true);
-            Future.delayed(const Duration(seconds: 3), () {
-              if (mounted) setState(() => _showingCorrectAnswer = false);
-            });
-            // El cierre automático ocurre 3 s (respuesta) + 5 s (podio) después
-            Future.delayed(const Duration(seconds: 8), () {
+            // El cierre automático ocurre 5 s despues de mostrar los resultados
+            Future.delayed(const Duration(seconds: 5), () {
               if (mounted && ref.read(gameProvider).minigameResults != null) {
                 ref.read(gameProvider.notifier).finishMinigame();
               }
@@ -92,7 +86,7 @@ class _MinigameOverlayState extends ConsumerState<MinigameOverlay> {
     // Si el minijuego es Tren, extraemos el 'objetivo' de los detalles y lo incluimos en el envío.
     // LLamamos al método genérico sendMinigameScore, que se encargará de construir el payload correcto según el minijuego.
     if (gameState.minigameName == 'Tren') {
-      final objetivo = gameState.minigameDetails?['objetivo'] as int?;
+      final objetivo = gameState.minigameDetails?['objetivo'] as double?;
       ref.read(webSocketProvider).sendMinigameScore(score, objetivo: objetivo);
     } else {
       ref.read(webSocketProvider).sendMinigameScore(score);
@@ -167,11 +161,8 @@ class _MinigameOverlayState extends ConsumerState<MinigameOverlay> {
               const SizedBox(height: 48),
 
               // ── Contenido dinámico según el estado ──
-              if (_showingCorrectAnswer)
-                // Estado 3a: Mostrar la respuesta correcta 3 s antes del podio
-                _buildCorrectAnswerScreen(gameState.minigameDetails)
-              else if (results != null)
-                // Estado 3b: Han llegado los resultados → Mostrar podio
+              if (results != null)
+                // Estado 3: Han llegado los resultados → Mostrar podio
                 _buildResultsScreen(results)
               else if (!_countdownFinished)
                 // Estado 1: Cuenta atrás activa
@@ -186,43 +177,6 @@ class _MinigameOverlayState extends ConsumerState<MinigameOverlay> {
   // ============================================================
   // Widgets auxiliares
   // ============================================================
-
-  // Pantalla de respuesta correcta (3 s antes del podio)
-  Widget _buildCorrectAnswerScreen(Map<String, dynamic>? details) {
-    final objetivo = details?['objetivo'];
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        const Text(
-          'LA RESPUESTA CORRECTA ERA',
-          style: TextStyle(
-            color: Colors.white70,
-            fontSize: 20,
-            letterSpacing: 2,
-          ),
-        ),
-        const SizedBox(height: 16),
-        if (objetivo != null)
-          Text(
-            '$objetivo',
-            style: const TextStyle(
-              color: Colors.amber,
-              fontSize: 100,
-              fontWeight: FontWeight.bold,
-              shadows: [Shadow(color: Colors.black, blurRadius: 8, offset: Offset(2, 2))],
-            ),
-          ),
-        const SizedBox(height: 8),
-        const Text(
-          // PASAJEROS HARCODEADO PARA TREN
-          // Si en el futuro se añaden más minijuegos que 
-          // requieran mostrar respuesta correcta ya lo cambiaremos.
-          'pasajeros',
-          style: TextStyle(color: Colors.white54, fontSize: 18),
-        ),
-      ],
-    );
-  }
 
   // Pantalla de cuenta atrás (3, 2, 1...)
   Widget _buildCountdownScreen() {

@@ -25,8 +25,8 @@ class _TrenGameState extends State<TrenGame>
   late int _objetivo;
   late List<List<bool>> _wagonSeats;
 
-  int _count = 0;       // pasajeros contados por el usuario
-  int _adjustTime = 3;  // segundos restantes en fase adjusting
+  int _count = 0; // pasajeros contados por el usuario
+  int _adjustTime = 3; // segundos restantes en fase adjusting
   Timer? _adjustTimer;
 
   static const int _numWagons = 3;
@@ -89,7 +89,10 @@ class _TrenGameState extends State<TrenGame>
 
   void _startAdjustTimer() {
     _adjustTimer = Timer.periodic(const Duration(seconds: 1), (t) {
-      if (!mounted) { t.cancel(); return; }
+      if (!mounted) {
+        t.cancel();
+        return;
+      }
       if (_adjustTime <= 1) {
         t.cancel();
         setState(() => _state = _TrenState.finished);
@@ -119,12 +122,9 @@ class _TrenGameState extends State<TrenGame>
             _buildTracks(w, h),
             if (_state == _TrenState.passing || _state == _TrenState.waiting)
               _buildAnimatedTrain(w, h),
-            if (_state == _TrenState.waiting)
-              _buildWarning(h),
-            if (_state != _TrenState.finished)
-              _buildCounterBar(h),
-            if (_state == _TrenState.adjusting)
-              _buildAdjustOverlay(h),
+            if (_state == _TrenState.waiting) _buildWarning(h),
+            if (_state != _TrenState.finished) _buildCounterBar(h),
+            if (_state == _TrenState.adjusting) _buildAdjustOverlay(h),
           ],
         );
       },
@@ -176,8 +176,8 @@ class _TrenGameState extends State<TrenGame>
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               _buildLocomotive(locoW, wagonH),
-              ...List.generate(
-                  _numWagons, (i) => _buildWagon(wagonW, wagonH, _wagonSeats[i])),
+              ...List.generate(_numWagons,
+                  (i) => _buildWagon(wagonW, wagonH, _wagonSeats[i])),
             ],
           ),
         );
@@ -281,7 +281,12 @@ class _TrenGameState extends State<TrenGame>
           color: enabled ? const Color(0xFF1565C0) : Colors.grey.shade800,
           shape: BoxShape.circle,
           boxShadow: enabled
-              ? const [BoxShadow(color: Colors.black45, blurRadius: 6, offset: Offset(0, 3))]
+              ? const [
+                  BoxShadow(
+                      color: Colors.black45,
+                      blurRadius: 6,
+                      offset: Offset(0, 3))
+                ]
               : null,
         ),
         child: Icon(
@@ -372,7 +377,8 @@ class _TrenGameState extends State<TrenGame>
         clipBehavior: Clip.none,
         children: [
           Padding(
-            padding: EdgeInsets.fromLTRB(w * 0.06, h * 0.08, w * 0.06, h * 0.22),
+            padding:
+                EdgeInsets.fromLTRB(w * 0.06, h * 0.08, w * 0.06, h * 0.22),
             child: GridView.count(
               crossAxisCount: 4,
               shrinkWrap: true,
@@ -389,7 +395,8 @@ class _TrenGameState extends State<TrenGame>
                     borderRadius: BorderRadius.circular(2),
                   ),
                   child: occupied
-                      ? const Icon(Icons.person, size: 10, color: Colors.black87)
+                      ? const Icon(Icons.person,
+                          size: 10, color: Colors.black87)
                       : null,
                 );
               }).toList(),
@@ -432,7 +439,8 @@ class _TrenGameState extends State<TrenGame>
         child: Container(
           width: size * 0.3,
           height: size * 0.3,
-          decoration: const BoxDecoration(shape: BoxShape.circle, color: Colors.grey),
+          decoration:
+              const BoxDecoration(shape: BoxShape.circle, color: Colors.grey),
         ),
       ),
     );
@@ -455,7 +463,8 @@ class _TrackPainter extends CustomPainter {
 
     double x = 0;
     while (x < size.width) {
-      canvas.drawLine(Offset(x, rail1Y - 8), Offset(x, rail2Y + 8), sleeperPaint);
+      canvas.drawLine(
+          Offset(x, rail1Y - 8), Offset(x, rail2Y + 8), sleeperPaint);
       x += 48;
     }
     canvas.drawLine(Offset(0, rail1Y), Offset(size.width, rail1Y), railPaint);

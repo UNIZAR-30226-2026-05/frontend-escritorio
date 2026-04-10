@@ -177,9 +177,10 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
       },
     );
 
-    // Resetear _hasRolledThisTurn cuando cambia el jugador activo
+    // Resetear _hasRolledThisTurn cuando cambia el turno, 
+    // vuelve la fase al tablero o es un juego de 1 jugador
     ref.listen(
-      gameProvider.select((s) => s.activePlayerIndex),
+      gameProvider.select((s) => '${s.activePlayerIndex}_${s.currentPhase}'),
       (prev, next) {
         if (prev != next && mounted) {
           setState(() => _hasRolledThisTurn = false);

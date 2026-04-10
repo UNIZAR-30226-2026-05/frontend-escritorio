@@ -28,9 +28,10 @@ class _ReflejosGameState extends State<ReflejosGame> {
   }
 
   void _startRandomTimer() {
-    // El backend envía el tiempo objetivo en ms ("objetivo") para que todos 
+    // El backend envía el tiempo objetivo en ms ("objetivo") para que todos
     // los clientes se activen exactamente al mismo tiempo de forma coordinada.
-    final int delayMs = widget.details['objetivo'] as int? ?? (2000 + Random().nextInt(4000));
+    final int delayMs =
+        widget.details['objetivo'] as int? ?? (2000 + Random().nextInt(4000));
 
     _activationTimer = Timer(Duration(milliseconds: delayMs), () {
       if (!mounted) return;
@@ -52,17 +53,17 @@ class _ReflejosGameState extends State<ReflejosGame> {
       // Falta - ha clickado antes de tiempo
       _activationTimer?.cancel();
       setState(() => _state = ReflejosState.falseStart);
-      
-      // Manda una puntuación de penalización (9999ms, el backend lo ordena de menor a mayor)
-      _finishGame(9999); 
 
+      // Manda una puntuación de penalización (9999ms, el backend lo ordena de menor a mayor)
+      _finishGame(9999);
     } else if (_state == ReflejosState.active) {
       // Reacción exitosa
-      final int reaction = DateTime.now().difference(_activationTime!).inMilliseconds;
+      final int reaction =
+          DateTime.now().difference(_activationTime!).inMilliseconds;
       setState(() {
         _state = ReflejosState.finished;
       });
-      
+
       // El backend ordena este minijuego de menor a mayor tiempo
       _finishGame(reaction);
     }

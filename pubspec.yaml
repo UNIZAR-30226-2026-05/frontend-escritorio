@@ -35,6 +35,7 @@ flutter:
    # - assets/images/items/
     - assets/images/ui/
     - assets/images/minigames/reflejos/
+    - assets/images/minigames/pan/
    # - assets/sounds/bgm/
    # - assets/sounds/sfx/
    # - assets/data/

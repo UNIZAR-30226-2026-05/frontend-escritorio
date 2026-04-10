@@ -8,6 +8,7 @@
 //
 
 import 'package:flutter/material.dart';
+import 'package:snow_party/features/board/presentation/widgets/minigames/pan_game.dart';
 
 // TODO: Importar aquí los minijuegos cuando se implementen
 import 'reflejos_game.dart';
@@ -32,10 +33,10 @@ class MinigameFactory {
         return ReflejosGame(onFinish: onFinish, details: details);
       case 'Tren':
         return TrenGame(onFinish: onFinish, details: details);
+      case 'Cortar pan':
+        return PanGame(onFinish: onFinish, details: details);
       // case 'Cronometro ciego':
       //   return CronometroGame(onFinish: onFinish, details: details);
-      // case 'Cortar pan':
-      //   return CortarPanGame(onFinish: onFinish, details: details);
       // case 'Mayor o Menor':
       //   return MayorMenorGame(onFinish: onFinish, details: details);
 
@@ -75,8 +76,7 @@ class MinigameFactory {
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.amber,
               foregroundColor: Colors.black,
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+              padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
             ),
             child: const Text('Simular Fin',
                 style: TextStyle(fontWeight: FontWeight.bold)),

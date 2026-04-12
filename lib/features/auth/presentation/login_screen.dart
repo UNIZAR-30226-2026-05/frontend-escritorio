@@ -1,8 +1,10 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import 'controllers/auth_provider.dart';
+import 'widgets/retro_widgets.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -12,20 +14,28 @@ class LoginScreen extends ConsumerStatefulWidget {
 }
 
 class _LoginScreenState extends ConsumerState<LoginScreen> {
-  final _formKey = GlobalKey<FormState>();
   final _usernameController = TextEditingController();
   final _passwordController = TextEditingController();
-  bool _obscurePassword = true;
+  final _usernameFocus = FocusNode();
+  final _passwordFocus = FocusNode();
+  String? _usernameError;
+  String? _passwordError;
 
   @override
   void dispose() {
     _usernameController.dispose();
     _passwordController.dispose();
+    _usernameFocus.dispose();
+    _passwordFocus.dispose();
     super.dispose();
   }
 
   Future<void> _submit() async {
-    if (!_formKey.currentState!.validate()) return;
+    setState(() {
+      _usernameError = _usernameController.text.trim().isEmpty ? 'Campo requerido' : null;
+      _passwordError = _passwordController.text.isEmpty ? 'Campo requerido' : null;
+    });
+    if (_usernameError != null || _passwordError != null) return;
     await ref.read(authProvider.notifier).login(
           _usernameController.text.trim(),
           _passwordController.text,
@@ -35,79 +45,98 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     final authState = ref.watch(authProvider);
+    final size = MediaQuery.of(context).size;
+    final fw = size.width * 0.30;
+    final fh = size.height * 0.08;
+    final titleSize = size.height * 0.075;
+    final labelSize = size.height * 0.022;
+    final inputSize = size.height * 0.020;
+    final gap = size.height * 0.025;
+    final linkSize = size.height * 0.018;
 
     return Scaffold(
+      backgroundColor: Colors.white,
       body: Center(
-        child: SizedBox(
-          width: 360,
-          child: Form(
-            key: _formKey,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                const Text(
-                  'Snow Party',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 32),
-                TextFormField(
-                  controller: _usernameController,
-                  decoration: const InputDecoration(
-                    labelText: 'Nombre de usuario',
-                    border: OutlineInputBorder(),
-                  ),
-                  validator: (v) =>
-                      (v == null || v.trim().isEmpty) ? 'Campo requerido' : null,
-                ),
-                const SizedBox(height: 16),
-                TextFormField(
-                  controller: _passwordController,
-                  obscureText: _obscurePassword,
-                  decoration: InputDecoration(
-                    labelText: 'Contraseña',
-                    border: const OutlineInputBorder(),
-                    suffixIcon: IconButton(
-                      icon: Icon(_obscurePassword
-                          ? Icons.visibility_off
-                          : Icons.visibility),
-                      onPressed: () =>
-                          setState(() => _obscurePassword = !_obscurePassword),
-                    ),
-                  ),
-                  validator: (v) =>
-                      (v == null || v.isEmpty) ? 'Campo requerido' : null,
-                ),
-                const SizedBox(height: 8),
-                if (authState.error != null)
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 8),
-                    child: Text(
-                      authState.error!,
-                      style: const TextStyle(color: Colors.red),
-                      textAlign: TextAlign.center,
-                    ),
-                  ),
-                const SizedBox(height: 8),
-                FilledButton(
-                  onPressed: authState.isLoading ? null : _submit,
-                  child: authState.isLoading
-                      ? const SizedBox(
-                          height: 20,
-                          width: 20,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Text('Iniciar sesión'),
-                ),
-                const SizedBox(height: 12),
-                TextButton(
-                  onPressed: () => context.go('/register'),
-                  child: const Text('¿No tienes cuenta? Regístrate'),
-                ),
-              ],
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'Inicia sesión\npara jugar',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontFamily: 'Retro Gaming',
+                fontSize: titleSize,
+                color: const Color(0xFF1a1a2e),
+                height: 1.4,
+                shadows: const [
+                  Shadow(color: Colors.white, blurRadius: 16),
+                  Shadow(color: Colors.white, blurRadius: 8),
+                ],
+              ),
             ),
-          ),
+            SizedBox(height: gap * 1.8),
+            RetroField(
+              label: 'Nombre de usuario',
+              controller: _usernameController,
+              focusNode: _usernameFocus,
+              fieldWidth: fw,
+              fieldHeight: fh,
+              labelFontSize: labelSize,
+              inputFontSize: inputSize,
+              errorText: _usernameError,
+              textInputAction: TextInputAction.next,
+              onSubmitted: () => _passwordFocus.requestFocus(),
+            ),
+            SizedBox(height: gap),
+            RetroField(
+              label: 'Contraseña',
+              controller: _passwordController,
+              focusNode: _passwordFocus,
+              fieldWidth: fw,
+              fieldHeight: fh,
+              labelFontSize: labelSize,
+              inputFontSize: inputSize,
+              obscureText: true,
+              errorText: _passwordError,
+              textInputAction: TextInputAction.done,
+              onSubmitted: _submit,
+            ),
+            if (authState.error != null) ...[
+              SizedBox(height: gap * 0.5),
+              Text(
+                authState.error!,
+                style: TextStyle(
+                  color: Colors.red,
+                  fontFamily: 'Retro Gaming',
+                  fontSize: labelSize * 0.85,
+                ),
+                textAlign: TextAlign.center,
+              ),
+            ],
+            SizedBox(height: gap * 1.4),
+            RichText(
+              textAlign: TextAlign.center,
+              text: TextSpan(
+                style: TextStyle(
+                  fontFamily: 'Retro Gaming',
+                  fontSize: linkSize,
+                  color: const Color(0xFF1a1a2e),
+                ),
+                children: [
+                  const TextSpan(text: 'Si no tienes cuenta,\nregístrate '),
+                  TextSpan(
+                    text: 'AQUI',
+                    style: const TextStyle(
+                      color: Color(0xFF6B21A8),
+                      decoration: TextDecoration.underline,
+                    ),
+                    recognizer: TapGestureRecognizer()
+                      ..onTap = () => context.go('/register'),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
       ),
     );

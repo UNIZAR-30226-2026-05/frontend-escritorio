@@ -4,7 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import 'controllers/auth_provider.dart';
-import 'widgets/retro_widgets.dart';
+import '../../../core/widgets/retro_widgets.dart';
 
 class RegisterScreen extends ConsumerStatefulWidget {
   const RegisterScreen({super.key});

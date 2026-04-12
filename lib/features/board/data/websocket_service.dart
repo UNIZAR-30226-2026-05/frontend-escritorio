@@ -36,7 +36,7 @@ class WebSocketService {
     if (_isConnected) return;
 
     // Construimos la url de conexión usando el gameId y el token de autenticación
-    final url = '${ApiConstants.wsBaseUrl}/ws/partida/$gameId?token=$token';
+    final url = ApiConstants.wsPartidaUrl(gameId, token);
 
     // Se intenta conectar a través de la url de arriba y oir los mensajes
     try {
@@ -276,9 +276,8 @@ class WebSocketService {
         case 'choose_minijuego':
           print("El backend pide elegir minijuego.");
           // HARDCODEADO PARA FORZAR REFLEJOS, TREN Y PAN (MINIJUEGOS IMPLMENTADOS)
-          _ref
-              .read(gameProvider.notifier)
-              .setMinigameChoices(['Reflejos', 'Tren', 'Cortar pan']);
+          _ref.read(gameProvider.notifier).setMinigameChoices(
+              [/*'Reflejos', */ 'Reflejos', 'Cortar pan', 'Cronometro ciego']);
           break;
 
         // Tipo de mensaje por defecto

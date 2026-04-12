@@ -13,7 +13,7 @@ import 'package:snow_party/features/board/presentation/widgets/minigames/pan_gam
 // TODO: Importar aquí los minijuegos cuando se implementen
 import 'reflejos_game.dart';
 import 'tren_game.dart';
-// import 'cronometro_game.dart';
+import 'cronometro_game.dart';
 // import 'cortar_pan_game.dart';
 // import 'mayor_menor_game.dart';
 
@@ -35,8 +35,8 @@ class MinigameFactory {
         return TrenGame(onFinish: onFinish, details: details);
       case 'Cortar pan':
         return PanGame(onFinish: onFinish, details: details);
-      // case 'Cronometro ciego':
-      //   return CronometroGame(onFinish: onFinish, details: details);
+      case 'Cronometro ciego':
+        return CronometroGame(onFinish: onFinish, details: details);
       // case 'Mayor o Menor':
       //   return MayorMenorGame(onFinish: onFinish, details: details);
 

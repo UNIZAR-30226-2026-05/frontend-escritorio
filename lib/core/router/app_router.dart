@@ -2,12 +2,13 @@ import 'package:flutter/material.dart'; // Acceso al ChangeNotifier.
 import 'package:flutter_riverpod/flutter_riverpod.dart';  // Proprociona el tipo Provider y Ref.
 import 'package:go_router/go_router.dart';  // Proporciona el router principal de la app.
 
-// Pantallas y Provider de la autenticacion.
+// Pantallas y Providers de la autenticacion y el lobby.
 import '../../features/auth/presentation/controllers/auth_provider.dart';
 import '../../features/auth/presentation/login_screen.dart';
 import '../../features/auth/presentation/register_screen.dart';
 import '../../features/board/presentation/board_screen.dart';
 import '../../features/lobby/presentation/lobby_screen.dart';
+import '../../features/lobby/presentation/controllers/lobby_provider.dart';
 
 // ChangeNotifier es el patron observer de Flutter.
 // Notifica a GoRouter cuando cambia el estado de autenticación.
@@ -22,9 +23,12 @@ class _RouterNotifier extends ChangeNotifier {
   // Constructor:
   _RouterNotifier(this._ref) {
     // Escucha el provider de autenticación que es del tipo AuthState, ignora
-    // los parámateros que le llegan cuando cambia de estado, y avisa a 
+    // los parámeteros que le llegan cuando cambia de estado, y avisa a
     // GoRouter para redireccionar a la pantalla que toquen según el estado.
     _ref.listen<AuthState>(authProvider, (_, __) => notifyListeners());
+    // Escucha el estado del lobby para detectar cuándo todos los jugadores
+    // han seleccionado personaje y redirigir automáticamente a la partida.
+    _ref.listen<LobbyState>(lobbyProvider, (_, __) => notifyListeners());
   }
 
   // Devuelve un string que puede ser null, context es la info de la app actual
@@ -38,13 +42,19 @@ class _RouterNotifier extends ChangeNotifier {
     final isAuthRoute = state.matchedLocation == '/login' ||
         state.matchedLocation == '/register';
 
-    // Si no estas autenticado y te encuentras en otra pantalla te devuelve
+    // Si no estás autenticado y te encuentras en otra pantalla te devuelve
     // la ruta de la pantalla de login.
     if (!isAuthenticated && !isAuthRoute) return '/login';
-    // Si estas auenticado y te encuentras en alguna  apntalla de autenticacion
+    // Si estás autenticado y te encuentras en alguna pantalla de autenticación
     // te devuelve la ruta de la pantalla lobby del juego.
     if (isAuthenticated && isAuthRoute) return '/lobby';
-    // Sino devuelve null.
+    // Si todos los jugadores han seleccionado personaje, navega a la partida.
+    // Solo aplica si el usuario no está ya en /game para evitar bucles.
+    final allReady = _ref.read(lobbyProvider).allCharactersSelected;
+    if (isAuthenticated && allReady && state.matchedLocation != '/game') {
+      return '/game';
+    }
+    // En cualquier otro caso no se redirige.
     return null;
   }
 }

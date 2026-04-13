@@ -120,55 +120,56 @@ class _MinigameOverlayState extends ConsumerState<MinigameOverlay> {
             ),
 
           // 2. Elementos de UI superpuestos
-          Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              // ── Header: Título y descripción (siempre visible) ──
-              Text(
-                gameState.minigameName?.toUpperCase() ?? 'MINIJUEGO',
-                style: const TextStyle(
-                  color: Colors.amber,
-                  fontSize: 32,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 4,
-                  shadows: [
-                    Shadow(
-                        color: Colors.black,
-                        blurRadius: 4,
-                        offset: Offset(2, 2))
-                  ],
-                ),
-              ),
-              const SizedBox(height: 8),
-              if (gameState.minigameDescription != null)
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 32),
-                  child: Text(
-                    gameState.minigameDescription!,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 16,
-                      shadows: [
-                        Shadow(
-                            color: Colors.black,
-                            blurRadius: 4,
-                            offset: Offset(1, 1))
-                      ],
-                    ),
-                    textAlign: TextAlign.center,
+          if (!_countdownFinished || results != null)
+            Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                // ── Header: Título y descripción (siempre visible) ──
+                Text(
+                  gameState.minigameName?.toUpperCase() ?? 'MINIJUEGO',
+                  style: const TextStyle(
+                    color: Colors.amber,
+                    fontSize: 32,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 4,
+                    shadows: [
+                      Shadow(
+                          color: Colors.black,
+                          blurRadius: 4,
+                          offset: Offset(2, 2))
+                    ],
                   ),
                 ),
-              const SizedBox(height: 48),
+                const SizedBox(height: 8),
+                if (gameState.minigameDescription != null)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 32),
+                    child: Text(
+                      gameState.minigameDescription!,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                        shadows: [
+                          Shadow(
+                              color: Colors.black,
+                              blurRadius: 4,
+                              offset: Offset(1, 1))
+                        ],
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                const SizedBox(height: 48),
 
-              // ── Contenido dinámico según el estado ──
-              if (results != null)
-                // Estado 3: Han llegado los resultados → Mostrar podio
-                _buildResultsScreen(results)
-              else if (!_countdownFinished)
-                // Estado 1: Cuenta atrás activa
-                _buildCountdownScreen(),
-            ],
-          ),
+                // ── Contenido dinámico según el estado ──
+                if (results != null)
+                  // Estado 3: Han llegado los resultados → Mostrar podio
+                  _buildResultsScreen(results)
+                else if (!_countdownFinished)
+                  // Estado 1: Cuenta atrás activa
+                  _buildCountdownScreen(),
+              ],
+            ),
         ],
       ),
     );

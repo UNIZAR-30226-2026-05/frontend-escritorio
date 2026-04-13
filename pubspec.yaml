@@ -37,6 +37,7 @@ flutter:
     - assets/images/minigames/reflejos/
     - assets/images/minigames/pan/
     - assets/images/minigames/cronometro/
+    - assets/images/minigames/cartas/
    # - assets/sounds/bgm/
    # - assets/sounds/sfx/
    # - assets/data/

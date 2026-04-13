@@ -276,8 +276,12 @@ class WebSocketService {
         case 'choose_minijuego':
           print("El backend pide elegir minijuego.");
           // HARDCODEADO PARA FORZAR REFLEJOS, TREN Y PAN (MINIJUEGOS IMPLMENTADOS)
-          _ref.read(gameProvider.notifier).setMinigameChoices(
-              [/*'Reflejos', */ 'Reflejos', 'Cortar pan', 'Cronometro ciego']);
+          _ref.read(gameProvider.notifier).setMinigameChoices([
+            /*'Reflejos', 'Cortar pan', */
+            'Reflejos',
+            'Mayor o Menor',
+            'Cronometro ciego'
+          ]);
           break;
 
         // Tipo de mensaje por defecto

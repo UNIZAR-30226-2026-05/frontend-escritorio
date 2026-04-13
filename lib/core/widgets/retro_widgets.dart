@@ -35,8 +35,11 @@ class RetroField extends StatelessWidget {
   final double labelFontSize;
   // Tamaño de fuente para el texto escrito dentro del campo, proporcional al alto de ventana.
   final double inputFontSize;
+  // Color del texto escrito en el campo. Por defecto oscuro (para fondos claros).
+  // Usar Colors.white cuando el campo se coloca sobre un fondo oscuro.
+  final Color color;
 
-  // Constructor que requiere los parámetros esenciales para configurar el campo de texto.  
+  // Constructor que requiere los parámetros esenciales para configurar el campo de texto.
   const RetroField({
     super.key,
     required this.label,
@@ -50,6 +53,7 @@ class RetroField extends StatelessWidget {
     this.focusNode,
     this.textInputAction = TextInputAction.next,
     this.onSubmitted,
+    this.color = const Color.fromARGB(255, 2, 2, 2),
   });
 
   @override
@@ -103,9 +107,7 @@ class RetroField extends StatelessWidget {
               style: TextStyle(
                 fontFamily: 'Retro Gaming',
                 fontSize: inputFontSize,
-                // HARDCODEADO YA QUE SE USA UN FONDO BLANCO AHORA
-                // Color oscuro para que el texto sea legible sobre la imagen de fondo.
-                color: const Color(0xFF1a1a2e),
+                color: color,
               ),
               // Color del cursor de escritura, en morado para mantener la estética.
               cursorColor: const Color(0xFF6B21A8),
@@ -138,6 +140,79 @@ class RetroField extends StatelessWidget {
             ),
           ),
       ],
+    );
+  }
+}
+
+// Botón genérico con imagen de fondo retro y texto centrado con brillo exterior.
+// Soporta cualquier asset (btn_morado, btn_rojo, etc.) y se desactiva visualmente
+// cuando onTap es null, reduciendo su opacidad al 45 %.
+class RetroImgButton extends StatelessWidget {
+  // Texto que se muestra en el centro del botón.
+  final String label;
+  // Ruta al asset de imagen que actúa como fondo del botón.
+  final String asset;
+  // Dimensiones del botón en píxeles, calculadas por el widget padre.
+  final double width, height;
+  // Tamaño de fuente proporcional al alto de ventana.
+  final double fontSize;
+  // Callback al pulsar el botón. Si es null el botón queda desactivado.
+  final VoidCallback? onTap;
+
+  const RetroImgButton({
+    super.key,
+    required this.label,
+    required this.asset,
+    required this.width,
+    required this.height,
+    required this.fontSize,
+    this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Opacity(
+        // Cuando onTap es null el botón se ve semitransparente para indicar que está desactivado.
+        opacity: onTap == null ? 0.45 : 1.0,
+        child: Container(
+          width: width,
+          height: height,
+          decoration: BoxDecoration(
+            // BoxFit.fill estira el asset para que cubra exactamente el contenedor,
+            // independientemente de la proporción original de la imagen.
+            image: DecorationImage(
+              image: AssetImage(asset),
+              fit: BoxFit.fill,
+            ),
+          ),
+          child: Padding(
+            // Padding horizontal para que el texto no toque los bordes del asset.
+            padding: EdgeInsets.symmetric(horizontal: width * 0.08),
+            child: Center(
+              child: FittedBox(
+                // FittedBox.scaleDown reduce el texto si no cabe en el botón,
+                // pero nunca lo amplía por encima de su tamaño natural.
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  label,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontFamily: 'Retro Gaming',
+                    fontSize: fontSize,
+                    color: Colors.white,
+                    shadows: const [
+                      Shadow(color: Colors.white, blurRadius: 14),
+                      Shadow(color: Colors.white54, blurRadius: 6),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

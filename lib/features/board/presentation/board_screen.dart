@@ -32,6 +32,16 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
   bool _showingDiceResult = false;
   Timer? _diceResultTimer;
 
+  // Minijuegos para debugear
+  final List<String> _debugMinigames = [
+    'Reflejos',
+    'Tren',
+    'Cortar pan',
+    'Cronometro ciego',
+    'Mayor o Menor',
+    'Doble o Nada',
+  ];
+
   // Coordenadas de los centros de las casillas en el tablero
   final Map<int, Offset> tileCenters = {
     -1: const Offset(
@@ -136,6 +146,38 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
     super.dispose();
   }
 
+  // Para poder poner/quitar el overlay de debug
+  Widget _buildDebugMenu() {
+    return Positioned(
+      top: 16,
+      right: 16,
+      child: PopupMenuButton<String>(
+        tooltip: 'Testear Minijuegos (Local)',
+        // Usamos un color verde o distinto para saber que es de uso local
+        icon: const Icon(Icons.bug_report, color: Colors.greenAccent, size: 36),
+        color: const Color(0xFF2D1B4E),
+        onSelected: (String minigame) {
+          // Llamamos a nuestro nuevo método local
+          ref.read(gameProvider.notifier).startDebugMinigameLocal(minigame);
+        },
+        itemBuilder: (BuildContext context) {
+          return _debugMinigames.map((String choice) {
+            return PopupMenuItem<String>(
+              value: choice,
+              child: Text(
+                choice,
+                style: const TextStyle(
+                    color: Colors.white,
+                    fontFamily: 'Retro Gaming',
+                    fontSize: 12),
+              ),
+            );
+          }).toList();
+        },
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final gameState = ref.watch(gameProvider);
@@ -177,7 +219,7 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
       },
     );
 
-    // Resetear _hasRolledThisTurn cuando cambia el turno, 
+    // Resetear _hasRolledThisTurn cuando cambia el turno,
     // vuelve la fase al tablero o es un juego de 1 jugador
     ref.listen(
       gameProvider.select((s) => '${s.activePlayerIndex}_${s.currentPhase}'),
@@ -336,6 +378,11 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
               ),
 
               // ============================================
+              // UI OVERLAY: Menú Debug (top-right)
+              // ============================================
+              _buildDebugMenu(),
+
+              // ============================================
               // UI OVERLAY: Botón TIENDA (bottom-left)
               // ============================================
               Positioned(
@@ -388,6 +435,50 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
                   gameState.currentPhase == GamePhase.minigameTile)
                 const Positioned.fill(
                   child: MinigameOverlay(),
+                ),
+
+              if (gameState.obtainedItemName != null)
+                Positioned.fill(
+                  child: Container(
+                    color: Colors.black87,
+                    child: Center(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Text("¡RULETA!",
+                              style: TextStyle(
+                                  color: Colors.amber,
+                                  fontSize: 32,
+                                  fontWeight: FontWeight.bold,
+                                  fontFamily: 'Retro Gaming')),
+                          const SizedBox(height: 30),
+                          const CircularProgressIndicator(
+                              color: Colors
+                                  .white), // Animación de carga rápida simulando giro
+                          const SizedBox(height: 30),
+                          Text("Has obtenido: ${gameState.obtainedItemName!}",
+                              style: const TextStyle(
+                                  color: Colors.greenAccent, fontSize: 24)),
+                          const SizedBox(height: 10),
+                          Text(gameState.obtainedItemDesc ?? '',
+                              style: const TextStyle(
+                                  color: Colors.white70, fontSize: 16)),
+                          const SizedBox(height: 20),
+                          ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.amber),
+                            onPressed: () => ref
+                                .read(gameProvider.notifier)
+                                .hideObtainedItem(),
+                            child: const Text("OK",
+                                style: TextStyle(
+                                    color: Colors.black,
+                                    fontWeight: FontWeight.bold)),
+                          )
+                        ],
+                      ),
+                    ),
+                  ),
                 ),
 
               // ============================================
@@ -585,9 +676,11 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
               decoration: BoxDecoration(
                 color: const Color(0xEE1a1a2e),
                 borderRadius: BorderRadius.circular(24),
-                border: Border.all(color: Colors.amber.withOpacity(0.5), width: 2),
+                border:
+                    Border.all(color: Colors.amber.withOpacity(0.5), width: 2),
                 boxShadow: const [
-                  BoxShadow(color: Colors.black54, blurRadius: 20, spreadRadius: 5)
+                  BoxShadow(
+                      color: Colors.black54, blurRadius: 20, spreadRadius: 5)
                 ],
               ),
               child: Column(
@@ -969,6 +1062,7 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
       child: Row(
         children: [
           // Avatar miniatura
+          // Avatar miniatura
           Container(
             width: 32,
             height: 32,
@@ -979,12 +1073,27 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
                 width: isActive ? 2 : 1,
               ),
             ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(3),
-              child: Image.asset(
-                getCharacterImagePath(player.characterClass, true),
-                fit: BoxFit.cover,
-              ),
+            child: Stack(
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(3),
+                  child: Image.asset(
+                    getCharacterImagePath(player.characterClass, true),
+                    fit: BoxFit.cover,
+                  ),
+                ),
+                if (player.penaltyTurns > 0)
+                  Positioned(
+                    bottom: -2,
+                    right: -2,
+                    child: Container(
+                      decoration: const BoxDecoration(
+                          color: Colors.black54, shape: BoxShape.circle),
+                      child: const Icon(Icons.lock,
+                          color: Colors.redAccent, size: 16),
+                    ),
+                  ),
+              ],
             ),
           ),
           const SizedBox(width: 8),

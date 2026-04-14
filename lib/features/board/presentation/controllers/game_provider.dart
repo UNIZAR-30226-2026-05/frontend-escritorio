@@ -89,19 +89,27 @@ class GameController extends StateNotifier<GameState> {
       {int dice1 = 0, int dice2 = 0}) async {
     if (state.currentPhase == GamePhase.finished) return;
 
-    // Bloqueamos la UI mientras hay movimiento o resultado de dado
-    // ACTUALIZAMOS EL RESULTADO DEL DADO INMEDIATAMENTE PARA QUE SE VEA EL OVERLAY
-    state = state.copyWith(
-      isMovementActive: true,
-      lastDiceResult: diceRoll,
-      lastDice1: dice1,
-      lastDice2: dice2,
-      lastDiceRollId: state.lastDiceRollId + 1, // Incrementamos para que la UI lo detecte
-      serverMessage: "${state.players.firstWhere((p) => p.id == playerId).username} sacó un $diceRoll.",
-    );
-
-    // ESPERA de 2 segundos para que se vea el resultado del dado ANTES de mover
-    await Future.delayed(const Duration(seconds: 2));
+    // Solo bloqueamos y esperamos 2 segundos si es una tirada manual (diceRoll > 0)
+    if (diceRoll > 0) {
+      state = state.copyWith(
+        isMovementActive: true,
+        lastDiceResult: diceRoll,
+        lastDice1: dice1,
+        lastDice2: dice2,
+        lastDiceRollId: state.lastDiceRollId + 1,
+        serverMessage:
+            "${state.players.firstWhere((p) => p.id == playerId).username} sacó un $diceRoll.",
+      );
+      // ESPERA de 2 segundos para que se vea el resultado del dado ANTES de mover
+      await Future.delayed(const Duration(seconds: 2));
+    } else {
+      // Movimiento automático (salto extra, penalización, etc.)
+      state = state.copyWith(
+        isMovementActive: true,
+        serverMessage:
+            "${state.players.firstWhere((p) => p.id == playerId).username} se desplaza por el tablero.",
+      );
+    }
 
     final currentPlayer = state.players.firstWhere((p) => p.id == playerId);
 
@@ -178,10 +186,12 @@ class GameController extends StateNotifier<GameState> {
       }
     }
 
-    GamePhase nextPhase = state.currentPhase;
+    // AL FINAL DE LA ANIMACIÓN
+    // Leemos la fase en tiempo real porque pudo haber llegado un ini_minijuego mientras tanto
+    GamePhase finalPhase = state.currentPhase;
 
     if (newTileIndex >= totalTiles - 1) {
-      nextPhase = GamePhase.finished;
+      finalPhase = GamePhase.finished;
       newMessage = "¡${currentPlayer.username} HA GANADO LA PARTIDA!";
     }
 
@@ -190,7 +200,6 @@ class GameController extends StateNotifier<GameState> {
           (state.activePlayerIndex + 1) % state.turnOrder.length;
       int nextRound = state.currentRound;
 
-      // Si el índice vuelve a 0, significa que ha dado la vuelta completa a todos los jugadores
       if (nextPlayerIndex == 0) {
         nextRound += 1;
       }
@@ -199,13 +208,13 @@ class GameController extends StateNotifier<GameState> {
         activePlayerIndex: nextPlayerIndex,
         currentRound: nextRound,
         serverMessage: newMessage,
-        currentPhase: nextPhase,
+        currentPhase: finalPhase, // Usamos la fase final real
         isMovementActive: false, // Desbloqueo al final del turno
       );
     } else {
       state = state.copyWith(
         serverMessage: newMessage,
-        currentPhase: nextPhase,
+        currentPhase: finalPhase, // Usamos la fase final real
         isMovementActive: false, // FIN de movimiento y desbloqueo
       );
     }
@@ -221,6 +230,8 @@ class GameController extends StateNotifier<GameState> {
     final balances = boardState['balances'] as Map<String, dynamic>? ?? {};
     final characters = boardState['characters'] as Map<String, dynamic>? ?? {};
     final order = boardState['order'] as Map<String, dynamic>? ?? {};
+    final penaltyTurns =
+        boardState['penalty_turns'] as Map<String, dynamic>? ?? {};
 
     print('═══════════════════════════════════════════');
     print(' SYNC BOARD STATE - Datos del backend:');
@@ -374,5 +385,52 @@ class GameController extends StateNotifier<GameState> {
 
   void setWaitingForMinigameChoice(bool waiting) {
     state = state.copyWith(isWaitingForMinigameChoice: waiting);
+  }
+
+  void showObtainedItem(String name, String desc) {
+    state = state.copyWith(obtainedItemName: name, obtainedItemDesc: desc);
+  }
+
+  void hideObtainedItem() {
+    state = GameState(
+      // Truco similar a finishMinigame para forzar a null
+      currentPhase: state.currentPhase, currentRound: state.currentRound,
+      players: state.players, turnOrder: state.turnOrder,
+      activePlayerIndex: state.activePlayerIndex,
+      serverMessage: state.serverMessage,
+      isWaitingForMinigameChoice: state.isWaitingForMinigameChoice,
+    );
+  }
+
+  void updatePenalty(String playerId, int turns) {
+    final updated = state.players
+        .map((p) => p.id == playerId ? p.copyWith(penaltyTurns: turns) : p)
+        .toList();
+    state = state.copyWith(players: updated);
+  }
+
+  // ============================================================
+  // MODO DEBUG: Inicia un minijuego localmente sin avisar al backend
+  // ============================================================
+  void startDebugMinigameLocal(String name) {
+    Map<String, dynamic> mockDetails = {};
+
+    // Generamos datos falsos según lo que necesite cada minijuego
+    if (name == 'Tren')
+      mockDetails = {'objetivo': 20.0};
+    else if (name == 'Mayor o Menor')
+      mockDetails = {
+        'cartas': [12, 25, 38, 51],
+        'personaje': 'banquero'
+      };
+    else if (name == 'Cronometro ciego')
+      mockDetails = {'objetivo': 8};
+    else if (name == 'Cortar pan') mockDetails = {'objetivo': 50};
+
+    startMinigame(
+      name: name,
+      description: "DEBUG_MODE", // Usamos esto como bandera secreta
+      details: mockDetails,
+    );
   }
 }

@@ -64,6 +64,8 @@ class Player {
   final bool isConnected; // Conectado al servidor
   final bool skipNextTurn; // Para penalizaciones o desconexiones
 
+  final int penaltyTurns; //Para turnos de penalización
+
   // Constructor de la clase
   Player({
     required this.id,
@@ -75,6 +77,7 @@ class Player {
     this.itemInventory = const [], // Sin objetos en el inventario
     this.isConnected = true, // Conectado al servidor
     this.skipNextTurn = false, // No se salta el turno
+    this.penaltyTurns = 0,
   });
 
   // copyWith es vital para la inmutabilidad (Riverpod / BLoC)
@@ -92,6 +95,7 @@ class Player {
     List<ItemType>? itemInventory,
     bool? isConnected,
     bool? skipNextTurn,
+    int? penaltyTurns,
     //Los '?' significan que los parámetros son opcionales
     //Si no se proporciona un valor, se usa el valor por defecto
   }) {
@@ -105,6 +109,7 @@ class Player {
       itemInventory: itemInventory ?? this.itemInventory,
       isConnected: isConnected ?? this.isConnected,
       skipNextTurn: skipNextTurn ?? this.skipNextTurn,
+      penaltyTurns: penaltyTurns ?? this.penaltyTurns,
       // Los '??' significan que si no se proporciona el valor de la izquierda,
       // se de el de la derecha. El de la derecha cambia las cosas al default
     );
@@ -129,6 +134,8 @@ class Player {
       // Los inventarios se mapearían si el backend los enviara (todavía no es la versión)
       diceInventory: [],
       itemInventory: [],
+      // Turnos saltados
+      penaltyTurns: json['penaltyTurns'] ?? 0,
     );
   }
 
@@ -164,9 +171,11 @@ class GameState {
   // UI / Feedback
   final String serverMessage;
   final int? lastDiceResult; // Solo para mostrar visualmente cuánto sacó
-  final int lastDice1;       // Valor del dado 1 individual
-  final int lastDice2;       // Valor del dado 2 individual (0 si no hubo segundo dado)
-  final int lastDiceRollId;  // Contador incremental para detectar rollos seguidos idénticos
+  final int lastDice1; // Valor del dado 1 individual
+  final int
+      lastDice2; // Valor del dado 2 individual (0 si no hubo segundo dado)
+  final int
+      lastDiceRollId; // Contador incremental para detectar rollos seguidos idénticos
 
   // Minijuegos
   final String? minigameName;
@@ -175,6 +184,10 @@ class GameState {
   final Map<String, dynamic>? minigameResults;
   final List<String>? minigameChoices;
   final bool isWaitingForMinigameChoice;
+
+  //Objetos del tablero (ruleta)
+  final String? obtainedItemName;
+  final String? obtainedItemDesc;
 
   // Animaciones / Locks
   final bool isMovementActive;
@@ -198,6 +211,8 @@ class GameState {
     this.minigameChoices,
     this.isWaitingForMinigameChoice = false,
     this.isMovementActive = false,
+    this.obtainedItemName,
+    this.obtainedItemDesc,
   });
 
   GameState copyWith({
@@ -218,6 +233,8 @@ class GameState {
     List<String>? minigameChoices,
     bool? isWaitingForMinigameChoice,
     bool? isMovementActive,
+    String? obtainedItemName,
+    String? obtainedItemDesc,
   }) {
     return GameState(
       currentPhase: currentPhase ?? this.currentPhase,
@@ -238,6 +255,8 @@ class GameState {
       isWaitingForMinigameChoice:
           isWaitingForMinigameChoice ?? this.isWaitingForMinigameChoice,
       isMovementActive: isMovementActive ?? this.isMovementActive,
+      obtainedItemName: obtainedItemName ?? this.obtainedItemName,
+      obtainedItemDesc: obtainedItemDesc ?? this.obtainedItemDesc,
     );
   }
 }

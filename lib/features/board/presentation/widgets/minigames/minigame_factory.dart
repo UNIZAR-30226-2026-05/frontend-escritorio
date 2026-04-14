@@ -16,6 +16,7 @@ import 'tren_game.dart';
 import 'cronometro_game.dart';
 // import 'cortar_pan_game.dart';
 import 'mayor_menor_game.dart';
+import 'doble_nada_game.dart';
 
 class MinigameFactory {
   /// Devuelve el widget del minijuego correspondiente al [minigameName].
@@ -39,6 +40,8 @@ class MinigameFactory {
         return CronometroGame(onFinish: onFinish, details: details);
       case 'Mayor o Menor':
         return MayorMenorGame(onFinish: onFinish, details: details);
+      case 'Doble o Nada':
+        return DobleNadaGame(onFinish: onFinish, details: details);
 
       default:
         // Placeholder para minijuegos no implementados todavía

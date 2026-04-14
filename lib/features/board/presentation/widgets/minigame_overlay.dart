@@ -33,6 +33,7 @@ class _MinigameOverlayState extends ConsumerState<MinigameOverlay> {
 
   int _countdown = 3;
   bool _countdownFinished = false;
+  Timer? _countdownTimer;
   ProviderSubscription<Map<String, dynamic>?>? _resultsSubscription;
 
   @override
@@ -59,12 +60,20 @@ class _MinigameOverlayState extends ConsumerState<MinigameOverlay> {
 
   @override
   void dispose() {
+    _countdownTimer?.cancel(); // <-- AÑADE ESTO PARA CANCELAR EL TIMER
     _resultsSubscription?.close();
     super.dispose();
   }
 
   void _startCountdown() {
-    Timer.periodic(const Duration(seconds: 1), (timer) {
+    // Guardamos el timer en la variable
+    _countdownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      // Si el widget ya no existe, cancelamos el timer y salimos
+      if (!mounted) {
+        timer.cancel();
+        return;
+      }
+
       if (_countdown > 1) {
         setState(() => _countdown--);
       } else {
@@ -81,15 +90,63 @@ class _MinigameOverlayState extends ConsumerState<MinigameOverlay> {
   // Utiliza sendMinigameScore del WebSocketService.
   // Para Tren el backend exige también el campo 'objetivo' en el payload.
   void _onMinigameFinish(int score) {
-    // Leemos el estado actual del juego para saber qué minijuego se ha jugado
     final gameState = ref.read(gameProvider);
-    // Si el minijuego es Tren, extraemos el 'objetivo' de los detalles y lo incluimos en el envío.
-    // LLamamos al método genérico sendMinigameScore, que se encargará de construir el payload correcto según el minijuego.
+
+    // 1. INTERCEPTAMOS SI ES MODO DEBUG
+    if (gameState.minigameDescription == "DEBUG_MODE") {
+      print(" [DEBUG] Simulando resultados locales. Score enviado: $score");
+
+      // Creamos un podio falso con los jugadores de la partida actual
+      Map<String, dynamic> fakeResults = {};
+      int pos = 1;
+      for (var p in gameState.turnOrder) {
+        // A ti te ponemos la puntuación real, a los demás puntuaciones inventadas
+        fakeResults[p] = {
+          "posicion": pos,
+          "score": pos == 1 ? score : score - (pos * 10)
+        };
+        pos++;
+      }
+
+      // Enviamos los resultados al provider (como si vinieran del backend)
+      // Interceptar si debug
+      if (gameState.minigameDescription == "DEBUG_MODE") {
+        print(" [DEBUG] Simulando resultados locales. Score enviado: $score");
+        // ... (fakeResults) ...
+        ref
+            .read(gameProvider.notifier)
+            .setMinigameResults(fakeResults, gameState.turnOrder);
+
+        if (gameState.minigameName == 'Doble o Nada') {
+          Future.delayed(const Duration(seconds: 2), () {
+            if (mounted) {
+              ref.read(gameProvider.notifier).finishMinigame();
+              ref
+                  .read(webSocketProvider)
+                  .sendEndRound(); // Avisamos que terminamos la casilla
+            }
+          });
+        }
+        return;
+      }
+    }
+
+    // Lógica normal (Si no es debug, se envía al backend)
     if (gameState.minigameName == 'Tren') {
       final objetivo = gameState.minigameDetails?['objetivo'] as double?;
       ref.read(webSocketProvider).sendMinigameScore(score, objetivo: objetivo);
     } else {
       ref.read(webSocketProvider).sendMinigameScore(score);
+    }
+
+    if (gameState.minigameName == 'Doble o Nada') {
+      Future.delayed(const Duration(seconds: 2), () {
+        if (mounted) {
+          ref.read(gameProvider.notifier).finishMinigame();
+          // Avisa al backend para pasar el turno
+          ref.read(webSocketProvider).sendEndRound();
+        }
+      });
     }
   }
 

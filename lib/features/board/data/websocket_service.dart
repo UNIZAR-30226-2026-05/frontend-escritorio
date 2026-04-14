@@ -109,29 +109,21 @@ class WebSocketService {
 
           // Usar Riverpod para enviar los datos al gameProvider
           _ref
-              .read(gameProvider
-                  .notifier) // Accedemos al notifier para poder llamar a métodos que actualizan el estado
+              .read(gameProvider.notifier)
               .updatePlayerFromBackend(userId, newTile, diceTotal,
-                  dice1: dado1,
-                  dice2:
-                      dado2) // Llamamos al método que actualiza la posición del jugador en el estado del juego
+                  dice1: dado1, dice2: dado2)
               .then((_) {
-            // Para evitar que cuente como turno los movimientos de avanzar y retroceder por casillas
             Future.delayed(const Duration(milliseconds: 100), () {
-              // Solo avisamos al backend si no quedan animaciones pendientes
               final isQueueEmpty =
                   _ref.read(gameProvider.notifier).isAnimationQueueEmpty;
-              // Leemos el estado actual del juego para saber en qué fase estamos
               final gameState = _ref.read(gameProvider);
-              // Leemos nuestro username para compararlo con el userId del backend
               final myUsername = _ref.read(authProvider).username;
 
-              // SI NO QUEDAN ANIMACIONES PENDIENTES, NO ESTAMOS EN LA FASE DE FIN DE JUEGO, Y EL MOVIMIENTO LO HIZO ESTE JUGADOR,
-              // ENVIAMOS END_ROUND
+              // SOLO ENVIAMOS END_ROUND AUTOMÁTICO SI ESTAMOS EN TURNO NORMAL DE TABLERO
               if (isQueueEmpty &&
-                  gameState.currentPhase != GamePhase.finished &&
+                  gameState.currentPhase == GamePhase.boardTurn &&
                   userId == myUsername) {
-                _sendEndRound();
+                sendEndRound(); // Manda el fin de turno solo si no hay minijuego
               }
             });
           });
@@ -179,31 +171,37 @@ class WebSocketService {
 
         // Tipo de mensaje cuando el jugador cae en una casilla de objeto y le toca intercambiar
         case 'intercambiar_objeto':
-          print(
-              "Debes elegir un jugador para intercambiar un objeto: \${decoded['message']}");
-          // TODO: Abrir un modal en la UI para elegir al jugador
+          print("Ignorado: Intercambiar objeto delegado");
           break;
 
         // Tipo de mensaje de inicio de minijuego
         case 'ini_minijuego':
-          // DEBUG: imprimimos que llego el mensaje de inicio de minijuego
-          print("Minijuego iniciado.");
-          // Cuando empieza el minijuego podemos reiniciar el flag de end_round
           _localPlayerSentEndRound = false;
-          // Guardamos el nombre del minijuego, su descripción y detalles adicionales (si los hay)
+
           final String? name = decoded['minijuego'];
           final String? desc = decoded['descripcion'];
           final Map<String, dynamic>? details = decoded['detalles'] != null
               ? Map<String, dynamic>.from(decoded['detalles'])
               : null;
-          // Mandamos el nombre del minijuego al gameProvider para que actualice su estado y muestre el overlay correspondiente.
-          // Si el backend no envía un nombre, no hacemos nada.
+
+          print("Minijuego ${name?.toUpperCase() ?? "DESCONOCIDO"} encolado.");
+
           if (name != null) {
-            _ref.read(gameProvider.notifier).startMinigame(
-                  name: name,
-                  description: desc,
-                  details: details,
-                );
+            // Esperar a que la cola de animación se vacíe antes de lanzarlo
+            Future.doWhile(() async {
+              if (_ref.read(gameProvider.notifier).isAnimationQueueEmpty) {
+                return false; // Rompe el bucle, ya no hay animación
+              }
+              await Future.delayed(const Duration(milliseconds: 200));
+              return true; // Sigue esperando
+            }).then((_) {
+              // Ahora sí, el muñeco ha llegado a la casilla. Lanzamos el minijuego.
+              _ref.read(gameProvider.notifier).startMinigame(
+                    name: name,
+                    description: desc,
+                    details: details,
+                  );
+            });
           }
           break;
 
@@ -275,13 +273,31 @@ class WebSocketService {
         // Tipo de mensaje para elegir minijuego
         case 'choose_minijuego':
           print("El backend pide elegir minijuego.");
-          // HARDCODEADO PARA FORZAR REFLEJOS, TREN Y PAN (MINIJUEGOS IMPLMENTADOS)
-          _ref.read(gameProvider.notifier).setMinigameChoices([
-            /*'Reflejos', 'Cortar pan', */
-            'Reflejos',
-            'Mayor o Menor',
-            'Cronometro ciego'
-          ]);
+
+          // Extraemos la lista enviada por el backend
+          final minijuegosList = decoded['minijuegos'] as List<dynamic>? ?? [];
+          // Mapeamos para obtener solo el nombre del minijuego
+          final choices =
+              minijuegosList.map((m) => m['nombre'] as String).toList();
+
+          _ref.read(gameProvider.notifier).setMinigameChoices(choices);
+          break;
+
+        case 'obtener_objeto':
+          final itemName = decoded['objeto'];
+          final desc = decoded['descripcion'];
+          _ref.read(gameProvider.notifier).showObtainedItem(itemName, desc);
+          break;
+
+        case 'penalizacion_actualizada':
+          final userId = decoded['user'];
+          final turns = decoded['penalizacion'] ?? 0;
+          _ref.read(gameProvider.notifier).updatePenalty(userId, turns);
+          break;
+
+        case 'penalizacion_eliminada':
+          final userId = decoded['user'];
+          _ref.read(gameProvider.notifier).updatePenalty(userId, 0);
           break;
 
         // Tipo de mensaje por defecto
@@ -327,7 +343,7 @@ class WebSocketService {
   }
 
   // Función privada para mandar la acción de fin de ronda al backend
-  void _sendEndRound() {
+  void sendEndRound() {
     // Comprobamos previamente que el canal existe y está conectado antes de mandar la acción
     if (_channel != null && _isConnected) {
       // Creamos el payload como se especifica en la domuentacion de los WS

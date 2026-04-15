@@ -3,9 +3,12 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'minigame_base.dart';
 
-// ============================================================
-// Paso 2: Motor Lógico de Decodificación de Cartas
-// ============================================================
+// Imports necesarios para conocer qué personaje se usa (Riverpod)
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../controllers/game_provider.dart';
+import '../../../../auth/presentation/controllers/auth_provider.dart';
+
+// Motor de decodificación de cartas
 class CartaInfo {
   final int valorOriginal;
   final String rango;
@@ -74,9 +77,7 @@ class CartaInfo {
   }
 }
 
-// ============================================================
-// Paso 1: Inicialización y Recepción de Datos
-// ============================================================
+// Inicialización y recepción de datos
 class MayorMenorGame extends MinigameBase {
   const MayorMenorGame({
     super.key,
@@ -90,11 +91,9 @@ class MayorMenorGame extends MinigameBase {
 
 class _MayorMenorGameState extends State<MayorMenorGame> {
   late List<int> _cartasRaw;
-  late String _personaje;
 
   int? _indiceSeleccionado;
   bool _juegoTerminado = false;
-
   @override
   void initState() {
     super.initState();
@@ -107,14 +106,9 @@ class _MayorMenorGameState extends State<MayorMenorGame> {
       // Fallback de seguridad en caso de que el backend envíe datos malformados
       _cartasRaw = [0, 13, 26, 39];
     }
-
-    // Extracción del personaje (por defecto banquero si falla)
-    _personaje = widget.details['personaje'] ?? 'banquero';
   }
 
-  // ============================================================
-  // Paso 7 & 8: Controlador de Interacción, Secuencia y Cierre
-  // ============================================================
+  // Controlador de interacción, secuencia y cierre
   void _seleccionarCarta(int index) {
     if (_indiceSeleccionado != null) return; // Bloqueo de concurrencia
 
@@ -145,89 +139,100 @@ class _MayorMenorGameState extends State<MayorMenorGame> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.black,
-      body: Stack(
-        fit: StackFit.expand,
-        children: [
-          // ============================================================
-          // Paso 3: Renderizado de la Capa Base (Fondo)
-          // ============================================================
-          Image.asset(
-            'assets/images/minigames/cartas/fondo_cartas_${_personaje.toLowerCase()}.png',
-            fit: BoxFit.cover,
-            // Fallback silencioso a un color sólido si la imagen del personaje no existe
-            errorBuilder: (context, error, stackTrace) => Container(
-              color: const Color(0xFF1B2A3B),
-            ),
-          ),
+    return Consumer(builder: (context, ref, child) {
+      // 1. Obtenemos el nombre de usuario local
+      final myUsername = ref.watch(authProvider).username;
+      // 2. Buscamos el jugador correspondiente en la partida
+      final player = ref
+          .watch(gameProvider)
+          .players
+          .firstWhere((p) => p.username == myUsername);
+      // 3. Extraemos su clase en minúsculas (ej: "videojugador", "escapista")
+      final personajeLocal = player.characterClass.name.toLowerCase();
 
-          // ============================================================
-          // Paso 6: Ensamblaje del Tablero (Layout de Cartas)
-          // ============================================================
-          SafeArea(
-            child: Center(
-              child: Wrap(
-                alignment: WrapAlignment.center,
-                spacing: 24,
-                runSpacing: 24,
-                children: List.generate(4, (index) {
-                  return CartaWidget(
-                    cartaInfo: CartaInfo.decodificar(_cartasRaw[index]),
-                    seleccionada: _indiceSeleccionado == index,
-                    onTap: () => _seleccionarCarta(index),
-                    onAnimationComplete: _onAnimacionGiroCompletada,
-                  );
-                }),
+      return Scaffold(
+        backgroundColor: Colors.black,
+        body: Stack(
+          fit: StackFit.expand,
+          children: [
+            // Renderizado de la capa base (el fondo)
+            Image.asset(
+              'assets/images/minigames/cartas/fondo_cartas_$personajeLocal.png',
+              fit: BoxFit.cover,
+              // Fallback a un color sólido si la imagen del personaje no existe
+              errorBuilder: (context, error, stackTrace) => Container(
+                color: const Color(0xFF1B2A3B),
               ),
             ),
-          ),
 
-          // ============================================================
-          // Paso 8: Overlay destacado con el valor bruto
-          // ============================================================
-          if (_juegoTerminado && _indiceSeleccionado != null)
-            Positioned.fill(
-              child: Container(
-                color: Colors.black.withOpacity(0.6),
-                child: Center(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Text(
-                        'VALOR REVELADO',
-                        style: TextStyle(
-                          color: Colors.white70,
-                          fontSize: 24,
-                          fontFamily: 'Retro Gaming',
-                          letterSpacing: 2,
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        // Mostramos el rango real (A, 2, 3... J, Q, K) usando tu propia clase
-                        CartaInfo.decodificar(_cartasRaw[_indiceSeleccionado!])
-                            .rango,
-                        style: const TextStyle(
-                          color: Colors.amber,
-                          fontSize: 96,
-                          fontWeight: FontWeight.bold,
-                          shadows: [
-                            Shadow(
-                                color: Colors.black,
-                                blurRadius: 15,
-                                offset: Offset(2, 4))
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
+            // ============================================================
+            // Paso 6: Ensamblaje del Tablero (Layout de Cartas)
+            // ============================================================
+            SafeArea(
+              child: Center(
+                child: Wrap(
+                  alignment: WrapAlignment.center,
+                  spacing: 24,
+                  runSpacing: 24,
+                  children: List.generate(4, (index) {
+                    return CartaWidget(
+                      cartaInfo: CartaInfo.decodificar(_cartasRaw[index]),
+                      seleccionada: _indiceSeleccionado == index,
+                      onTap: () => _seleccionarCarta(index),
+                      onAnimationComplete: _onAnimacionGiroCompletada,
+                    );
+                  }),
                 ),
               ),
             ),
-        ],
-      ),
-    );
+
+            // ============================================================
+            // Paso 8: Overlay destacado con el valor bruto
+            // ============================================================
+            if (_juegoTerminado && _indiceSeleccionado != null)
+              Positioned.fill(
+                child: Container(
+                  color: Colors.black.withOpacity(0.6),
+                  child: Center(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Text(
+                          'VALOR REVELADO',
+                          style: TextStyle(
+                            color: Colors.white70,
+                            fontSize: 24,
+                            fontFamily: 'Retro Gaming',
+                            letterSpacing: 2,
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          // Mostramos el rango real (A, 2, 3... J, Q, K) usando tu propia clase
+                          CartaInfo.decodificar(
+                                  _cartasRaw[_indiceSeleccionado!])
+                              .rango,
+                          style: const TextStyle(
+                            color: Colors.amber,
+                            fontSize: 96,
+                            fontWeight: FontWeight.bold,
+                            shadows: [
+                              Shadow(
+                                  color: Colors.black,
+                                  blurRadius: 15,
+                                  offset: Offset(2, 4))
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        ),
+      );
+    });
   }
 }
 

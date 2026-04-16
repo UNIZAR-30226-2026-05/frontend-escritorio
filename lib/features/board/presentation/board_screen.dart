@@ -10,6 +10,8 @@ import '../../lobby/presentation/controllers/lobby_provider.dart';
 
 import '../../shop/presentation/controllers/shop_providers.dart';
 import 'widgets/minigame_overlay.dart';
+import 'widgets/banquero_modal.dart';
+import 'widgets/ruleta_modal.dart';
 
 // BoardScreen — Pantalla principal del tablero de juego
 // Layout fijo con tablero centrado y paneles UI superpuestos
@@ -25,6 +27,10 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
   Timer? _choiceTimer;
   int _choiceCountdown = 10;
   bool _hasRolledThisTurn = false;
+
+  // Estado de la habilidad del banquero
+  bool _isBanqueroOpen = false; // esta abierta la habilidad
+  bool _hasUsedBanqueroSkill = false; // se ha usado la habilidad
 
   // Resultado de dados a mostrar brevemente (animación)
   bool _showingDiceResult = false;
@@ -224,6 +230,7 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
       (prev, next) {
         if (prev != next && mounted) {
           setState(() => _hasRolledThisTurn = false);
+          setState(() => _hasUsedBanqueroSkill = false);
         }
       },
     );
@@ -375,15 +382,39 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
               // UI OVERLAY: Menú Debug (top-right)
               _buildDebugMenu(),
 
-              // UI OVERLAY: Botón TIENDA (bottom-left)
+              // UI OVERLAY: Botones Interactivos (bottom-left)
               Positioned(
                 bottom: 16,
                 left: 16,
-                child: _buildPixelButton(
-                  text: 'TIENDA',
-                  onPressed: () {
-                    setState(() => _isShopOpen = true);
-                  },
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Botón de Habilidad (Aparece solo si eres Banquero y es tu turno)
+                    if (isMyTurn &&
+                        gameState.currentPhase == GamePhase.boardTurn &&
+                        !_hasRolledThisTurn &&
+                        !_hasUsedBanqueroSkill &&
+                        gameState.players
+                                .firstWhere((p) => p.username == myUsername)
+                                .characterClass ==
+                            CharacterClass.banquero) ...[
+                      _buildPixelButton(
+                        text: 'HABILIDAD',
+                        onPressed: () {
+                          setState(() => _isBanqueroOpen = true);
+                        },
+                      ),
+                      const SizedBox(height: 16),
+                    ],
+                    // Botón Tienda (Siempre visible)
+                    _buildPixelButton(
+                      text: 'TIENDA',
+                      onPressed: () {
+                        setState(() => _isShopOpen = true);
+                      },
+                    ),
+                  ],
                 ),
               ),
 
@@ -418,47 +449,21 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
                   child: MinigameOverlay(),
                 ),
 
+              // UI OVERLAY: Modal de Ruleta
               if (gameState.obtainedItemName != null)
                 Positioned.fill(
-                  child: Container(
-                    color: Colors.black87,
-                    child: Center(
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Text("¡RULETA!",
-                              style: TextStyle(
-                                  color: Colors.amber,
-                                  fontSize: 32,
-                                  fontWeight: FontWeight.bold,
-                                  fontFamily: 'Retro Gaming')),
-                          const SizedBox(height: 30),
-                          const CircularProgressIndicator(
-                              color: Colors
-                                  .white), // Animación de carga rápida simulando giro
-                          const SizedBox(height: 30),
-                          Text("Has obtenido: ${gameState.obtainedItemName!}",
-                              style: const TextStyle(
-                                  color: Colors.greenAccent, fontSize: 24)),
-                          const SizedBox(height: 10),
-                          Text(gameState.obtainedItemDesc ?? '',
-                              style: const TextStyle(
-                                  color: Colors.white70, fontSize: 16)),
-                          const SizedBox(height: 20),
-                          ElevatedButton(
-                            style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.amber),
-                            onPressed: () => ref
-                                .read(gameProvider.notifier)
-                                .hideObtainedItem(),
-                            child: const Text("OK",
-                                style: TextStyle(
-                                    color: Colors.black,
-                                    fontWeight: FontWeight.bold)),
-                          )
-                        ],
+                  child: Stack(
+                    children: [
+                      Container(color: Colors.black.withValues(alpha: 0.6)),
+                      Center(
+                        child: RuletaModal(
+                          itemName: gameState.obtainedItemName!,
+                          onClose: () => ref
+                              .read(gameProvider.notifier)
+                              .hideObtainedItem(),
+                        ),
                       ),
-                    ),
+                    ],
                   ),
                 ),
 
@@ -478,6 +483,28 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
                               .firstWhere((p) => p.id == activePlayerId)
                               .coins,
                           onClose: () => setState(() => _isShopOpen = false),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+              // UI OVERLAY: Modal del Banquero (ENCIMA DEL TABLERO)
+              if (_isBanqueroOpen)
+                Positioned.fill(
+                  child: Stack(
+                    children: [
+                      GestureDetector(
+                        onTap: () => setState(() => _isBanqueroOpen = false),
+                        child: Container(
+                            color: Colors.black.withValues(alpha: 0.6)),
+                      ),
+                      Center(
+                        child: BanqueroModal(
+                          onClose: () =>
+                              setState(() => _isBanqueroOpen = false),
+                          onSkillUsed: () =>
+                              setState(() => _hasUsedBanqueroSkill = true),
                         ),
                       ),
                     ],

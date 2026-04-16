@@ -3,6 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../board/data/websocket_service.dart';
 import '../../domain/shop_models.dart';
 import '../../data/shop_repository.dart';
+import '../../../board/presentation/controllers/game_provider.dart';
+import '../../../auth/presentation/controllers/auth_provider.dart';
+import '../../../../core/widgets/retro_widgets.dart';
 
 final shopProvider = Provider<ShopController>((ref) {
   return ShopController(ref);
@@ -12,6 +15,16 @@ class ShopController {
   final Ref _ref;
 
   ShopController(this._ref);
+
+  void buyItem(ShopItem item) {
+    final payloadBuy = {
+      'action': 'comprar_objeto',
+      'payload': {'objeto': item.name}
+    };
+
+    _ref.read(webSocketProvider).sendGenericAction(payloadBuy);
+    debugPrint(" [SHOP] Compra de objeto enviada: ${item.name}");
+  }
 
   void buyAndUseItem(ShopItem item, {String? targetPlayerId}) {
     final payloadBuy = {
@@ -56,12 +69,19 @@ class ShopModal extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // Obtenemos el inventario del jugador activo para los contadores
+    final myUsername = ref.watch(authProvider).username;
+    final player = ref.watch(gameProvider).players.firstWhere(
+          (p) => p.username == myUsername,
+          orElse: () => ref.watch(gameProvider).players.first,
+        );
+
     return Container(
-      width: 520,
+      width: 900,
+      padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 24),
       decoration: BoxDecoration(
         color: const Color(0xFF2D1B4E),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.white, width: 2),
+        border: Border.all(color: Colors.white, width: 2), // Sin borde redondeado
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.7),
@@ -73,171 +93,184 @@ class ShopModal extends ConsumerWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // HEADER DE LA TIENDA
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            decoration: const BoxDecoration(
-              color: Color(0xFF6C3FA0),
-              borderRadius: BorderRadius.only(
-                topLeft: Radius.circular(6),
-                topRight: Radius.circular(6),
+          // HEADER DE LA TIENDA (Todo en una misma fila sobre fondo morado uniforme)
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              const Text(
+                'TIENDA DE OBJETOS',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 22,
+                  letterSpacing: 2.0,
+                  fontFamily: 'Retro Gaming',
+                ),
               ),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Row(
-                  children: [
-                    const Text(
-                      'TIENDA (USO INMEDIATO)',
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Text(
+                    '${playerCoins}¢',
+                    style: const TextStyle(
+                      color: Color(0xFFFFD700), // Amarillo oro para la moneda
+                      fontWeight: FontWeight.bold,
+                      fontSize: 18,
+                      fontFamily: 'Retro Gaming',
+                    ),
+                  ),
+                  const SizedBox(width: 24),
+                  GestureDetector(
+                    onTap: onClose,
+                    child: const Text(
+                      'X',
                       style: TextStyle(
                         color: Colors.white,
                         fontWeight: FontWeight.bold,
-                        fontSize: 16,
-                        letterSpacing: 1.5,
+                        fontSize: 22,
+                        fontFamily: 'Retro Gaming',
                       ),
                     ),
-                    const SizedBox(width: 16),
-                    // Monedas actuales del jugador
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 8, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: const Color(0x33FFFFFF),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Text('🪙', style: TextStyle(fontSize: 14)),
-                          const SizedBox(width: 4),
-                          Text(
-                            '$playerCoins',
-                            style: const TextStyle(
-                              color: Color(0xFFFFD700),
-                              fontWeight: FontWeight.bold,
-                              fontSize: 14,
+                  ),
+                ],
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          // Línea divisoria blanca fina
+          Container(height: 2, color: Colors.white),
+          const SizedBox(height: 24),
+
+          // GRID DE OBJETOS (1 Fila Horizontal)
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: ShopRepository.catalog.map((item) {
+              final canAfford = playerCoins >= item.price;
+              // Calculamos cuántos objetos de este tipo tiene en el inventario
+              final itemCount = player.itemInventory
+                  .where((i) => i == item.effectType)
+                  .length;
+
+              return Container(
+                width: 200,
+                height: 260, // Altura ajustada
+                margin: const EdgeInsets.symmetric(horizontal: 4),
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF2D1B4E), // Mismo fondo morado
+                  border: Border.all(color: Colors.white, width: 2), // Borde blanco afilado
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // Icono (Manteniendo tus emojis originales tal y cómo pediste) y contador
+                    Stack(
+                      clipBehavior: Clip.none,
+                      children: [
+                        SizedBox(
+                          height: 54,
+                          child: Center(
+                            child: Text(item.icon,
+                                style: const TextStyle(fontSize: 48)),
+                          ),
+                        ),
+                        if (itemCount > 0)
+                          Positioned(
+                            right: -5,
+                            top: -5,
+                            child: Container(
+                              width: 24,
+                              height: 24,
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFE53935),
+                                shape: BoxShape.circle,
+                                border: Border.all(color: Colors.white, width: 2),
+                                boxShadow: const [
+                                  BoxShadow(
+                                    color: Colors.black54,
+                                    blurRadius: 4,
+                                    offset: Offset(1, 1), // Sombras estilo Pixel Art
+                                  )
+                                ],
+                              ),
+                              alignment: Alignment.center,
+                              child: Text(
+                                '$itemCount',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.bold,
+                                  fontFamily: 'Retro Gaming',
+                                ),
+                              ),
                             ),
                           ),
-                        ],
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+
+                    // Nombre del objeto
+                    Text(
+                      item.name,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                        fontFamily: 'Retro Gaming',
                       ),
+                      textAlign: TextAlign.center,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 8),
+
+                    // Descripción
+                    Expanded(
+                      child: Text(
+                        item.description,
+                        style: const TextStyle(
+                          color: Colors.white70,
+                          fontSize: 8,
+                          fontFamily: 'Retro Gaming',
+                        ),
+                        textAlign: TextAlign.center,
+                        maxLines: 4,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+
+                    // Precio
+                    Text(
+                      '${item.price}¢',
+                      style: const TextStyle(
+                        color: Color(0xFFFFD700),
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                        fontFamily: 'Retro Gaming',
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+
+                    // BOTÓN DE COMPRA RETRO CON LA IMAGEN "btn_verde.png"
+                    RetroImgButton(
+                      label: 'Comprar',
+                      asset: 'assets/images/ui/btn_verde.png',
+                      width: 140, // tamaño compacto para cuadrar
+                      height: 38,
+                      fontSize: 10,
+                      onTap: canAfford
+                          ? () {
+                              ref.read(shopProvider).buyItem(item);
+                            }
+                          : null,
                     ),
                   ],
                 ),
-                // BOTÓN CERRAR
-                GestureDetector(
-                  onTap: onClose,
-                  child: Container(
-                    width: 28,
-                    height: 28,
-                    decoration: BoxDecoration(
-                      color: const Color(0x44FFFFFF),
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                    child: const Center(
-                      child: Text(
-                        '✕',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-
-          // GRID DE OBJETOS
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Wrap(
-              spacing: 12,
-              runSpacing: 12,
-              children: ShopRepository.catalog.map((item) {
-                final canAfford = playerCoins >= item.price;
-
-                return Container(
-                  width: 150,
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF3D2660),
-                    borderRadius: BorderRadius.circular(6),
-                    border:
-                        Border.all(color: const Color(0x88FFFFFF), width: 1),
-                  ),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(item.icon, style: const TextStyle(fontSize: 32)),
-                      const SizedBox(height: 6),
-                      Text(
-                        item.name,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 11,
-                          fontWeight: FontWeight.w500,
-                        ),
-                        textAlign: TextAlign.center,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      const SizedBox(height: 6),
-                      Text(
-                        '${item.price}¢',
-                        style: const TextStyle(
-                          color: Color(0xFFFFD700),
-                          fontSize: 14,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-
-                      // BOTÓN DE COMPRA/USO
-                      GestureDetector(
-                        onTap: canAfford
-                            ? () {
-                                // Llamamos al provider para comprar y usar
-                                ref.read(shopProvider).buyAndUseItem(item);
-                                // Cerramos la tienda automáticamente tras usar el objeto
-                                onClose();
-                              }
-                            : null,
-                        child: Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.symmetric(vertical: 6),
-                          decoration: BoxDecoration(
-                            color: canAfford
-                                ? const Color(0xFF2E8B57)
-                                : const Color(0xFF555555),
-                            borderRadius: BorderRadius.circular(4),
-                            border: Border.all(
-                              color: canAfford
-                                  ? const Color(0xFF3CB371)
-                                  : const Color(0xFF777777),
-                              width: 1,
-                            ),
-                          ),
-                          child: Text(
-                            'Usar',
-                            style: TextStyle(
-                              color: canAfford
-                                  ? Colors.white
-                                  : const Color(0xFF999999),
-                              fontWeight: FontWeight.bold,
-                              fontSize: 12,
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                );
-              }).toList(),
-            ),
+              );
+            }).toList(),
           ),
         ],
       ),

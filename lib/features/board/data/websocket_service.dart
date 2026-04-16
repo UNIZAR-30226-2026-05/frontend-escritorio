@@ -287,6 +287,7 @@ class WebSocketService {
           break;
 
         case 'obtener_objeto':
+          debugPrint(' MENSAJE RULETA RECIBIDO: $decoded');
           final itemName = decoded['objeto'];
           final desc = decoded['descripcion'];
           _ref.read(gameProvider.notifier).showObtainedItem(itemName, desc);

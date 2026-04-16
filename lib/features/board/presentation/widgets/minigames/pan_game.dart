@@ -119,8 +119,8 @@ class _PanGameState extends State<PanGame> with SingleTickerProviderStateMixin {
                 child: Container(
                   height: 160, // Pan alto
                   width: 340, // Pan ancho
-                  decoration: BoxDecoration(
-                    image: const DecorationImage(
+                  decoration: const BoxDecoration(
+                    image: DecorationImage(
                       image: AssetImage('assets/images/minigames/pan/pan.png'),
                       fit: BoxFit.contain, // Evitamos que se estire
                     ),
@@ -159,7 +159,8 @@ class _PanGameState extends State<PanGame> with SingleTickerProviderStateMixin {
                                   boxShadow: [
                                     // Una pequeña sombra para que parezca que está flotando sobre el pan
                                     BoxShadow(
-                                      color: Colors.black.withOpacity(0.5),
+                                      color:
+                                          Colors.black.withValues(alpha: 0.5),
                                       blurRadius: 4,
                                       offset: const Offset(2, 2),
                                     )

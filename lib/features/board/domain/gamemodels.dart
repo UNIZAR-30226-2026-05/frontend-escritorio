@@ -1,6 +1,4 @@
-// ==========================================
 // ENUMS: Reglas de negocio del documento
-// ==========================================
 
 /// RF08 - Clases de personajes con habilidades únicas
 enum CharacterClass {
@@ -154,8 +152,6 @@ class Player {
 }
 
 // Clase del estado del juego
-// TODO Añadir los métodos de serialización para intercambiar
-// los datos con el backend
 class GameState {
   // Estado global
   final GamePhase currentPhase;

@@ -165,9 +165,7 @@ class _MayorMenorGameState extends State<MayorMenorGame> {
               ),
             ),
 
-            // ============================================================
-            // Paso 6: Ensamblaje del Tablero (Layout de Cartas)
-            // ============================================================
+            // Ensamblaje del Tablero (Layout de Cartas)
             SafeArea(
               child: Center(
                 child: Wrap(
@@ -186,13 +184,11 @@ class _MayorMenorGameState extends State<MayorMenorGame> {
               ),
             ),
 
-            // ============================================================
-            // Paso 8: Overlay destacado con el valor bruto
-            // ============================================================
+            // Overlay destacado con el valor bruto
             if (_juegoTerminado && _indiceSeleccionado != null)
               Positioned.fill(
                 child: Container(
-                  color: Colors.black.withOpacity(0.6),
+                  color: Colors.black.withValues(alpha: 0.6),
                   child: Center(
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
@@ -236,9 +232,7 @@ class _MayorMenorGameState extends State<MayorMenorGame> {
   }
 }
 
-// ============================================================
-// Paso 4 & 5: Componente Visual de la Carta y Animación de Giro
-// ============================================================
+// Componente Visual de la Carta y Animación de Giro
 class CartaWidget extends StatefulWidget {
   final CartaInfo cartaInfo;
   final bool seleccionada;
@@ -331,7 +325,7 @@ class _CartaWidgetState extends State<CartaWidget>
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.4),
+            color: Colors.black.withValues(alpha: 0.4),
             blurRadius: 8,
             offset: const Offset(4, 4),
           )
@@ -354,7 +348,7 @@ class _CartaWidgetState extends State<CartaWidget>
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.5),
+            color: Colors.black.withValues(alpha: 0.5),
             blurRadius: 10,
             offset: const Offset(2, 6),
           )

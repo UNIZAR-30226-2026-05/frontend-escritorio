@@ -16,35 +16,31 @@ class ShopController {
   void buyAndUseItem(ShopItem item, {String? targetPlayerId}) {
     final payloadBuy = {
       'action': 'comprar_objeto',
-      'payload': {
-        'objeto': item.name 
-      }
+      'payload': {'objeto': item.name}
     };
-    
+
     final payloadUse = {
       'action': 'usar_objeto',
       'payload': {
         'objeto': item.name,
-        if (targetPlayerId != null) 'target': targetPlayerId 
+        if (targetPlayerId != null) 'target': targetPlayerId
       }
     };
-    
+
     _ref.read(webSocketProvider).sendGenericAction(payloadBuy);
     _ref.read(webSocketProvider).sendGenericAction(payloadUse);
-    
-    print("🛒⚡ [SHOP] Compra y uso instantáneo enviado: ${item.name}");
+
+    debugPrint(" [SHOP] Compra y uso instantáneo enviado: ${item.name}");
   }
 
   void useItem(String itemName) {
     final payload = {
       'action': 'usar_objeto',
-      'payload': {
-        'objeto': itemName
-      }
+      'payload': {'objeto': itemName}
     };
-    
+
     _ref.read(webSocketProvider).sendGenericAction(payload);
-    print("🎒 [SHOP] Uso de objeto enviado: $payload");
+    debugPrint(" [SHOP] Uso de objeto enviado: $payload");
   }
 }
 
@@ -68,7 +64,7 @@ class ShopModal extends ConsumerWidget {
         border: Border.all(color: Colors.white, width: 2),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.7),
+            color: Colors.black.withValues(alpha: 0.7),
             blurRadius: 20,
             spreadRadius: 4,
           ),
@@ -104,7 +100,8 @@ class ShopModal extends ConsumerWidget {
                     const SizedBox(width: 16),
                     // Monedas actuales del jugador
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 2),
                       decoration: BoxDecoration(
                         color: const Color(0x33FFFFFF),
                         borderRadius: BorderRadius.circular(12),
@@ -152,7 +149,7 @@ class ShopModal extends ConsumerWidget {
               ],
             ),
           ),
-          
+
           // GRID DE OBJETOS
           Padding(
             padding: const EdgeInsets.all(16),
@@ -168,7 +165,8 @@ class ShopModal extends ConsumerWidget {
                   decoration: BoxDecoration(
                     color: const Color(0xFF3D2660),
                     borderRadius: BorderRadius.circular(6),
-                    border: Border.all(color: const Color(0x88FFFFFF), width: 1),
+                    border:
+                        Border.all(color: const Color(0x88FFFFFF), width: 1),
                   ),
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
@@ -196,7 +194,7 @@ class ShopModal extends ConsumerWidget {
                         ),
                       ),
                       const SizedBox(height: 8),
-                      
+
                       // BOTÓN DE COMPRA/USO
                       GestureDetector(
                         onTap: canAfford
@@ -211,17 +209,23 @@ class ShopModal extends ConsumerWidget {
                           width: double.infinity,
                           padding: const EdgeInsets.symmetric(vertical: 6),
                           decoration: BoxDecoration(
-                            color: canAfford ? const Color(0xFF2E8B57) : const Color(0xFF555555),
+                            color: canAfford
+                                ? const Color(0xFF2E8B57)
+                                : const Color(0xFF555555),
                             borderRadius: BorderRadius.circular(4),
                             border: Border.all(
-                              color: canAfford ? const Color(0xFF3CB371) : const Color(0xFF777777),
+                              color: canAfford
+                                  ? const Color(0xFF3CB371)
+                                  : const Color(0xFF777777),
                               width: 1,
                             ),
                           ),
                           child: Text(
                             'Usar',
                             style: TextStyle(
-                              color: canAfford ? Colors.white : const Color(0xFF999999),
+                              color: canAfford
+                                  ? Colors.white
+                                  : const Color(0xFF999999),
                               fontWeight: FontWeight.bold,
                               fontSize: 12,
                             ),

@@ -43,7 +43,7 @@ class _DobleNadaGameState extends State<DobleNadaGame> {
                 border: Border.all(color: Colors.purpleAccent, width: 4),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.purple.withOpacity(0.5),
+                    color: Colors.purple.withValues(alpha: 0.5),
                     blurRadius: 20,
                     spreadRadius: 5,
                   )
@@ -71,7 +71,7 @@ class _DobleNadaGameState extends State<DobleNadaGame> {
               border: Border.all(color: Colors.purpleAccent, width: 4),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.purple.withOpacity(0.5),
+                  color: Colors.purple.withValues(alpha: 0.5),
                   blurRadius: 20,
                   spreadRadius: 5,
                 )

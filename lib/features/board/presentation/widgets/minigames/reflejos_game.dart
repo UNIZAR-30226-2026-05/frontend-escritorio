@@ -151,7 +151,7 @@ class _ReflejosGameState extends State<ReflejosGame> {
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 100),
                   decoration: BoxDecoration(
-                    color: circleColor.withOpacity(0.9),
+                    color: circleColor.withValues(alpha: 0.9),
                   ),
                 ),
               ),

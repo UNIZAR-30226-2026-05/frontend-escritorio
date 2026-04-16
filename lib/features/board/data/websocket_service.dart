@@ -1,4 +1,6 @@
 import 'dart:convert';
+import 'package:flutter/material.dart';
+
 import '../../../core/constants/api_constants.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
@@ -59,20 +61,20 @@ class WebSocketService {
         onDone: () {
           // Si el canal se cierra, marcamos que no estamos conectados
           _isConnected = false;
-          print('WebSocket connection closed.');
+          debugPrint('WebSocket connection closed.');
         },
         // Se ejecuta si la conexión se cierra con errores
         onError: (error) {
           // Si hay un error en la conexión, marcamos que no estamos conectados
           _isConnected = false;
-          print('WebSocket Error: $error');
+          debugPrint('WebSocket Error: $error');
         },
       );
       // Si ocurre cualquier error al intentar conectar, se captura aquí
     } catch (e) {
       // Si hay un error al conectar, marcamos que no estamos conectados y mostramos el error
       _isConnected = false;
-      print('Error al conectar con WebSocket: $e');
+      debugPrint('Error al conectar con WebSocket: $e');
     }
   }
 
@@ -96,16 +98,16 @@ class WebSocketService {
           final int diceTotal = dado1 + dado2;
 
           // DEBUG: Imprimir exactamente qué recibió del backend
-          print('═══════════════════════════════════════════');
-          print(' PLAYER_MOVED recibido del backend:');
-          print('  • User ID: $userId');
-          print('  • Dado 1: $dado1');
-          print('  • Dado 2: $dado2');
+          debugPrint('═══════════════════════════════════════════');
+          debugPrint(' PLAYER_MOVED recibido del backend:');
+          debugPrint('  • User ID: $userId');
+          debugPrint('  • Dado 1: $dado1');
+          debugPrint('  • Dado 2: $dado2');
           if (diceTotal != 0) {
-            print('  • Total dado: $diceTotal');
+            debugPrint('  • Total dado: $diceTotal');
           }
-          print('  • Nueva casilla (backend): $newTile');
-          print('═══════════════════════════════════════════');
+          debugPrint('  • Nueva casilla (backend): $newTile');
+          debugPrint('═══════════════════════════════════════════');
 
           // Usar Riverpod para enviar los datos al gameProvider
           _ref
@@ -132,7 +134,7 @@ class WebSocketService {
         // Tipo de mensaje de reconexión exitosa
         case 'reconnect_success':
           // DEBUG: imprimimos reconexion exitosa
-          print("Reconexión exitosa. Sincronizando tablero...");
+          debugPrint("Reconexión exitosa. Sincronizando tablero...");
           // La reconexion es exitosa y guardamos el estado de playing
           final String gameStatus = decoded['game_status'] ?? 'PLAYING';
           // El backend envía el estado completo del tablero en "current_board" para que el cliente se sincronice
@@ -146,32 +148,32 @@ class WebSocketService {
 
         // Tipo de mensaje de comenzar el juego
         case 'game_start':
-          print("El juego ha iniciado.");
+          debugPrint("El juego ha iniciado.");
           // TODO Cambiar a GamePhase.playing cuando se soporte
           break;
 
         // Tipo de mensaje de actualizar el lobby
         case 'lobby_update':
-          print("Lobby update: \${decoded['message']}");
+          debugPrint("Lobby update: \${decoded['message']}");
           // TODO Updatear cuando se soporte
           break;
 
         // Tipo de mensaje de que se ha desconectado un jugador
         case 'player_disconnected':
-          print("Jugador desconectado: \${decoded['message']}");
+          debugPrint("Jugador desconectado: \${decoded['message']}");
           // TODO Realizar acción pertinente cuando se soporte
           break;
 
         // Tipo de mensaje sobre en qué tipo de casilla ha caído el jugador
         case 'tipo_casilla':
-          print(
-              "El jugador ha caído en una casilla de tipo: \${decoded['casilla']}");
+          debugPrint(
+              "El jugador ha caído en una casilla de tipo: ${decoded['casilla']}");
           // TODO: Mostrar algún tipo de feedback en la UI (ej. animación u objeto obtenido)
           break;
 
         // Tipo de mensaje cuando el jugador cae en una casilla de objeto y le toca intercambiar
         case 'intercambiar_objeto':
-          print("Ignorado: Intercambiar objeto delegado");
+          debugPrint("Ignorado: Intercambiar objeto delegado");
           break;
 
         // Tipo de mensaje de inicio de minijuego
@@ -184,7 +186,8 @@ class WebSocketService {
               ? Map<String, dynamic>.from(decoded['detalles'])
               : null;
 
-          print("Minijuego ${name?.toUpperCase() ?? "DESCONOCIDO"} encolado.");
+          debugPrint(
+              "Minijuego ${name?.toUpperCase() ?? "DESCONOCIDO"} encolado.");
 
           if (name != null) {
             // Esperar a que la cola de animación se vacíe antes de lanzarlo
@@ -272,7 +275,7 @@ class WebSocketService {
 
         // Tipo de mensaje para elegir minijuego
         case 'choose_minijuego':
-          print("El backend pide elegir minijuego.");
+          debugPrint("El backend pide elegir minijuego.");
 
           // Extraemos la lista enviada por el backend
           final minijuegosList = decoded['minijuegos'] as List<dynamic>? ?? [];
@@ -305,22 +308,23 @@ class WebSocketService {
           // Si el mensaje tiene una clave "error""
           if (decoded.containsKey('error')) {
             // Iprimimos el error y liberamos la acción
-            print('Error desde el backend: ${decoded['error']}');
+            debugPrint('Error desde el backend: ${decoded['error']}');
             _isActionLocked = false;
           } else {
-            print('Mensaje WebSocket parseado, pero no manejado: $decoded');
+            debugPrint(
+                'Mensaje WebSocket parseado, pero no manejado: $decoded');
           }
       }
 
       // Capturamos también errores directos si vienen fuera de type
       if (decoded.containsKey('error') && decoded['type'] == null) {
         // Mismo procedimiento que antes
-        print('Error desde el backend: ${decoded['error']}');
+        debugPrint('Error desde el backend: ${decoded['error']}');
         _isActionLocked = false;
       }
       // Capturamos cualquier otro error que pueda ocurrir al decodificar o manejar el mensaje
     } catch (e) {
-      print('Error decodificando el mensaje de WebSocket: $e');
+      debugPrint('Error decodificando el mensaje de WebSocket: $e');
     }
   }
 
@@ -338,7 +342,7 @@ class WebSocketService {
       _channel!.sink.add(jsonEncode(payload));
       // Si no hay conexion imrpimimos un msj de error
     } else {
-      print("No se pudo enviar 'move_player' porque no hay conexión.");
+      debugPrint("No se pudo enviar 'move_player' porque no hay conexión.");
     }
   }
 
@@ -349,7 +353,7 @@ class WebSocketService {
       // Creamos el payload como se especifica en la domuentacion de los WS
       final payload = {'action': 'end_round', 'payload': {}};
       // DEBUG: guarda que imprimmos para comprobar que se manda correctamente
-      print(' Enviando END_ROUND al backend');
+      debugPrint(' Enviando END_ROUND al backend');
       // Mandamos el paquete codificado al backend.
       _channel!.sink.add(jsonEncode(payload));
 
@@ -359,7 +363,7 @@ class WebSocketService {
       _localPlayerSentEndRound = true;
       // Si no hay conexion imrpimimos un msj de error
     } else {
-      print("No se pudo enviar 'end_round' porque no hay conexión.");
+      debugPrint("No se pudo enviar 'end_round' porque no hay conexión.");
     }
   }
 
@@ -378,7 +382,7 @@ class WebSocketService {
       _channel!.sink.add(jsonEncode(payload));
       // Si no hay conexion imrpimimos un msj de error
     } else {
-      print("No se pudo enviar 'score_minijuego' porque no hay conexión.");
+      debugPrint("No se pudo enviar 'score_minijuego' porque no hay conexión.");
     }
   }
 
@@ -399,7 +403,7 @@ class WebSocketService {
       _channel!.sink.add(jsonEncode(payload));
       // Si no hay conexion imrpimimos un msj de error
     } else {
-      print("No se pudo enviar 'ini_round' porque no hay conexión.");
+      debugPrint("No se pudo enviar 'ini_round' porque no hay conexión.");
     }
   }
 
@@ -415,7 +419,7 @@ class WebSocketService {
       _channel!.sink.add(jsonEncode(payload));
       // Si no hay conexion imrpimimos un msj de error
     } else {
-      print("No se pudo enviar la acción porque no hay conexión.");
+      debugPrint("No se pudo enviar la acción porque no hay conexión.");
     }
   }
 }

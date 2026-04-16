@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../domain/gamemodels.dart';
 import 'dart:async';
@@ -114,20 +115,21 @@ class GameController extends StateNotifier<GameState> {
     final currentPlayer = state.players.firstWhere((p) => p.id == playerId);
 
     // DEBUG DETALLADO
-    print(' ACTUALIZANDO JUGADOR:');
-    print('  Jugador: ${currentPlayer.username} (ID: $playerId)');
-    print('  Posición ACTUAL: ${currentPlayer.currentTileIndex}');
-    print('  Dado tirado: $diceRoll');
-    print('  Nueva casilla (del backend): $newTileIndex');
-    print('  Diferencia: ${newTileIndex - currentPlayer.currentTileIndex}');
-    print(
+    debugPrint(' ACTUALIZANDO JUGADOR:');
+    debugPrint('  Jugador: ${currentPlayer.username} (ID: $playerId)');
+    debugPrint('  Posición ACTUAL: ${currentPlayer.currentTileIndex}');
+    debugPrint('  Dado tirado: $diceRoll');
+    debugPrint('  Nueva casilla (del backend): $newTileIndex');
+    debugPrint(
+        '  Diferencia: ${newTileIndex - currentPlayer.currentTileIndex}');
+    debugPrint(
         '  ¿Coincide dado con diferencia?: ${diceRoll == (newTileIndex - currentPlayer.currentTileIndex)}');
-    print('  Total jugadores: ${state.players.length}');
-    print('  Turno order: ${state.turnOrder}');
-    print('  Active player index actual: ${state.activePlayerIndex}');
-    print(
+    debugPrint('  Total jugadores: ${state.players.length}');
+    debugPrint('  Turno order: ${state.turnOrder}');
+    debugPrint('  Active player index actual: ${state.activePlayerIndex}');
+    debugPrint(
         '  Próximo index: ${(state.activePlayerIndex + 1) % state.turnOrder.length}');
-    print('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    debugPrint('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
 
     // Mensaje según si es movimiento o corrección
     String newMessage = diceRoll == 0
@@ -233,14 +235,14 @@ class GameController extends StateNotifier<GameState> {
     final penaltyTurns =
         boardState['penalty_turns'] as Map<String, dynamic>? ?? {};
 
-    print('═══════════════════════════════════════════');
-    print(' SYNC BOARD STATE - Datos del backend:');
-    print('  • Número de jugadores: ${positions.length}');
-    print('  • Posiciones: $positions');
-    print('  • Orden: $order');
-    print('  • Caracteres: $characters');
-    print('  • Balances: $balances');
-    print('═══════════════════════════════════════════');
+    debugPrint('═══════════════════════════════════════════');
+    debugPrint(' SYNC BOARD STATE - Datos del backend:');
+    debugPrint('  • Número de jugadores: ${positions.length}');
+    debugPrint('  • Posiciones: $positions');
+    debugPrint('  • Orden: $order');
+    debugPrint('  • Caracteres: $characters');
+    debugPrint('  • Balances: $balances');
+    debugPrint('═══════════════════════════════════════════');
 
     // Reconstruimos la lista de jugadores basándonos en los datos del backend
     List<Player> updatedPlayers = [];
@@ -267,21 +269,22 @@ class GameController extends StateNotifier<GameState> {
       CharacterClass charClass = existingPlayer.characterClass;
       if (characters.containsKey(username)) {
         final charString = characters[username].toString().toLowerCase();
-        if (charString.contains('escapista'))
+        if (charString.contains('escapista')) {
           charClass = CharacterClass.escapista;
-        else if (charString.contains('vidente'))
+        } else if (charString.contains('vidente')) {
           charClass = CharacterClass.vidente;
-        else if (charString.contains('videojugador'))
+        } else if (charString.contains('videojugador')) {
           charClass = CharacterClass.videojugador;
-        else
+        } else {
           charClass = CharacterClass.banquero;
+        }
       }
 
       updatedPlayers.add(existingPlayer.copyWith(
-        currentTileIndex:
-            (pos as int) - 1, // El backend usa 1-indexed, nosotros 0-indexed
+        currentTileIndex: pos as int,
         coins: balances[username] as int? ?? 0,
         characterClass: charClass,
+        penaltyTurns: penaltyTurns[username] as int? ?? 0,
       ));
 
       // Guardar el orden de turno (el backend da base 1, array base 0)
@@ -293,13 +296,13 @@ class GameController extends StateNotifier<GameState> {
     // Filtramos vacíos por si alguien falta en el order (ej: test con 1 player)
     final cleanTurnOrder = newTurnOrder.where((id) => id.isNotEmpty).toList();
 
-    print('✅ Jugadores cargados del backend:');
+    debugPrint('✅ Jugadores cargados del backend:');
     for (var p in updatedPlayers) {
-      print(
+      debugPrint(
           '  • ${p.username} (ID: ${p.id}) - Casilla ${p.currentTileIndex} - ${p.characterClass.name}');
     }
-    print('  Turno order: $cleanTurnOrder');
-    print('═══════════════════════════════════════════');
+    debugPrint('  Turno order: $cleanTurnOrder');
+    debugPrint('═══════════════════════════════════════════');
 
     state = state.copyWith(
       currentPhase: newPhase,
@@ -309,9 +312,7 @@ class GameController extends StateNotifier<GameState> {
     );
   }
 
-  // ============================================================
   // Minijuegos
-  // ============================================================
 
   void startMinigame({
     required String name,
@@ -409,23 +410,23 @@ class GameController extends StateNotifier<GameState> {
     state = state.copyWith(players: updated);
   }
 
-  // ============================================================
   // MODO DEBUG: Inicia un minijuego localmente sin avisar al backend
-  // ============================================================
   void startDebugMinigameLocal(String name) {
     Map<String, dynamic> mockDetails = {};
 
     // Generamos datos falsos según lo que necesite cada minijuego
-    if (name == 'Tren')
+    if (name == 'Tren') {
       mockDetails = {'objetivo': 20.0};
-    else if (name == 'Mayor o Menor')
+    } else if (name == 'Mayor o Menor') {
       mockDetails = {
         'cartas': [12, 25, 38, 51],
         'personaje': 'banquero'
       };
-    else if (name == 'Cronometro ciego')
+    } else if (name == 'Cronometro ciego') {
       mockDetails = {'objetivo': 8};
-    else if (name == 'Cortar pan') mockDetails = {'objetivo': 50};
+    } else if (name == 'Cortar pan') {
+      mockDetails = {'objetivo': 50};
+    }
 
     startMinigame(
       name: name,

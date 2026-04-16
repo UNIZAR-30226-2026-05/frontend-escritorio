@@ -22,7 +22,7 @@ class InventoryPanel extends ConsumerWidget {
         border: Border.all(color: const Color(0xFF6C3FA0), width: 2),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.5),
+            color: Colors.black.withValues(alpha: 0.5),
             blurRadius: 8,
             offset: const Offset(2, 2),
           ),
@@ -53,7 +53,7 @@ class InventoryPanel extends ConsumerWidget {
               ),
             ),
           ),
-          
+
           // Listado de objetos usando tus ItemType
           Flexible(
             child: ListView.builder(
@@ -63,7 +63,7 @@ class InventoryPanel extends ConsumerWidget {
                 final type = items[index];
                 // Buscamos los datos visuales (icono/nombre) en el repositorio de la tienda
                 final itemData = ShopRepository.getItemByType(type);
-                
+
                 if (itemData == null) return const SizedBox.shrink();
 
                 return Container(
@@ -74,10 +74,8 @@ class InventoryPanel extends ConsumerWidget {
                   ),
                   child: ListTile(
                     dense: true,
-                    leading: Text(
-                      itemData.icon, 
-                      style: const TextStyle(fontSize: 20)
-                    ),
+                    leading: Text(itemData.icon,
+                        style: const TextStyle(fontSize: 20)),
                     title: Text(
                       itemData.name,
                       style: const TextStyle(
@@ -93,16 +91,12 @@ class InventoryPanel extends ConsumerWidget {
                       },
                       child: Container(
                         padding: const EdgeInsets.symmetric(
-                          horizontal: 10, 
-                          vertical: 4
-                        ),
+                            horizontal: 10, vertical: 4),
                         decoration: BoxDecoration(
                           color: const Color(0xFF2E8B57),
                           borderRadius: BorderRadius.circular(4),
                           border: Border.all(
-                            color: const Color(0xFF3CB371),
-                            width: 1
-                          ),
+                              color: const Color(0xFF3CB371), width: 1),
                         ),
                         child: const Text(
                           'USAR',

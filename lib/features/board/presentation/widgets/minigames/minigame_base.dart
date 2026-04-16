@@ -1,6 +1,4 @@
-// ============================================================
 // MinigameBase — Interfaz abstracta para todos los minijuegos
-// ============================================================
 //
 // Para crear un nuevo minijuego:
 //   1. Crea un archivo en esta misma carpeta (ej: reflejos_game.dart)

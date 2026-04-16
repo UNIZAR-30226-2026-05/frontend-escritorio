@@ -1,6 +1,4 @@
-// ============================================================
 // MinigameFactory — Selector dinámico de minijuegos
-// ============================================================
 //
 // Aquí se registra cada minijuego. Para añadir uno nuevo:
 //   1. Importa el archivo del minijuego
@@ -8,13 +6,12 @@
 //
 
 import 'package:flutter/material.dart';
-import 'package:snow_party/features/board/presentation/widgets/minigames/pan_game.dart';
 
-// TODO: Importar aquí los minijuegos cuando se implementen
+// Importaciones de los minijuegos
 import 'reflejos_game.dart';
 import 'tren_game.dart';
 import 'cronometro_game.dart';
-// import 'cortar_pan_game.dart';
+import 'pan_game.dart';
 import 'mayor_menor_game.dart';
 import 'doble_nada_game.dart';
 
@@ -29,7 +26,6 @@ class MinigameFactory {
     required Map<String, dynamic> details,
   }) {
     switch (minigameName) {
-      // TODO: Descomentar cuando se implemente cada minijuego
       case 'Reflejos':
         return ReflejosGame(onFinish: onFinish, details: details);
       case 'Tren':

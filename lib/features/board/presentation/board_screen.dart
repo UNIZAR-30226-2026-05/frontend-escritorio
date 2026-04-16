@@ -11,10 +11,8 @@ import '../../lobby/presentation/controllers/lobby_provider.dart';
 import '../../shop/presentation/controllers/shop_providers.dart';
 import 'widgets/minigame_overlay.dart';
 
-// ============================================================
 // BoardScreen — Pantalla principal del tablero de juego
 // Layout fijo con tablero centrado y paneles UI superpuestos
-// ============================================================
 class BoardScreen extends ConsumerStatefulWidget {
   const BoardScreen({super.key});
 
@@ -262,9 +260,7 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
 
           return Stack(
             children: [
-              // ============================================
               // FONDO: Tablero centrado con escala fija
-              // ============================================
               Positioned.fill(
                 child: Container(color: const Color(0xFF1a1a2e)),
               ),
@@ -322,22 +318,24 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
                               : Offset(stepX, stepY);
                         } else if (total == 3) {
                           // Dos atrás, uno adelante centrado
-                          if (slot == 0)
+                          if (slot == 0) {
                             playerOffset = Offset(-stepX, -stepY);
-                          else if (slot == 1)
+                          } else if (slot == 1) {
                             playerOffset = Offset(stepX, -stepY);
-                          else
+                          } else {
                             playerOffset = Offset(0, stepY);
+                          }
                         } else if (total >= 4) {
                           // Formación en cuadrícula/rombo escalonado
-                          if (slot == 0)
+                          if (slot == 0) {
                             playerOffset = Offset(-stepX, -stepY);
-                          else if (slot == 1)
+                          } else if (slot == 1) {
                             playerOffset = Offset(stepX, -stepY);
-                          else if (slot == 2)
+                          } else if (slot == 2) {
                             playerOffset = Offset(-stepX * 0.6, stepY);
-                          else
+                          } else {
                             playerOffset = Offset(stepX * 0.6, stepY);
+                          }
                         }
 
                         // Calculamos top/left final superponiendo al centro
@@ -367,24 +365,17 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
                 ),
               ),
 
-              // ============================================
               // UI OVERLAY: Panel de jugadores (top-left)
-              // ============================================
               Positioned(
                 top: 16,
                 left: 16,
                 child: _buildPlayerPanel(
                     gameState, activePlayerId, myUsername ?? ''),
               ),
-
-              // ============================================
               // UI OVERLAY: Menú Debug (top-right)
-              // ============================================
               _buildDebugMenu(),
 
-              // ============================================
               // UI OVERLAY: Botón TIENDA (bottom-left)
-              // ============================================
               Positioned(
                 bottom: 16,
                 left: 16,
@@ -398,9 +389,7 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
 
               // El Modal de la tienda se movió más abajo para prioridad de z-index
 
-              // ============================================
               // UI OVERLAY: Dado (Solo si es mi turno y no he tirado aun)
-              // ============================================
               if (isMyTurn &&
                   gameState.currentPhase == GamePhase.boardTurn &&
                   !_hasRolledThisTurn &&
@@ -410,27 +399,19 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
                       gameState.minigameChoices!.isEmpty))
                 _buildCenterDiceOverlay(gameState, myUsername ?? ''),
 
-              // ============================================
               // UI OVERLAY: Resultado de dados Animado
-              // ============================================
               if (_showingDiceResult) _buildDiceResultOverlay(gameState),
 
-              // ============================================
               // UI OVERLAY: Elegir minijuego (Videojugador)
-              // ============================================
               if (gameState.minigameChoices != null &&
                   gameState.minigameChoices!.isNotEmpty)
                 _buildVideojugadorChoiceOverlay(gameState, myUsername ?? '')
 
-              // ============================================
               // UI OVERLAY: Espera para no-Videojugadores
-              // ============================================
               else if (gameState.isWaitingForMinigameChoice)
                 _buildWaitingForVideojugadorOverlay(gameState),
 
-              // ============================================
               // UI OVERLAY: Minijuego
-              // ============================================
               if (gameState.currentPhase == GamePhase.minigameOrder ||
                   gameState.currentPhase == GamePhase.minigameTile)
                 const Positioned.fill(
@@ -481,16 +462,15 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
                   ),
                 ),
 
-              // ============================================
-              // UI OVERLAY: Modal de la Tienda (ENCIMA DE TODO EL TABLERO)
-              // ============================================
+              // UI OVERLAY: Modal de la Tienda (ENCIMA DEL TABLERO)
               if (_isShopOpen)
                 Positioned.fill(
                   child: Stack(
                     children: [
                       GestureDetector(
                         onTap: () => setState(() => _isShopOpen = false),
-                        child: Container(color: Colors.black.withOpacity(0.6)),
+                        child: Container(
+                            color: Colors.black.withValues(alpha: 0.6)),
                       ),
                       Center(
                         child: ShopModal(
@@ -510,10 +490,8 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
     );
   }
 
-  // ============================================================
   // WIDGET: Overlay de dados en el centro de la pantalla
   // Solo se muestra cuando es el turno del jugador local
-  // ============================================================
   Widget _buildCenterDiceOverlay(GameState gameState, String myUsername) {
     // Inferir el tipo de dado extra a partir de la posición en el ranking
     final myRankIndex = gameState.turnOrder.indexOf(myUsername);
@@ -530,7 +508,7 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
       child: Container(
         padding: const EdgeInsets.all(32),
         decoration: BoxDecoration(
-          color: Colors.black.withOpacity(0.4),
+          color: Colors.black.withValues(alpha: 0.4),
           borderRadius: BorderRadius.circular(24),
         ),
         child: Column(
@@ -602,12 +580,12 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
         boxShadow: [
           if (glowColor != null)
             BoxShadow(
-              color: glowColor.withOpacity(0.6),
+              color: glowColor.withValues(alpha: 0.6),
               blurRadius: 24,
               spreadRadius: 4,
             ),
           BoxShadow(
-            color: Colors.black.withOpacity(0.4),
+            color: Colors.black.withValues(alpha: 0.4),
             blurRadius: 8,
             offset: const Offset(2, 4),
           ),
@@ -638,9 +616,7 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
     );
   }
 
-  // ============================================================
   // WIDGET: Overlay de resultado de dados (Animado)
-  // ============================================================
   Widget _buildDiceResultOverlay(GameState gameState) {
     final d1 = gameState.lastDice1;
     final d2 = gameState.lastDice2;
@@ -656,7 +632,7 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
 
     return Positioned.fill(
       child: Container(
-        color: Colors.black.withOpacity(0.4),
+        color: Colors.black.withValues(alpha: 0.4),
         child: Center(
           child: TweenAnimationBuilder<double>(
             tween: Tween(begin: 0.0, end: 1.0),
@@ -676,8 +652,8 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
               decoration: BoxDecoration(
                 color: const Color(0xEE1a1a2e),
                 borderRadius: BorderRadius.circular(24),
-                border:
-                    Border.all(color: Colors.amber.withOpacity(0.5), width: 2),
+                border: Border.all(
+                    color: Colors.amber.withValues(alpha: 0.5), width: 2),
                 boxShadow: const [
                   BoxShadow(
                       color: Colors.black54, blurRadius: 20, spreadRadius: 5)
@@ -740,7 +716,7 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.3),
+            color: Colors.black.withValues(alpha: 0.3),
             blurRadius: 4,
             offset: const Offset(2, 2),
           )
@@ -825,14 +801,12 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
     }
   }
 
-  // ============================================================
   // WIDGET: Overlay de selección de minijuego (Videojugador)
-  // ============================================================
   Widget _buildVideojugadorChoiceOverlay(
       GameState gameState, String myUsername) {
     return Positioned.fill(
       child: Container(
-        color: Colors.black.withOpacity(0.85),
+        color: Colors.black.withValues(alpha: 0.85),
         child: Center(
           child: Container(
             padding: const EdgeInsets.all(32),
@@ -842,7 +816,7 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
               border: Border.all(color: Colors.purpleAccent, width: 4),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.purple.withOpacity(0.5),
+                  color: Colors.purple.withValues(alpha: 0.5),
                   blurRadius: 20,
                   spreadRadius: 5,
                 )
@@ -909,15 +883,13 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
     );
   }
 
-  // ============================================================
   // WIDGET: Overlay de espera (jugadores sin habilidad de elección)
-  // ============================================================
   Widget _buildWaitingForVideojugadorOverlay(GameState gameState) {
     // Tomamos los nombres de los minijuegos del gameState si están, sino usamos placeholders
     final choices = gameState.minigameChoices ?? ['MINIJUEGO', 'MINIJUEGO'];
     return Positioned.fill(
       child: Container(
-        color: Colors.black.withOpacity(0.85),
+        color: Colors.black.withValues(alpha: 0.85),
         child: Center(
           child: Container(
             padding: const EdgeInsets.all(32),
@@ -927,7 +899,7 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
               border: Border.all(color: Colors.amber, width: 4),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.amber.withOpacity(0.3),
+                  color: Colors.amber.withValues(alpha: 0.3),
                   blurRadius: 20,
                   spreadRadius: 5,
                 )
@@ -989,9 +961,7 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
     );
   }
 
-  // ============================================================
   // WIDGET: Panel de Jugadores
-  // ============================================================
   Widget _buildPlayerPanel(
       GameState gameState, String activePlayerId, String myUsername) {
     return Container(
@@ -1002,7 +972,7 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
         border: Border.all(color: const Color(0xFF6C3FA0), width: 2),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.5),
+            color: Colors.black.withValues(alpha: 0.5),
             blurRadius: 8,
             offset: const Offset(2, 2),
           ),
@@ -1051,7 +1021,9 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
       decoration: BoxDecoration(
         color: isActive
             ? const Color(0x33FFFFFF)
-            : (isMe ? Colors.green.withOpacity(0.15) : Colors.transparent),
+            : (isMe
+                ? Colors.green.withValues(alpha: 0.15)
+                : Colors.transparent),
         border: Border(
           bottom: const BorderSide(color: Color(0x33FFFFFF), width: 1),
           left: isMe
@@ -1159,9 +1131,7 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
     }
   }
 
-  // ============================================================
   // WIDGET: Botón con sprite morado pixel art
-  // ============================================================
   Widget _buildPixelButton({
     required String text,
     VoidCallback? onPressed,
@@ -1178,7 +1148,7 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
           ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.4),
+              color: Colors.black.withValues(alpha: 0.4),
               blurRadius: 6,
               offset: const Offset(2, 3),
             ),

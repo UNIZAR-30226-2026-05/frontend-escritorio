@@ -1,6 +1,4 @@
-// ============================================================
 // MinigameOverlay — Contenedor genérico para todos los minijuegos
-// ============================================================
 //
 // Este widget se superpone al tablero cuando la fase de juego cambia
 // a minigameOrder o minigameTile. Se encarga de:
@@ -27,9 +25,7 @@ class MinigameOverlay extends ConsumerStatefulWidget {
 }
 
 class _MinigameOverlayState extends ConsumerState<MinigameOverlay> {
-  // ============================================================
   // Estado interno del overlay
-  // ============================================================
 
   int _countdown = 3;
   bool _countdownFinished = false;
@@ -94,7 +90,8 @@ class _MinigameOverlayState extends ConsumerState<MinigameOverlay> {
 
     // 1. INTERCEPTAMOS SI ES MODO DEBUG
     if (gameState.minigameDescription == "DEBUG_MODE") {
-      print(" [DEBUG] Simulando resultados locales. Score enviado: $score");
+      debugPrint(
+          " [DEBUG] Simulando resultados locales. Score enviado: $score");
 
       // Creamos un podio falso con los jugadores de la partida actual
       Map<String, dynamic> fakeResults = {};
@@ -111,7 +108,8 @@ class _MinigameOverlayState extends ConsumerState<MinigameOverlay> {
       // Enviamos los resultados al provider (como si vinieran del backend)
       // Interceptar si debug
       if (gameState.minigameDescription == "DEBUG_MODE") {
-        print(" [DEBUG] Simulando resultados locales. Score enviado: $score");
+        debugPrint(
+            " [DEBUG] Simulando resultados locales. Score enviado: $score");
         // ... (fakeResults) ...
         ref
             .read(gameProvider.notifier)
@@ -150,9 +148,7 @@ class _MinigameOverlayState extends ConsumerState<MinigameOverlay> {
     }
   }
 
-  // ============================================================
   // Build principal — Máquina de estados visual
-  // ============================================================
 
   @override
   Widget build(BuildContext context) {
@@ -160,7 +156,7 @@ class _MinigameOverlayState extends ConsumerState<MinigameOverlay> {
     final results = gameState.minigameResults;
 
     return Container(
-      color: Colors.black.withOpacity(0.85),
+      color: Colors.black.withValues(alpha: 0.85),
       width: double.infinity,
       height: double.infinity,
       child: Stack(
@@ -232,9 +228,7 @@ class _MinigameOverlayState extends ConsumerState<MinigameOverlay> {
     );
   }
 
-  // ============================================================
   // Widgets auxiliares
-  // ============================================================
 
   // Pantalla de cuenta atrás (3, 2, 1...)
   Widget _buildCountdownScreen() {
@@ -283,9 +277,9 @@ class _MinigameOverlayState extends ConsumerState<MinigameOverlay> {
           width: 400,
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.05),
+            color: Colors.white.withValues(alpha: 0.05),
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.amber.withOpacity(0.3)),
+            border: Border.all(color: Colors.amber.withValues(alpha: 0.3)),
           ),
           child: Column(
             children: sortedEntries.map((entry) {

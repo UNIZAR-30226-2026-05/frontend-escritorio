@@ -1,4 +1,4 @@
-import 'dart:async';  
+import 'dart:async';
 import 'dart:math';
 
 // Importa las dependencias necesarias para Flutter, Riverpod y navegación.
@@ -13,7 +13,6 @@ import '../../../core/widgets/retro_widgets.dart';
 
 // AVISO: los metodos build se invocan automaticamente cada vex que cambia el estado del lobby.
 
-
 // Pantalla principal del lobby. Gestiona tres estados visuales:
 //   1. Lobby normal (el jugador no está en ninguna partida).
 //   2. Lobby en sala  (el jugador ha creado o se ha unido a una partida).
@@ -23,7 +22,7 @@ class LobbyScreen extends ConsumerStatefulWidget {
   // Constructor de la clase.
   const LobbyScreen({super.key});
 
-  // createState devuelve una instancia de _LobbyScreenState, que es donde se implementa toda 
+  // createState devuelve una instancia de _LobbyScreenState, que es donde se implementa toda
   // la lógica y la UI del lobby.
   @override
   ConsumerState<LobbyScreen> createState() => _LobbyScreenState();
@@ -86,7 +85,8 @@ class _LobbyScreenState extends ConsumerState<LobbyScreen> {
     ref.read(lobbyWebSocketProvider).disconnect();
     ref.read(lobbyProvider.notifier).clearGameSession();
     // Se trata de unirse a la partida con el código seleccionado.
-    final accepted = await ref.read(lobbyProvider.notifier).unirsePartida(code, token);
+    final accepted =
+        await ref.read(lobbyProvider.notifier).unirsePartida(code, token);
     if (accepted) {
       // Si el back acepta la peticion nos conectamos al ws de la partida.
       ref.read(lobbyWebSocketProvider).connect(code, token);
@@ -101,7 +101,7 @@ class _LobbyScreenState extends ConsumerState<LobbyScreen> {
     await ref.read(authProvider.notifier).logout();
   }
 
-  // Metodo build que construye la UI del lobby. 
+  // Metodo build que construye la UI del lobby.
   // Se basa en el estado actual del lobby para decidir qué mostrar.
   @override
   Widget build(BuildContext context) {
@@ -110,7 +110,9 @@ class _LobbyScreenState extends ConsumerState<LobbyScreen> {
       // Cuando todos los jugadores han seleccionado personaje, desconecta el WS
       // del lobby. La navegación a /game la gestiona el router automáticamente
       // al detectar que allCharactersSelected == true en lobbyProvider.
-      if (prev != null && !prev.allCharactersSelected && next.allCharactersSelected) {
+      if (prev != null &&
+          !prev.allCharactersSelected &&
+          next.allCharactersSelected) {
         ref.read(lobbyWebSocketProvider).disconnect();
       }
       // Si el servidor fuerza la desconexión (sesión duplicada), muestra aviso.
@@ -132,7 +134,9 @@ class _LobbyScreenState extends ConsumerState<LobbyScreen> {
       // Si el error indica que el token ha caducado o es inválido, cierra sesión.
       if (prev != null && next.error != null && next.error != prev.error) {
         final error = next.error!.toLowerCase();
-        if (error.contains('autenticad') || error.contains('unauthorized') || error.contains('401')) {
+        if (error.contains('autenticad') ||
+            error.contains('unauthorized') ||
+            error.contains('401')) {
           _logout();
         }
       }
@@ -145,15 +149,21 @@ class _LobbyScreenState extends ConsumerState<LobbyScreen> {
 
     // Si la partida ha comenzado pero todavía no se han elegido todos los personajes,
     // muestra la pantalla de selección en lugar del lobby.
-    if (lobbyState.gameId != null && lobbyState.gameStarted && !lobbyState.allCharactersSelected) {
+    if (lobbyState.gameId != null &&
+        lobbyState.gameStarted &&
+        !lobbyState.allCharactersSelected) {
       // Scaffold es un widget de Flutter que proporciona una estructura básica de pantalla con AppBar, body, etc.
       return Scaffold(
         // Para que la barra no tape el fondo.
         extendBodyBehindAppBar: true,
         // Fondo transparente para que se vea la imagen de lobby detrás.
-        appBar: AppBar(backgroundColor: Colors.transparent, elevation: 0,),
+        appBar: AppBar(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+        ),
         // Mostamos la seleccion de personajes en si.
-        body: CharacterSelectionView(lobbyState: lobbyState, currentUsername: username),
+        body: CharacterSelectionView(
+            lobbyState: lobbyState, currentUsername: username),
       );
     }
 
@@ -198,7 +208,8 @@ class _LobbyScreenState extends ConsumerState<LobbyScreen> {
                         ? null
                         : _crearPartida,
                     // Desactiva "Unirse" si el jugador ya está en una sala.
-                    onUnirse: lobbyState.gameId != null ? null : _unirseConCodigo,
+                    onUnirse:
+                        lobbyState.gameId != null ? null : _unirseConCodigo,
                     onAbandonar: _abandonarPartida,
                     w: w, h: h,
                   ),
@@ -227,7 +238,11 @@ class _LeftPanel extends StatelessWidget {
   final double w, h;
 
   // Constructor de la clase.
-  const _LeftPanel({required this.onLogout, required this.w, required this.h,});
+  const _LeftPanel({
+    required this.onLogout,
+    required this.w,
+    required this.h,
+  });
 
   // Metodo que construye la UI del panel izquierdo.
   @override
@@ -236,7 +251,7 @@ class _LeftPanel extends StatelessWidget {
     final titleSize = h * 0.042;
     final textSize = h * 0.020;
 
-    // Padding es un widget de Flutter que añade espacio alrededor de su hijo. 
+    // Padding es un widget de Flutter que añade espacio alrededor de su hijo.
     // En este caso, se usa un padding proporcional al ancho de la ventana.
     return Padding(
       // EdgeInsets añade un espacio de 1,8% del ancho de ventana por
@@ -350,8 +365,9 @@ class _CenterPanel extends StatelessWidget {
     // Espacio entre slots y anchuras totales calculadas para alinear
     // la fila superior (código + slot0) con la inferior (slots 1, 2, 3).
     final slotGap = w * 0.010;
-    final totalW = 3 * slotW + 2 * slotGap;     // ancho total de ambas filas.
-    final codeW = 2 * slotW + slotGap;          // ancho del bloque con e codigo y la slot0.
+    final totalW = 3 * slotW + 2 * slotGap; // ancho total de ambas filas.
+    final codeW =
+        2 * slotW + slotGap; // ancho del bloque con e codigo y la slot0.
 
     // Column con mainAxisSize.max para que los Spacer distribuyan el espacio vertical.
     // Sin mainAxisSize.max los Spacer no tienen espacio en el que expandirse.
@@ -361,7 +377,6 @@ class _CenterPanel extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.max,
         children: [
-
           // Espacio superior proporcional antes del botón de crear partida.
           // Spacer usa flex para distribuir el espacio restante entre los widgets de forma proporcional
           // IMPORTANTE: De forma proporcional.
@@ -455,11 +470,26 @@ class _CenterPanel extends StatelessWidget {
             width: totalW,
             child: Row(
               children: [
-                _PlayerSlot(name: slots[1] ?? 'Vacío', filled: slots[1] != null, width: slotW, height: slotH, fontSize: textSize * 0.72),
+                _PlayerSlot(
+                    name: slots[1] ?? 'Vacío',
+                    filled: slots[1] != null,
+                    width: slotW,
+                    height: slotH,
+                    fontSize: textSize * 0.72),
                 SizedBox(width: slotGap),
-                _PlayerSlot(name: slots[2] ?? 'Vacío', filled: slots[2] != null, width: slotW, height: slotH, fontSize: textSize * 0.72),
+                _PlayerSlot(
+                    name: slots[2] ?? 'Vacío',
+                    filled: slots[2] != null,
+                    width: slotW,
+                    height: slotH,
+                    fontSize: textSize * 0.72),
                 SizedBox(width: slotGap),
-                _PlayerSlot(name: slots[3] ?? 'Vacío', filled: slots[3] != null, width: slotW, height: slotH, fontSize: textSize * 0.72),
+                _PlayerSlot(
+                    name: slots[3] ?? 'Vacío',
+                    filled: slots[3] != null,
+                    width: slotW,
+                    height: slotH,
+                    fontSize: textSize * 0.72),
               ],
             ),
           ),
@@ -548,7 +578,6 @@ class _CenterPanel extends StatelessWidget {
   }
 }
 
-
 // COLUMNA DERECHA
 // Clase privada que representa el panel lateral derecho con la lista de amigos
 // y el enlace a las reglas del juego en la parte inferior.
@@ -607,7 +636,6 @@ class _RightPanel extends StatelessWidget {
     );
   }
 }
-
 
 // WIDGETS AUXILIARES
 // Slot individual de jugador con fondo btn_morado.png.
@@ -678,7 +706,6 @@ class _PlayerSlot extends StatelessWidget {
   }
 }
 
-
 // SELECCIÓN DE PERSONAJE (FALTA DE ADAPTAR A LA UI ACORDADA)
 // Clase padre que define el estado de la vista de selección de personaje que se muestra cuando la partida ha comenzado
 // pero todavía no todos los jugadores han elegido su personaje.
@@ -703,87 +730,76 @@ class CharacterSelectionView extends ConsumerStatefulWidget {
 }
 
 // Clase privada que define el estado mutable de la vista de selección de personaje.
-class _CharacterSelectionViewState extends ConsumerState<CharacterSelectionView> {
-  // Lista fija de los cuatro personajes disponibles en el juego.
+class _CharacterSelectionViewState
+    extends ConsumerState<CharacterSelectionView> {
   final List<String> _availableCharacters = [
     'Banquero',
     'Videojugador',
     'Escapista',
     'Vidente'
   ];
-  // Temporizador que cuenta regresivamente durante el turno del usuario local.
+
+  // Descripciones exactas del diseño original
+  final Map<String, String> _descripciones = {
+    'Banquero':
+        'Roba una cantidad de\nmonedas X a un jugador\nelegido por el propio\nbanquero en cada turno.',
+    'Videojugador': 'Vota entre dos opciones de\nminijuegos posibles.',
+    'Escapista': 'Recibe penalizaciones\nreducidas en eventos\nnegativos.',
+    'Vidente':
+        'Puede visualizar el\nresultado de los dados\nantes de jugar el\nminijuego de orden para\ntomar decisiones\nestratégicas.',
+  };
+
   Timer? _timer;
-  // Segundos restantes del turno.
-  // Se resetea a 10 al inicio de cada turno.
   int _timeLeft = 10;
-  // Indica si actualmente es el turno del usuario local.
   bool _isMyTurn = false;
 
-  // Estado inicial del widget.
   @override
   void initState() {
     super.initState();
-    // Comprueba si es el turno del usuario al montar el widget.
     _checkTurnAndStartTimer();
   }
 
-  // Metodo que se llama cada vez que el widget recibe nuevas propiedades (nuevo estado de la seleccion).
   @override
   void didUpdateWidget(CharacterSelectionView oldWidget) {
     super.didUpdateWidget(oldWidget);
-    // Cuando la lista de personajes seleccionados cambia (otro jugador eligió),
-    // vuelve a comprobar si ahora le toca al usuario local.
     if (oldWidget.lobbyState.selectedCharacters.length !=
         widget.lobbyState.selectedCharacters.length) {
       _checkTurnAndStartTimer();
     }
   }
 
-  // Metodo que se llama cuando el widget se va a destruir.
   @override
   void dispose() {
-    // Cancela el temporizador para evitar llamadas a setState tras destruir el widget.
     _timer?.cancel();
     super.dispose();
   }
 
-  // Determina si es el turno del usuario local comparando su posición en la lista
-  // de jugadores con el número de personajes ya seleccionados.
-  // Si le toca y aún no ha elegido, arranca el temporizador de 10 segundos.
   void _checkTurnAndStartTimer() {
-    // Numero de personajes ya seleccionados por los jugadores.
     final numPersonajes = widget.lobbyState.selectedCharacters.length;
-    // La posición del usuario local en la lista de jugadores conectados (turno de eleccion).
-    final miOrden = widget.lobbyState.playersConnected.indexOf(widget.currentUsername) + 1;
-    // Booleano que indica si es el turno del usuario local.
+    final miOrden =
+        widget.lobbyState.playersConnected.indexOf(widget.currentUsername) + 1;
     final ahoraEsMiTurno = (numPersonajes + 1) == miOrden;
-    // Booleano que indica si el usuario local ya ha seleccionado personaje.
-    final yaHeSeleccionado = widget.lobbyState.selectedCharacters.containsKey(widget.currentUsername);
+    final yaHeSeleccionado = widget.lobbyState.selectedCharacters
+        .containsKey(widget.currentUsername);
 
-    // Si es el turno del usuario local y aún no ha seleccionado, arranca el temporizador.
     if (ahoraEsMiTurno && !yaHeSeleccionado) {
       if (!_isMyTurn) {
-        // Cambiamos la flag de turno y reseteamos el contador a 10 segundos.
         setState(() {
           _isMyTurn = true;
-          _timeLeft = 10;
+          _timeLeft =
+              10; // Aunque no se muestre en el diseño, mantenemos la lógica por debajo
         });
-        // Cancelamos cualquier temporizador previo por si acaso y arrancamos uno nuevo que se ejecute cada segundo.
         _timer?.cancel();
         _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
           if (_timeLeft > 0) {
             setState(() => _timeLeft--);
           } else {
-            // Si el tiempo se agota, cancelamos el temporizador y seleccionamos automáticamente 
-            // un personaje aleatorio por el usuario local.
             timer.cancel();
             _autoSelectRandomCharacter();
           }
         });
       }
     } else {
-      // Si no es el turno del usuario local, nos aseguramos de que la flag de turno esté a false
-      // y cancelamos el temporizador por si acaso.
       if (_isMyTurn) {
         setState(() => _isMyTurn = false);
         _timer?.cancel();
@@ -791,22 +807,18 @@ class _CharacterSelectionViewState extends ConsumerState<CharacterSelectionView>
     }
   }
 
-  // Elige aleatoriamente uno de los personajes que todavía no han sido seleccionados
-  // y envía la elección por WebSocket. Se llama cuando el temporizador llega a 0.
   void _autoSelectRandomCharacter() {
-    // Obtenemos la lista de personajes que ya han sido seleccionados por los jugadores.
-    final takenCharacters = widget.lobbyState.selectedCharacters.values.toList();
-    // Definimos la lista de personajes restantes filtrando los ya seleccionados.
-    final remaining = _availableCharacters.where((c) => !takenCharacters.contains(c)).toList();
-    // Si quedan personajes disponibles, elegimos uno aleatoriamente y enviamos la selección por WebSocket.
+    final takenCharacters =
+        widget.lobbyState.selectedCharacters.values.toList();
+    final remaining = _availableCharacters
+        .where((c) => !takenCharacters.contains(c))
+        .toList();
     if (remaining.isNotEmpty) {
       final randomChar = remaining[Random().nextInt(remaining.length)];
       ref.read(lobbyWebSocketProvider).sendCharacterSelection(randomChar);
     }
   }
 
-  // Valida que sea el turno del usuario y que el personaje no esté tomado,
-  // cancela el temporizador y envía la elección por WebSocket.
   void _selectCharacter(String character) {
     if (!_isMyTurn) return;
     if (widget.lobbyState.selectedCharacters.containsValue(character)) return;
@@ -815,208 +827,266 @@ class _CharacterSelectionViewState extends ConsumerState<CharacterSelectionView>
     ref.read(lobbyWebSocketProvider).sendCharacterSelection(character);
   }
 
-  // TODO: CAMBIAR LA UI A LA ACORDADA EN LA REUNION Y COMENTAR EL CODIGO
   @override
   Widget build(BuildContext context) {
-    // Determina qué jugador está eligiendo en este momento para mostrarlo en la cabecera.
     final numPersonajes = widget.lobbyState.selectedCharacters.length;
     String jugadorActual = '';
     if (numPersonajes < widget.lobbyState.playersConnected.length) {
       jugadorActual = widget.lobbyState.playersConnected[numPersonajes];
-    } else {
-      jugadorActual = 'Esperando a los demás...';
     }
 
-    return Stack(
-      children: [
-        // Imagen del tablero como fondo de la pantalla de selección.
-        Positioned.fill(
-          child: Image.asset('assets/images/board/tablero_def.png',
-              fit: BoxFit.cover),
-        ),
-        // Capa semitransparente oscura para mejorar la legibilidad del contenido.
-        Positioned.fill(
-          child: Container(color: Colors.black.withValues(alpha: 0.75)),
-        ),
-        SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              children: [
-                // Cabecera con el nombre del jugador activo y, si es el turno local,
-                // el contador regresivo en naranja.
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                  decoration: BoxDecoration(
-                    color: Colors.black.withValues(alpha: 0.5),
-                    borderRadius: BorderRadius.circular(16),
-                    // El borde cambia de azul a verde cuando es el turno del usuario local.
-                    border: Border.all(
-                      color:
-                          _isMyTurn ? Colors.greenAccent : Colors.blueAccent,
-                      width: 2,
-                    ),
-                  ),
-                  child: Column(
-                    children: [
-                      Text(
-                        _isMyTurn
-                            ? '¡ES TU TURNO!'
-                            : 'Turno de: $jugadorActual',
-                        style: TextStyle(
-                          fontSize: 26,
-                          fontWeight: FontWeight.bold,
-                          color:
-                              _isMyTurn ? Colors.greenAccent : Colors.white,
-                        ),
-                      ),
-                      if (_isMyTurn) ...[
-                        const SizedBox(height: 8),
-                        Text(
-                          'Tiempo restante: $_timeLeft s',
-                          style: const TextStyle(
-                              fontSize: 20,
-                              color: Colors.orangeAccent,
-                              fontWeight: FontWeight.bold),
-                        ),
-                      ]
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 24),
-                // Grid horizontal con una tarjeta por personaje.
-                // Cada tarjeta muestra la imagen del personaje y su nombre;
-                // si está tomado se oscurece y muestra quién lo eligió.
-                Expanded(
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: _availableCharacters.map((character) {
-                      final isTaken = widget.lobbyState.selectedCharacters
-                          .containsValue(character);
-                      String takenBy = '';
-                      if (isTaken) {
-                        widget.lobbyState.selectedCharacters
-                            .forEach((user, char) {
-                          if (char == character) takenBy = user;
-                        });
-                      }
-                      final isMySelection = takenBy == widget.currentUsername;
+    // Colores fieles a la imagen proporcionada
+    const bgColor = Color(0xFF291C49);
+    const darkGreenBar = Color(0xFF10281F);
+    const lightGreenBorder = Color(0xFF389354);
+    const lightGreenText = Color(0xFF5ED18B);
+    const inactiveBorder = Color(0xFF4A3E66);
 
-                      return Expanded(
-                        child: Padding(
-                          padding:
-                              const EdgeInsets.symmetric(horizontal: 8.0),
-                          child: GestureDetector(
-                            onTap: () {
-                              if (isTaken || !_isMyTurn) return;
-                              _selectCharacter(character);
-                            },
-                            child: AnimatedContainer(
-                              duration: const Duration(milliseconds: 300),
+    return Scaffold(
+      backgroundColor: bgColor,
+      body: SafeArea(
+        child: Column(
+          children: [
+            // ---------------- 1. CABECERA ----------------
+            const SizedBox(height: 24),
+            const Text(
+              'SELECCIONA TU PERSONAJE',
+              style: TextStyle(
+                fontFamily: 'Retro Gaming',
+                fontSize: 28,
+                color: Colors.white,
+                letterSpacing: 3.0,
+              ),
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'Cada héroe tiene habilidades únicas para dominar el tablero',
+              style: TextStyle(
+                fontFamily: 'Retro Gaming',
+                fontSize: 12,
+                color: Colors.white70,
+              ),
+            ),
+            const SizedBox(height: 24),
+
+            // ---------------- 2. BARRA DE ESTADO ----------------
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(vertical: 14),
+              decoration: const BoxDecoration(
+                color: darkGreenBar,
+                border: Border(
+                  top: BorderSide(color: lightGreenBorder, width: 2),
+                  bottom: BorderSide(color: lightGreenBorder, width: 2),
+                ),
+              ),
+              child: Text(
+                _isMyTurn
+                    ? 'ES TU TURNO DE ELEGIR'
+                    : 'TURNO DE ELEGIR DE: ${jugadorActual.toUpperCase()}',
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontFamily: 'Retro Gaming',
+                  fontSize: 14,
+                  color: lightGreenText,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 1.5,
+                ),
+              ),
+            ),
+            const SizedBox(height: 32),
+
+            // ---------------- 3. TARJETAS DE PERSONAJES ----------------
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: _availableCharacters.map((character) {
+                    final isTaken = widget.lobbyState.selectedCharacters
+                        .containsValue(character);
+                    String takenBy = '';
+                    if (isTaken) {
+                      widget.lobbyState.selectedCharacters
+                          .forEach((user, char) {
+                        if (char == character) takenBy = user;
+                      });
+                    }
+
+                    final isMySelection = takenBy == widget.currentUsername;
+                    // La tarjeta activa brilla si está libre y es nuestro turno,
+                    // o si fuimos nosotros quienes la elegimos.
+                    final bool isActiveCard =
+                        isMySelection || (_isMyTurn && !isTaken);
+                    final bool canSelect = _isMyTurn && !isTaken;
+
+                    return Expanded(
+                      child: Container(
+                        margin: const EdgeInsets.symmetric(
+                            horizontal: 8.0, vertical: 8.0),
+                        padding: const EdgeInsets.fromLTRB(16, 24, 16, 24),
+                        decoration: BoxDecoration(
+                          color: bgColor,
+                          border: Border.all(
+                            color: isActiveCard ? Colors.white : inactiveBorder,
+                            width: isActiveCard ? 3 : 1.5,
+                          ),
+                        ),
+                        child: Column(
+                          children: [
+                            // Recuadro del Avatar (Cara del personaje)
+                            Container(
+                              width: 100,
+                              height: 100,
                               decoration: BoxDecoration(
-                                // Verde si es mi selección, gris si está tomado por otro,
-                                // blanco translúcido si está libre.
-                                color: isMySelection
-                                    ? Colors.green.withValues(alpha: 0.3)
-                                    : (isTaken
-                                        ? Colors.grey.withValues(alpha: 0.5)
-                                        : Colors.white.withValues(alpha: 0.1)),
-                                borderRadius: BorderRadius.circular(16),
+                                color: bgColor,
                                 border: Border.all(
-                                  color: isMySelection
-                                      ? Colors.greenAccent
-                                      : (isTaken
-                                          ? Colors.transparent
-                                          : Colors.white54),
-                                  width: 3,
+                                  color: isActiveCard
+                                      ? Colors.white
+                                      : inactiveBorder,
+                                  width: isActiveCard ? 3 : 1.5,
                                 ),
-                                boxShadow: [
-                                  if (isMySelection)
-                                    const BoxShadow(
-                                        color: Colors.greenAccent,
-                                        blurRadius: 10,
-                                        spreadRadius: 2)
-                                ],
                               ),
-                              child: ClipRRect(
-                                borderRadius: BorderRadius.circular(13),
-                                child: Stack(
-                                  alignment: Alignment.center,
-                                  children: [
-                                    // Imagen del personaje, reducida de opacidad si está tomada por otro.
-                                    Positioned.fill(
-                                      child: Opacity(
-                                        opacity:
-                                            isTaken && !isMySelection ? 0.3 : 1.0,
-                                        child: Padding(
-                                          padding: const EdgeInsets.only(
-                                              bottom: 60.0),
-                                          child: Image.asset(
-                                            _getImageForCharacter(character),
-                                            fit: BoxFit.contain,
-                                          ),
-                                        ),
+                              // Usamos un factor de escala mayor y alineación precisa para centrar la cara
+                              child: ClipRect(
+                                child: Align(
+                                  alignment: const Alignment(0.0, -0.85),
+                                  heightFactor: 0.55,
+                                  child: Opacity(
+                                    opacity:
+                                        (isTaken && !isMySelection) ? 0.3 : 1.0,
+                                    child: Transform.scale(
+                                      scale: 2.2,
+                                      child: Image.asset(
+                                        _getImageForCharacter(character),
+                                        fit: BoxFit.cover,
                                       ),
                                     ),
-                                    // Barra inferior con el nombre del personaje y,
-                                    // si está tomado, el nombre del jugador que lo eligió.
-                                    Positioned(
-                                      bottom: 0,
-                                      left: 0,
-                                      right: 0,
-                                      child: Container(
-                                        color: Colors.black.withValues(alpha: 0.7),
-                                        padding: const EdgeInsets.symmetric(
-                                            vertical: 12),
-                                        child: Column(
-                                          children: [
-                                            Text(
-                                              character,
-                                              style: TextStyle(
-                                                fontWeight: FontWeight.bold,
-                                                fontSize: 18,
-                                                color: isTaken && !isMySelection
-                                                    ? Colors.grey
-                                                    : Colors.white,
-                                              ),
-                                              textAlign: TextAlign.center,
-                                            ),
-                                            if (isTaken) ...[
-                                              const SizedBox(height: 4),
-                                              Text(
-                                                'Elegido por $takenBy',
-                                                style: const TextStyle(
-                                                    color: Colors.redAccent,
-                                                    fontSize: 14,
-                                                    fontWeight:
-                                                        FontWeight.bold),
-                                                textAlign: TextAlign.center,
-                                              ),
-                                            ]
-                                          ],
-                                        ),
-                                      ),
-                                    ),
-                                  ],
+                                  ),
                                 ),
                               ),
                             ),
-                          ),
+                            const SizedBox(height: 24),
+
+                            // Título de la tarjeta
+                            Text(
+                              character.toUpperCase(),
+                              style: TextStyle(
+                                fontFamily: 'Retro Gaming',
+                                fontSize: 16,
+                                color: (isTaken && !isMySelection)
+                                    ? Colors.white38
+                                    : Colors.white,
+                                fontWeight: FontWeight.bold,
+                                letterSpacing: 1.2,
+                              ),
+                            ),
+                            const SizedBox(height: 16),
+
+                            // Descripción de la habilidad
+                            Expanded(
+                              child: Text(
+                                _descripciones[character]!,
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  fontFamily: 'Retro Gaming',
+                                  fontSize: 10,
+                                  color: (isTaken && !isMySelection)
+                                      ? Colors.white24
+                                      : Colors.white70,
+                                  height: 1.5,
+                                ),
+                              ),
+                            ),
+
+                            // Botón inferior
+                            if (isTaken && !isMySelection)
+                              // Diseño del botón cuando está inactivo/elegido por otro
+                              Container(
+                                width: double.infinity,
+                                height: 42,
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFF1E1435),
+                                  border: Border.all(
+                                      color: const Color(0xFF2A1D45),
+                                      width: 1.5),
+                                ),
+                                alignment: Alignment.center,
+                                child: const Text(
+                                  'Elegido',
+                                  style: TextStyle(
+                                    fontFamily: 'Retro Gaming',
+                                    color: Colors.white24,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              )
+                            else if (isActiveCard)
+                              // Diseño del botón ACTIVO con la textura solicitada
+                              RetroImgButton(
+                                label: isMySelection ? 'ELEGIDO' : 'Elegir',
+                                asset: 'assets/images/ui/btn_verde.png',
+                                width: double.infinity,
+                                height: 42,
+                                fontSize: 13,
+                                onTap: canSelect
+                                    ? () => _selectCharacter(character)
+                                    : null,
+                              )
+                            else
+                              // Diseño del botón atenuado cuando es turno de otro
+                              Container(
+                                width: double.infinity,
+                                height: 42,
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFF1E1435),
+                                  border: Border.all(
+                                      color: const Color(0xFF2A1D45),
+                                      width: 1.5),
+                                ),
+                                alignment: Alignment.center,
+                                child: const Text(
+                                  'Elegir',
+                                  style: TextStyle(
+                                    fontFamily: 'Retro Gaming',
+                                    color: Colors.white24,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ),
+                          ],
                         ),
-                      );
-                    }).toList(),
-                  ),
+                      ),
+                    );
+                  }).toList(),
                 ),
-              ],
+              ),
             ),
-          ),
+            const SizedBox(height: 16),
+
+            // ---------------- 4. FOOTER ----------------
+            Container(
+              width: double.infinity,
+              height: 1,
+              color: const Color(0xFF160E27),
+            ),
+            const SizedBox(height: 12),
+            const Text(
+              'ELIGE TU PERSONAJE PARA CONTINUAR...',
+              style: TextStyle(
+                fontFamily: 'Retro Gaming',
+                fontSize: 10,
+                color: Colors.white38,
+                letterSpacing: 1.0,
+              ),
+            ),
+            const SizedBox(height: 12),
+          ],
         ),
-      ],
+      ),
     );
   }
 
-  // Metodo privado que devuelve la ruta del asset de imagen correspondiente a cada personaje.
   String _getImageForCharacter(String character) {
     switch (character) {
       case 'Banquero':

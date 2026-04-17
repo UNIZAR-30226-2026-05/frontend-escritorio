@@ -462,9 +462,12 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
                       Center(
                         child: RuletaModal(
                           itemName: gameState.obtainedItemName!,
-                          onClose: () => ref
-                              .read(gameProvider.notifier)
-                              .hideObtainedItem(),
+                          onClose: () {
+                            // Ocultamos la ruleta
+                            ref.read(gameProvider.notifier).hideObtainedItem();
+                            // AÑADIDO: Avisamos al backend que hemos terminado la casilla
+                            ref.read(webSocketProvider).sendEndRound();
+                          },
                         ),
                       ),
                     ],
@@ -1061,7 +1064,7 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
             ),
           ),
           const SizedBox(width: 8),
-          
+
           // Nombre y clase
           Expanded(
             child: Column(

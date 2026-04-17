@@ -121,11 +121,13 @@ class WebSocketService {
               final gameState = _ref.read(gameProvider);
               final myUsername = _ref.read(authProvider).username;
 
-              // SOLO ENVIAMOS END_ROUND AUTOMÁTICO SI ESTAMOS EN TURNO NORMAL DE TABLERO
+              // AÑADIDO: gameState.obtainedItemName == null
+              // Evita lanzar el fin de ronda si hay una ruleta en pantalla
               if (isQueueEmpty &&
                   gameState.currentPhase == GamePhase.boardTurn &&
+                  gameState.obtainedItemName == null &&
                   userId == myUsername) {
-                sendEndRound(); // Manda el fin de turno solo si no hay minijuego
+                sendEndRound();
               }
             });
           });
@@ -290,7 +292,13 @@ class WebSocketService {
           debugPrint(' MENSAJE RULETA RECIBIDO: $decoded');
           final itemName = decoded['objeto'];
           final desc = decoded['descripcion'];
-          _ref.read(gameProvider.notifier).showObtainedItem(itemName, desc);
+          final userRuleta = decoded['user'];
+          final myUsername = _ref.read(authProvider).username;
+
+          // Solo mostramos el modal si nosotros somos los que caímos en la casilla
+          if (userRuleta == myUsername) {
+            _ref.read(gameProvider.notifier).showObtainedItem(itemName, desc);
+          }
           break;
 
         case 'penalizacion_actualizada':

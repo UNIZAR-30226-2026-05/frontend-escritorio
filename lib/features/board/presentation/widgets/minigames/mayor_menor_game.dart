@@ -340,12 +340,26 @@ class _CartaWidgetState extends State<CartaWidget>
   }
 
   Widget _buildFront() {
+    // Mapear palo a nombre de carpeta
+    final int paloId = widget.cartaInfo.valorOriginal ~/ 13;
+    final int rangoVal = widget.cartaInfo.valorOriginal % 13;
+
+    // paloId: 0=spades, 1=hearts, 2=clubs, 3=diamonds
+    const List<String> palos = ['spades', 'hearts', 'clubs', 'diamonds'];
+    final String palo = palos[paloId.clamp(0, 3)];
+
+    // rangoVal: 0=As(1), 1..9=2..10, 10=J(11), 11=Q(12), 12=K(13)
+    final int numero = rangoVal + 1; // 1..13
+
+    final String assetPath =
+        'assets/images/minigames/cartas/cards/card_${palo}_$numero.png';
+
     return Container(
       width: 140,
       height: 200,
       decoration: BoxDecoration(
-        color: Colors.white,
         borderRadius: BorderRadius.circular(12),
+        color: Colors.white,
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.5),
@@ -354,74 +368,26 @@ class _CartaWidgetState extends State<CartaWidget>
           )
         ],
       ),
-      child: Stack(
-        children: [
-          // Esquina superior izquierda
-          Positioned(
-            top: 8,
-            left: 8,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  widget.cartaInfo.rango,
-                  style: TextStyle(
-                    fontSize: 22,
-                    fontWeight: FontWeight.bold,
-                    color: widget.cartaInfo.color,
-                  ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(12),
+        child: Image.asset(
+          assetPath,
+          fit: BoxFit.fill,
+          errorBuilder: (context, error, stackTrace) {
+            // Fallback: carta blanca con el rango y palo en texto
+            return Center(
+              child: Text(
+                '${widget.cartaInfo.rango}\n${widget.cartaInfo.iconoPalo}',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 28,
+                  fontWeight: FontWeight.bold,
+                  color: widget.cartaInfo.color,
                 ),
-                Text(
-                  widget.cartaInfo.iconoPalo,
-                  style: TextStyle(
-                    fontSize: 18,
-                    color: widget.cartaInfo.color,
-                  ),
-                ),
-              ],
-            ),
-          ),
-
-          // Centro
-          Center(
-            child: Text(
-              widget.cartaInfo.iconoPalo,
-              style: TextStyle(
-                fontSize: 64,
-                color: widget.cartaInfo.color,
               ),
-            ),
-          ),
-
-          // Esquina inferior derecha (invertida)
-          Positioned(
-            bottom: 8,
-            right: 8,
-            child: RotatedBox(
-              quarterTurns: 2,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    widget.cartaInfo.rango,
-                    style: TextStyle(
-                      fontSize: 22,
-                      fontWeight: FontWeight.bold,
-                      color: widget.cartaInfo.color,
-                    ),
-                  ),
-                  Text(
-                    widget.cartaInfo.iconoPalo,
-                    style: TextStyle(
-                      fontSize: 18,
-                      color: widget.cartaInfo.color,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
+            );
+          },
+        ),
       ),
     );
   }

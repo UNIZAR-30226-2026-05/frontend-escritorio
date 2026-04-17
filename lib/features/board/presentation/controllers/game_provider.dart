@@ -110,6 +110,8 @@ class GameController extends StateNotifier<GameState> {
         serverMessage:
             "${state.players.firstWhere((p) => p.id == playerId).username} se desplaza por el tablero.",
       );
+      // ESPERA de 400ms para casillas de movimiento automático
+      await Future.delayed(const Duration(milliseconds: 400));
     }
 
     final currentPlayer = state.players.firstWhere((p) => p.id == playerId);
@@ -147,8 +149,6 @@ class GameController extends StateNotifier<GameState> {
     if (isMovingForward) {
       // Avance: 5 → 9 (5, 6, 7, 8, 9)
       for (int i = startPos + 1; i <= endPos; i++) {
-        await Future.delayed(const Duration(milliseconds: 350));
-
         final stepPlayers = state.players.map((p) {
           if (p.id == playerId) {
             return p.copyWith(currentTileIndex: i);
@@ -163,13 +163,11 @@ class GameController extends StateNotifier<GameState> {
             lastDice1: diceRoll == 0 ? state.lastDice1 : dice1,
             lastDice2: diceRoll == 0 ? state.lastDice2 : dice2);
 
-        await Future.delayed(const Duration(milliseconds: 350));
+        await Future.delayed(const Duration(milliseconds: 280));
       }
     } else {
       // Retroceso: 9 → 5 (9, 8, 7, 6, 5)
       for (int i = startPos - 1; i >= endPos; i--) {
-        await Future.delayed(const Duration(milliseconds: 350));
-
         final stepPlayers = state.players.map((p) {
           if (p.id == playerId) {
             return p.copyWith(currentTileIndex: i);
@@ -184,7 +182,7 @@ class GameController extends StateNotifier<GameState> {
             lastDice1: diceRoll == 0 ? state.lastDice1 : dice1,
             lastDice2: diceRoll == 0 ? state.lastDice2 : dice2);
 
-        await Future.delayed(const Duration(milliseconds: 350));
+        await Future.delayed(const Duration(milliseconds: 280));
       }
     }
 

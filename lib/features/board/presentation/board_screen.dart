@@ -185,9 +185,13 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
   @override
   Widget build(BuildContext context) {
     final gameState = ref.watch(gameProvider);
-    final activePlayerId = gameState.turnOrder[gameState.activePlayerIndex];
+    final activePlayerId = (gameState.turnOrder.isNotEmpty &&
+            gameState.activePlayerIndex >= 0 &&
+            gameState.activePlayerIndex < gameState.turnOrder.length)
+        ? gameState.turnOrder[gameState.activePlayerIndex]
+        : '';
     final myUsername = ref.watch(authProvider).username;
-    final isMyTurn = myUsername == activePlayerId;
+    final isMyTurn = myUsername == activePlayerId && activePlayerId.isNotEmpty;
 
     // Arrancar / cancelar el timer de selección cuando el Videojugador recibe sus opciones
     ref.listen(
@@ -354,7 +358,7 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
 
                         return AnimatedPositioned(
                           key: ValueKey(p.id),
-                          duration: const Duration(milliseconds: 350),
+                          duration: const Duration(milliseconds: 280),
                           curve: Curves.easeInOut,
                           left: leftPos,
                           top: topPos,
@@ -991,94 +995,61 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
   // WIDGET: Panel de Jugadores
   Widget _buildPlayerPanel(
       GameState gameState, String activePlayerId, String myUsername) {
-    return Container(
-      width: 220,
-      decoration: BoxDecoration(
-        color: const Color(0xDD2D1B4E),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: const Color(0xFF6C3FA0), width: 2),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.5),
-            blurRadius: 8,
-            offset: const Offset(2, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // Header
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
-            decoration: const BoxDecoration(
-              color: Color(0xFF6C3FA0),
-              borderRadius: BorderRadius.only(
-                topLeft: Radius.circular(6),
-                topRight: Radius.circular(6),
-              ),
-            ),
-            child: const Text(
-              'JUGADORES',
-              style: TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-                fontSize: 14,
-                letterSpacing: 1.5,
-              ),
-              textAlign: TextAlign.center,
-            ),
-          ),
-          // Lista de jugadores
-          ...gameState.players.map((player) {
-            final isActive = player.id == activePlayerId;
-            final isMe =
-                player.id == myUsername || player.username == myUsername;
-            return _buildPlayerRow(player, isActive, isMe);
-          }),
-        ],
-      ),
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: gameState.players.map((player) {
+        final isActive = player.id == activePlayerId;
+        final isMe = player.id == myUsername || player.username == myUsername;
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 8.0),
+          child: _buildPlayerRow(player, isActive, isMe),
+        );
+      }).toList(),
     );
   }
 
   Widget _buildPlayerRow(Player player, bool isActive, bool isMe) {
+    // Colores basados en la imagen
+    const Color cardBgColor = Color(0xFF422B7A);
+    const Color activeBorderColor = Color(0xFF3CD37D);
+    const Color inactiveBorderColor = Colors.white;
+    final Color badgeColor = _getBadgeColor(player.characterClass);
+
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 10),
+      width: 200,
+      padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 8),
       decoration: BoxDecoration(
-        color: isActive
-            ? const Color(0x33FFFFFF)
-            : (isMe
-                ? Colors.green.withValues(alpha: 0.15)
-                : Colors.transparent),
-        border: Border(
-          bottom: const BorderSide(color: Color(0x33FFFFFF), width: 1),
-          left: isMe
-              ? const BorderSide(color: Colors.greenAccent, width: 4)
-              : BorderSide.none,
+        color: cardBgColor,
+        border: Border.all(
+          color: isActive ? activeBorderColor : inactiveBorderColor,
+          width: isActive ? 2 : 1,
         ),
       ),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           // Avatar miniatura
-          // Avatar miniatura
           Container(
-            width: 32,
-            height: 32,
+            width: 40,
+            height: 40,
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(4),
-              border: Border.all(
-                color: isActive ? Colors.amber : const Color(0x55FFFFFF),
-                width: isActive ? 2 : 1,
-              ),
+              color: badgeColor,
+              border: Border.all(color: Colors.white, width: 1.5),
             ),
             child: Stack(
               children: [
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(3),
-                  child: Image.asset(
-                    getCharacterImagePath(player.characterClass, true),
-                    fit: BoxFit.cover,
+                ClipRect(
+                  child: Align(
+                    alignment: const Alignment(0.0, -0.6),
+                    heightFactor: 0.8,
+                    child: Transform.scale(
+                      scale: 1.6,
+                      child: Image.asset(
+                        getCharacterImagePath(player.characterClass, true),
+                        fit: BoxFit.cover,
+                      ),
+                    ),
                   ),
                 ),
                 if (player.penaltyTurns > 0)
@@ -1096,53 +1067,64 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
             ),
           ),
           const SizedBox(width: 8),
+          
           // Nombre y clase
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  player.username + (isMe ? ' (TÚ)' : ''),
-                  style: TextStyle(
-                    color: isMe
-                        ? Colors.greenAccent
-                        : (isActive ? Colors.amber : Colors.white),
-                    fontWeight: (isActive || isMe)
-                        ? FontWeight.bold
-                        : FontWeight.normal,
+                  player.username,
+                  style: const TextStyle(
+                    fontFamily: 'Retro Gaming',
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
                     fontSize: 12,
                   ),
                   overflow: TextOverflow.ellipsis,
                 ),
+                const SizedBox(height: 2),
                 Text(
-                  _getClassName(player.characterClass),
+                  _getClassName(player.characterClass).toUpperCase(),
                   style: const TextStyle(
-                    color: Color(0xAAFFFFFF),
-                    fontSize: 10,
+                    fontFamily: 'Retro Gaming',
+                    color: Colors.white70,
+                    fontSize: 8,
                   ),
+                  overflow: TextOverflow.ellipsis,
                 ),
               ],
             ),
           ),
+          const SizedBox(width: 4),
+
           // Monedas
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Text('🪙', style: TextStyle(fontSize: 12)),
-              const SizedBox(width: 2),
-              Text(
-                '${player.coins}',
-                style: const TextStyle(
-                  color: Color(0xFFFFD700),
-                  fontWeight: FontWeight.bold,
-                  fontSize: 12,
-                ),
-              ),
-            ],
+          Text(
+            '${player.coins}e',
+            style: const TextStyle(
+              fontFamily: 'Retro Gaming',
+              color: Color(0xFFFFD700),
+              fontWeight: FontWeight.bold,
+              fontSize: 12,
+            ),
           ),
         ],
       ),
     );
+  }
+
+  Color _getBadgeColor(CharacterClass charClass) {
+    switch (charClass) {
+      case CharacterClass.banquero:
+        return const Color(0xFFFFB800);
+      case CharacterClass.videojugador:
+        return const Color(0xFF3886FE);
+      case CharacterClass.vidente:
+        return const Color(0xFFC74CFF);
+      case CharacterClass.escapista:
+        return const Color(0xFF0BA745);
+    }
   }
 
   String _getClassName(CharacterClass charClass) {

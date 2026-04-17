@@ -1039,17 +1039,11 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
             ),
             child: Stack(
               children: [
-                ClipRect(
-                  child: Align(
-                    alignment: const Alignment(0.0, -0.6),
-                    heightFactor: 0.8,
-                    child: Transform.scale(
-                      scale: 1.6,
-                      child: Image.asset(
-                        getCharacterImagePath(player.characterClass, true),
-                        fit: BoxFit.cover,
-                      ),
-                    ),
+                Padding(
+                  padding: const EdgeInsets.all(2.0),
+                  child: Image.asset(
+                    getCharacterPerfilPath(player.characterClass),
+                    fit: BoxFit.contain,
                   ),
                 ),
                 if (player.penaltyTurns > 0)
@@ -1074,15 +1068,20 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text(
-                  player.username,
-                  style: const TextStyle(
-                    fontFamily: 'Retro Gaming',
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 12,
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    player.username,
+                    maxLines: 1,
+                    softWrap: false,
+                    style: const TextStyle(
+                      fontFamily: 'Retro Gaming',
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 12,
+                    ),
                   ),
-                  overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(height: 2),
                 Text(
@@ -1212,5 +1211,18 @@ String getCharacterImagePath(CharacterClass charClass, bool isFacingRight) {
       return 'assets/images/characters/tablero/escapista_t_$suffix.png';
     case CharacterClass.videojugador:
       return 'assets/images/characters/tablero/videojugador_t_$suffix.png';
+  }
+}
+
+String getCharacterPerfilPath(CharacterClass charClass) {
+  switch (charClass) {
+    case CharacterClass.banquero:
+      return 'assets/images/characters/general/banquero_perfil.png';
+    case CharacterClass.vidente:
+      return 'assets/images/characters/general/vidente_perfil.png';
+    case CharacterClass.escapista:
+      return 'assets/images/characters/general/escapista_perfil.png';
+    case CharacterClass.videojugador:
+      return 'assets/images/characters/general/videojugador_perfil.png';
   }
 }

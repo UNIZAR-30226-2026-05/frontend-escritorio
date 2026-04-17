@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:math';
 
 // Importa las dependencias necesarias para Flutter, Riverpod y navegación.
 import 'package:flutter/material.dart';

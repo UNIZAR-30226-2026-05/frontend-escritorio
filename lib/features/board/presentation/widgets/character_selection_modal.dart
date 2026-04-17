@@ -6,7 +6,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../lobby/presentation/controllers/lobby_provider.dart';
 import '../../../lobby/data/lobby_websocket_service.dart';
-import '../../../../core/widgets/retro_widgets.dart';
 
 class CharacterSelectionModal extends ConsumerStatefulWidget {
   final LobbyState lobbyState;
@@ -118,18 +117,62 @@ class _CharacterSelectionModalState
     ref.read(lobbyWebSocketProvider).sendCharacterSelection(character);
   }
 
+  Widget _buildElegirButton({VoidCallback? onTap, double opacity = 1.0}) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Opacity(
+        opacity: onTap == null ? opacity : 1.0,
+        child: Container(
+          width: double.infinity,
+          height: 52,
+          decoration: const BoxDecoration(
+            image: DecorationImage(
+              image: AssetImage('assets/images/ui/btn_verde.png'),
+              fit: BoxFit.fill,
+            ),
+          ),
+          alignment: Alignment.center,
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              Text(
+                'Elegir',
+                style: TextStyle(
+                  fontFamily: 'Retro Gaming',
+                  fontSize: 16,
+                  foreground: Paint()
+                    ..style = PaintingStyle.stroke
+                    ..strokeWidth = 3
+                    ..color = Colors.black,
+                ),
+              ),
+              const Text(
+                'Elegir',
+                style: TextStyle(
+                  fontFamily: 'Retro Gaming',
+                  fontSize: 16,
+                  color: Colors.white,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   String _getImageForCharacter(String character) {
     switch (character) {
       case 'Banquero':
-        return 'assets/images/characters/general/banquero_frente_der.png';
+        return 'assets/images/characters/general/banquero_perfil.png';
       case 'Videojugador':
-        return 'assets/images/characters/general/videojugador_frente_der.png';
+        return 'assets/images/characters/general/videojugador_perfil.png';
       case 'Escapista':
-        return 'assets/images/characters/general/escapista_frente_der.png';
+        return 'assets/images/characters/general/escapista_perfil.png';
       case 'Vidente':
-        return 'assets/images/characters/general/vidente_frente_der.png';
+        return 'assets/images/characters/general/vidente_perfil.png';
       default:
-        return 'assets/images/characters/general/banquero_frente_der.png';
+        return 'assets/images/characters/general/banquero_perfil.png';
     }
   }
 
@@ -161,24 +204,24 @@ class _CharacterSelectionModalState
           Container(
             width: double.infinity,
             color: headerBgColor,
-            padding: const EdgeInsets.symmetric(vertical: 24),
+            padding: const EdgeInsets.symmetric(vertical: 12),
             child: const Column(
               children: [
                 Text(
                   'SELECCIONA TU PERSONAJE',
                   style: TextStyle(
                     fontFamily: 'Retro Gaming',
-                    fontSize: 32,
+                    fontSize: 28,
                     color: Colors.white,
                     letterSpacing: 4.0,
                   ),
                 ),
-                SizedBox(height: 12),
+                SizedBox(height: 6),
                 Text(
                   'Cada héroe tiene habilidades únicas para dominar el tablero',
                   style: TextStyle(
                     fontFamily: 'Retro Gaming',
-                    fontSize: 14,
+                    fontSize: 13,
                     color: Colors.white70,
                   ),
                 ),
@@ -193,7 +236,7 @@ class _CharacterSelectionModalState
           Container(
             width: double.infinity,
             color: statusBgColor,
-            padding: const EdgeInsets.symmetric(vertical: 18),
+            padding: const EdgeInsets.symmetric(vertical: 8),
             child: Text(
               _isMyTurn
                   ? 'ES TU TURNO DE ELEGIR'
@@ -236,126 +279,85 @@ class _CharacterSelectionModalState
                       isMySelection || (_isMyTurn && !isTaken);
                   final bool canSelect = _isMyTurn && !isTaken;
 
+                  final bool dimCard = isTaken && !isMySelection;
+
                   return Expanded(
-                    child: Container(
-                      margin: const EdgeInsets.symmetric(
-                          horizontal: 10.0, vertical: 0),
-                      padding: const EdgeInsets.fromLTRB(14, 20, 14, 20),
-                      decoration: BoxDecoration(
-                        color: mainBgColor,
-                        border: Border.all(
-                          color: isActiveCard ? Colors.white : Colors.white38,
-                          width: isActiveCard ? 3 : 1.5,
+                    child: Opacity(
+                      opacity: dimCard ? 0.4 : 1.0,
+                      child: Container(
+                        margin: const EdgeInsets.symmetric(
+                            horizontal: 10.0, vertical: 0),
+                        padding: const EdgeInsets.fromLTRB(14, 20, 14, 20),
+                        decoration: BoxDecoration(
+                          color: mainBgColor,
+                          border: Border.all(
+                            color: isActiveCard ? Colors.white : Colors.white38,
+                            width: isActiveCard ? 3 : 1.5,
+                          ),
                         ),
-                      ),
-                      child: Column(
-                        children: [
-                          // Recuadro del Avatar
-                          Container(
-                            width: 120,
-                            height: 120,
-                            decoration: BoxDecoration(
-                              color: const Color(0xFF1E1640),
-                              border: Border.all(
-                                color: isActiveCard
-                                    ? Colors.white
-                                    : Colors.white38,
-                                width: isActiveCard ? 2 : 1,
+                        child: Column(
+                          children: [
+                            // Recuadro del Avatar (≈1/3 del alto de la tarjeta)
+                            Container(
+                              width: 110,
+                              height: 110,
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF1E1640),
+                                border: Border.all(
+                                  color: isActiveCard
+                                      ? Colors.white
+                                      : Colors.white38,
+                                  width: isActiveCard ? 2 : 1,
+                                ),
                               ),
-                            ),
-                            child: ClipRect(
-                              child: Opacity(
-                                opacity:
-                                    (isTaken && !isMySelection) ? 0.3 : 1.0,
-                                child: Transform.scale(
-                                  scale: 1.8,
-                                  child: Image.asset(
-                                    _getImageForCharacter(character),
-                                    fit: BoxFit.contain,
-                                    alignment: const Alignment(0.0, -0.3),
-                                  ),
+                              child: Padding(
+                                padding: const EdgeInsets.all(4.0),
+                                child: Image.asset(
+                                  _getImageForCharacter(character),
+                                  fit: BoxFit.contain,
                                 ),
                               ),
                             ),
-                          ),
-                          const SizedBox(height: 20),
+                            const SizedBox(height: 20),
 
-                          // Título
-                          Text(
-                            character.toUpperCase(),
-                            style: TextStyle(
-                              fontFamily: 'Retro Gaming',
-                              fontSize: 16,
-                              color: (isTaken && !isMySelection)
-                                  ? Colors.white38
-                                  : Colors.white,
-                              fontWeight: FontWeight.bold,
-                              letterSpacing: 1.2,
-                            ),
-                          ),
-                          const SizedBox(height: 14),
-
-                          // Descripción
-                          Expanded(
-                            child: Text(
-                              _descripciones[character]!,
-                              textAlign: TextAlign.center,
-                              style: TextStyle(
+                            // Título
+                            Text(
+                              character.toUpperCase(),
+                              style: const TextStyle(
                                 fontFamily: 'Retro Gaming',
-                                fontSize: 12,
-                                color: (isTaken && !isMySelection)
-                                    ? Colors.white24
-                                    : Colors.white70,
-                                height: 1.5,
+                                fontSize: 16,
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                                letterSpacing: 1.2,
                               ),
                             ),
-                          ),
+                            const SizedBox(height: 14),
 
-                          // Botón inferior
-                          if (isTaken && !isMySelection)
-                            Container(
-                              width: double.infinity,
-                              height: 52,
-                              decoration: BoxDecoration(
-                                color: const Color(0xFF1E1435),
-                                border: Border.all(
-                                    color: const Color(0xFF2A1D45), width: 1.5),
+                            // Descripción
+                            Expanded(
+                              child: Text(
+                                _descripciones[character]!,
+                                textAlign: TextAlign.center,
+                                style: const TextStyle(
+                                  fontFamily: 'Retro Gaming',
+                                  fontSize: 12,
+                                  color: Colors.white,
+                                  height: 1.5,
+                                ),
                               ),
-                              alignment: Alignment.center,
-                              child: const Text('Elegir',
-                                  style: TextStyle(
-                                      fontFamily: 'Retro Gaming',
-                                      color: Colors.white24,
-                                      fontSize: 14)),
-                            )
-                          else if (isActiveCard)
-                            RetroImgButton(
-                              label: 'Elegir',
-                              asset: 'assets/images/ui/btn_verde.png',
-                              width: double.infinity,
-                              height: 52,
-                              fontSize: 14,
-                              onTap: canSelect
-                                  ? () => _selectCharacter(character)
-                                  : null,
-                            )
-                          else
-                            Container(
-                              width: double.infinity,
-                              height: 52,
-                              decoration: BoxDecoration(
-                                color: const Color(0xFF1E1435),
-                                border: Border.all(
-                                    color: const Color(0xFF2A1D45), width: 1.5),
-                              ),
-                              alignment: Alignment.center,
-                              child: const Text('Elegir',
-                                  style: TextStyle(
-                                      fontFamily: 'Retro Gaming',
-                                      color: Colors.white24,
-                                      fontSize: 14)),
                             ),
-                        ],
+
+                            // Botón inferior
+                            if (isActiveCard)
+                              _buildElegirButton(
+                                onTap: canSelect
+                                    ? () => _selectCharacter(character)
+                                    : null,
+                              )
+                            else
+                              _buildElegirButton(),
+                          ],
+                        ),
                       ),
                     ),
                   );
@@ -370,14 +372,14 @@ class _CharacterSelectionModalState
           Container(
               height: 2,
               width: double.infinity,
-              color: const Color(0xFF201640)), // Separador oscuro final
+              color: Colors.white70), // Separador mismo tono que el texto
           const SizedBox(height: 16),
           const Text(
             'ELIGE TU PERSONAJE PARA CONTINUAR...',
             style: TextStyle(
               fontFamily: 'Retro Gaming',
               fontSize: 11,
-              color: Colors.white38,
+              color: Colors.white70,
               letterSpacing: 1.0,
             ),
           ),

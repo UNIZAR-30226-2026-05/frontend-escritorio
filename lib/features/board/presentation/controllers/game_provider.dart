@@ -392,28 +392,12 @@ class GameController extends StateNotifier<GameState> {
 
   void hideObtainedItem() {
     state = GameState(
-      currentPhase: state.currentPhase,
-      currentRound: state.currentRound,
-      players: state.players,
-      turnOrder: state.turnOrder,
+      // Truco similar a finishMinigame para forzar a null
+      currentPhase: state.currentPhase, currentRound: state.currentRound,
+      players: state.players, turnOrder: state.turnOrder,
       activePlayerIndex: state.activePlayerIndex,
       serverMessage: state.serverMessage,
       isWaitingForMinigameChoice: state.isWaitingForMinigameChoice,
-      // Preserve minigame state
-      minigameChoices: state.minigameChoices,
-      minigameName: state.minigameName,
-      minigameDescription: state.minigameDescription,
-      minigameDetails: state.minigameDetails,
-      minigameResults: state.minigameResults,
-      // Preserve dice/movement state
-      isMovementActive: state.isMovementActive,
-      lastDiceResult: state.lastDiceResult,
-      lastDice1: state.lastDice1,
-      lastDice2: state.lastDice2,
-      lastDiceRollId: state.lastDiceRollId,
-      // Intentionally clear obtained item
-      obtainedItemName: null,
-      obtainedItemDesc: null,
     );
   }
 

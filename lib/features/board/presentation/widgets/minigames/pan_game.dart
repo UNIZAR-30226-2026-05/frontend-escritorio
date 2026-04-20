@@ -28,7 +28,7 @@ class _PanGameState extends State<PanGame> with SingleTickerProviderStateMixin {
 
     _controller = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 1200),
+      duration: const Duration(milliseconds: 400),
     );
 
     _animacionBarra = Tween<Alignment>(

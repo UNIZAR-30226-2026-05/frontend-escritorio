@@ -87,7 +87,7 @@ class _ReflejosGameState extends State<ReflejosGame> {
         circleColor = Colors.redAccent.shade700;
         break;
       case ReflejosState.active:
-        circleColor = Colors.greenAccent.shade400;
+        circleColor = const Color(0xFF0BDA73);
         break;
       case ReflejosState.finished:
         circleColor = Colors.blueAccent.shade400;
@@ -134,7 +134,7 @@ class _ReflejosGameState extends State<ReflejosGame> {
           return Stack(
             fit: StackFit.expand,
             children: [
-              // 1. Imagen de fondo fija (se ve siempre)
+              // 1. Imagen de fondo fija
               Image.asset(
                 'assets/images/minigames/reflejos/Fondo.png',
                 fit: BoxFit.cover,
@@ -142,7 +142,7 @@ class _ReflejosGameState extends State<ReflejosGame> {
                 height: screenH,
               ),
 
-              // 2. El rectángulo que cambia de color, posicionado exactamente sobre la pizarra
+              // 2. El rectángulo que cambia de color
               Positioned(
                 left: rectLeft,
                 top: rectTop,
@@ -153,10 +153,23 @@ class _ReflejosGameState extends State<ReflejosGame> {
                   decoration: BoxDecoration(
                     color: circleColor.withValues(alpha: 0.9),
                   ),
+                  child: Center(
+                    child: Text(
+                      _state == ReflejosState.waiting
+                          ? "¡LISTO!"
+                          : (_state == ReflejosState.active ? "¡YA!" : ""),
+                      style: const TextStyle(
+                        fontFamily: 'Retro Gaming',
+                        fontSize: 60,
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
                 ),
               ),
 
-              // 3. Pingüinillos de espaldas mirando la pizarra
+              // 3. Pingüinillos
               Positioned(
                 bottom: 0,
                 left: 0,

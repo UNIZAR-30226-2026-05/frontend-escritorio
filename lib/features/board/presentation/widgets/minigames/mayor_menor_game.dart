@@ -170,8 +170,8 @@ class _MayorMenorGameState extends State<MayorMenorGame> {
               child: Center(
                 child: Wrap(
                   alignment: WrapAlignment.center,
-                  spacing: 24,
-                  runSpacing: 24,
+                  spacing: 64,
+                  runSpacing: 64,
                   children: List.generate(4, (index) {
                     return CartaWidget(
                       cartaInfo: CartaInfo.decodificar(_cartasRaw[index]),
@@ -261,7 +261,7 @@ class _CartaWidgetState extends State<CartaWidget>
     super.initState();
     _controller = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 500),
+      duration: const Duration(milliseconds: 800),
     );
 
     _animacionGiro = Tween<double>(begin: 0, end: pi).animate(
@@ -319,8 +319,8 @@ class _CartaWidgetState extends State<CartaWidget>
 
   Widget _buildBack() {
     return Container(
-      width: 140,
-      height: 200,
+      width: 180,
+      height: 260,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
@@ -355,8 +355,8 @@ class _CartaWidgetState extends State<CartaWidget>
         'assets/images/minigames/cartas/cards/card_${palo}_$numero.png';
 
     return Container(
-      width: 140,
-      height: 200,
+      width: 180,
+      height: 260,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(12),
         color: Colors.white,

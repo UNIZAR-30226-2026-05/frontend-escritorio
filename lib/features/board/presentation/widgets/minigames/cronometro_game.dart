@@ -159,9 +159,21 @@ class _CronometroGameState extends State<CronometroGame>
                   children: [
                     // 1. FONDO (El Búnker nevado)
                     Positioned.fill(
-                      child: Image.asset(
-                        'assets/images/minigames/cronometro/fondo.png',
-                        fit: BoxFit.fill,
+                      child: Container(
+                        decoration: BoxDecoration(
+                          border: Border.all(color: Colors.blueAccent, width: 4),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.blueAccent.withValues(alpha: 0.5),
+                              blurRadius: 20,
+                              spreadRadius: 5,
+                            )
+                          ],
+                        ),
+                        child: Image.asset(
+                          'assets/images/minigames/cronometro/fondo.png',
+                          fit: BoxFit.fill,
+                        ),
                       ),
                     ),
 

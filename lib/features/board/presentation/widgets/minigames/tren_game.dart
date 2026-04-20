@@ -23,31 +23,32 @@ class _TrenGameState extends State<TrenGame>
   late Animation<double> _trainPos;
 
   late int _objetivo;
-  late List<List<bool>> _wagonSeats;
+  late List<List<bool>> _wagonWindows;
 
-  int _count = 0; // pasajeros contados por el usuario
-  int _adjustTime = 3; // segundos restantes en fase adjusting
+  int _count = 0;
+  int _adjustTime = 3;
   Timer? _adjustTimer;
 
-  static const int _numWagons = 3;
-  static const int _seatsPerWagon = 8;
+  static const int _numWagons = 4;
+  static const int _windowsPerWagon = 4;
 
   @override
   void initState() {
     super.initState();
     final rng = Random();
-    _objetivo = widget.details['objetivo'] as int? ?? 10;
-    _wagonSeats = _distributePassengers(_objetivo, rng);
+    _objetivo =
+        (widget.details['objetivo'] as num?)?.toInt() ?? (4 + rng.nextInt(8));
+    _wagonWindows = _distributePassengers(_objetivo, rng);
 
     _trainCtrl = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 3500),
+      duration: const Duration(milliseconds: 4200),
     );
-    _trainPos = Tween<double>(begin: -1.5, end: 1.5).animate(
+    _trainPos = Tween<double>(begin: -1.6, end: 1.6).animate(
       CurvedAnimation(parent: _trainCtrl, curve: Curves.linear),
     );
 
-    Future.delayed(const Duration(milliseconds: 1500), () {
+    Future.delayed(const Duration(milliseconds: 1200), () {
       if (!mounted) return;
       setState(() => _state = _TrenState.passing);
       _trainCtrl.forward();
@@ -72,18 +73,19 @@ class _TrenGameState extends State<TrenGame>
   }
 
   List<List<bool>> _distributePassengers(int total, Random rng) {
+    const capacity = _numWagons * _windowsPerWagon;
+    int remaining = total.clamp(0, capacity);
     final counts = List.filled(_numWagons, 0);
-    int remaining = total.clamp(0, _seatsPerWagon * _numWagons);
     for (int i = 0; i < _numWagons - 1 && remaining > 0; i++) {
-      final maxVal = min(remaining, _seatsPerWagon);
+      final maxVal = min(remaining, _windowsPerWagon);
       counts[i] = rng.nextInt(maxVal + 1);
       remaining -= counts[i];
     }
     counts[_numWagons - 1] = remaining;
     return counts.map((n) {
-      final seats = List.generate(_seatsPerWagon, (i) => i < n);
-      seats.shuffle(rng);
-      return seats;
+      final windows = List.generate(_windowsPerWagon, (i) => i < n);
+      windows.shuffle(rng);
+      return windows;
     }).toList();
   }
 
@@ -105,10 +107,6 @@ class _TrenGameState extends State<TrenGame>
     });
   }
 
-  // ──────────────────────────────────────────────
-  // Build
-  // ──────────────────────────────────────────────
-
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(
@@ -119,7 +117,6 @@ class _TrenGameState extends State<TrenGame>
           fit: StackFit.expand,
           children: [
             _buildBackground(),
-            _buildTracks(w, h),
             if (_state == _TrenState.passing || _state == _TrenState.waiting)
               _buildAnimatedTrain(w, h),
             if (_state == _TrenState.waiting) _buildWarning(h),
@@ -132,38 +129,18 @@ class _TrenGameState extends State<TrenGame>
   }
 
   Widget _buildBackground() {
-    return Container(
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          stops: [0.0, 0.60, 0.60, 1.0],
-          colors: [
-            Color(0xFF0D1B2A),
-            Color(0xFF1B2A3B),
-            Color(0xFF3B5E3A),
-            Color(0xFF2E4A2E),
-          ],
-        ),
+    return Positioned.fill(
+      child: Image.asset(
+        'assets/images/minigames/tren/vias.png',
+        fit: BoxFit.cover,
       ),
     );
   }
 
-  Widget _buildTracks(double w, double h) {
-    return Positioned(
-      left: 0,
-      right: 0,
-      top: h * 0.58,
-      height: h * 0.12,
-      child: CustomPaint(painter: _TrackPainter()),
-    );
-  }
-
   Widget _buildAnimatedTrain(double w, double h) {
-    final wagonH = h * 0.32;
-    final locoW = wagonH * 1.4;
-    final wagonW = wagonH * 2.0;
-    final totalW = locoW + wagonW * _numWagons + (_numWagons + 1) * 6.0;
+    final wagonH = h * 0.38;
+    final wagonW = wagonH * 2.2;
+    final totalW = wagonW * _numWagons;
 
     return AnimatedBuilder(
       animation: _trainPos,
@@ -172,20 +149,61 @@ class _TrenGameState extends State<TrenGame>
         return Positioned(
           left: left,
           top: h * 0.30,
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              _buildLocomotive(locoW, wagonH),
-              ...List.generate(_numWagons,
-                  (i) => _buildWagon(wagonW, wagonH, _wagonSeats[i])),
-            ],
+          child: SizedBox(
+            width: totalW,
+            height: wagonH,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: List.generate(
+                _numWagons,
+                (i) => _buildWagon(wagonW, wagonH, _wagonWindows[i]),
+              ),
+            ),
           ),
         );
       },
     );
   }
 
-  // ── Barra de contador siempre visible (bottom) ──
+  Widget _buildWagon(double w, double h, List<bool> windows) {
+    return SizedBox(
+      width: w,
+      height: h,
+      child: Stack(
+        children: [
+          Positioned.fill(
+            child: Image.asset(
+              'assets/images/minigames/tren/vagon.png',
+              fit: BoxFit.fill,
+            ),
+          ),
+          ...List.generate(windows.length, (i) {
+            if (!windows[i]) return const SizedBox.shrink();
+            const slotWidth = 1.0 / (_windowsPerWagon + 1);
+            final cx = slotWidth * (i + 1);
+            final ballSize = h * 0.13;
+            return Positioned(
+              left: w * cx - ballSize / 2,
+              top: h * 0.32,
+              child: Container(
+                width: ballSize,
+                height: ballSize,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: const Color(0xFFFFCC02),
+                  border: Border.all(color: Colors.black87, width: 1.5),
+                  boxShadow: const [
+                    BoxShadow(color: Colors.black38, blurRadius: 3)
+                  ],
+                ),
+              ),
+            );
+          }),
+        ],
+      ),
+    );
+  }
+
   Widget _buildCounterBar(double h) {
     final canAct = _state != _TrenState.finished;
     final btnSize = h * 0.09;
@@ -207,6 +225,7 @@ class _TrenGameState extends State<TrenGame>
             child: Text(
               '$_count',
               style: TextStyle(
+                fontFamily: 'Retro Gaming',
                 color: Colors.white,
                 fontSize: h * 0.13,
                 fontWeight: FontWeight.bold,
@@ -225,7 +244,6 @@ class _TrenGameState extends State<TrenGame>
     );
   }
 
-  // ── Overlay de cuenta atrás en fase adjusting ──
   Widget _buildAdjustOverlay(double h) {
     return Positioned(
       top: h * 0.04,
@@ -237,6 +255,7 @@ class _TrenGameState extends State<TrenGame>
           Text(
             'AJUSTA TU RESPUESTA',
             style: TextStyle(
+              fontFamily: 'Retro Gaming',
               color: Colors.amber,
               fontSize: h * 0.036,
               fontWeight: FontWeight.bold,
@@ -248,7 +267,8 @@ class _TrenGameState extends State<TrenGame>
           Text(
             '$_adjustTime s',
             style: TextStyle(
-              color: _adjustTime <= 1 ? Colors.redAccent : Colors.white60,
+              fontFamily: 'Retro Gaming',
+              color: _adjustTime <= 1 ? Colors.redAccent : Colors.white,
               fontSize: h * 0.030,
               shadows: const [Shadow(color: Colors.black, blurRadius: 4)],
             ),
@@ -257,7 +277,8 @@ class _TrenGameState extends State<TrenGame>
           Text(
             'pasajeros contados',
             style: TextStyle(
-              color: Colors.white38,
+              fontFamily: 'Retro Gaming',
+              color: Colors.white70,
               fontSize: h * 0.020,
             ),
           ),
@@ -301,9 +322,10 @@ class _TrenGameState extends State<TrenGame>
   Widget _buildWarning(double h) {
     return Center(
       child: Text(
-        '¡El tren está llegando!\nPulsa cada vez que veas un pasajero',
+        '¡El tren está llegando!\nCuenta los pasajeros',
         textAlign: TextAlign.center,
         style: TextStyle(
+          fontFamily: 'Retro Gaming',
           color: Colors.amber,
           fontSize: h * 0.038,
           fontWeight: FontWeight.bold,
@@ -312,165 +334,4 @@ class _TrenGameState extends State<TrenGame>
       ),
     );
   }
-
-  Widget _buildLocomotive(double w, double h) {
-    return Container(
-      width: w,
-      height: h,
-      margin: const EdgeInsets.only(right: 6),
-      decoration: BoxDecoration(
-        color: const Color(0xFFC62828),
-        borderRadius: const BorderRadius.only(
-          topLeft: Radius.circular(18),
-          topRight: Radius.circular(6),
-        ),
-        border: Border.all(color: Colors.black, width: 2),
-      ),
-      child: Stack(
-        clipBehavior: Clip.none,
-        children: [
-          Positioned(
-            left: w * 0.18,
-            top: -h * 0.18,
-            child: Container(
-              width: w * 0.14,
-              height: h * 0.22,
-              decoration: const BoxDecoration(
-                color: Color(0xFF424242),
-                borderRadius: BorderRadius.vertical(top: Radius.circular(4)),
-              ),
-            ),
-          ),
-          Positioned(
-            right: w * 0.06,
-            top: h * 0.12,
-            child: Container(
-              width: w * 0.28,
-              height: h * 0.32,
-              decoration: BoxDecoration(
-                color: Colors.lightBlueAccent.withValues(alpha: 0.55),
-                border: Border.all(color: Colors.black, width: 1.5),
-              ),
-            ),
-          ),
-          Positioned(
-            bottom: -h * 0.09,
-            left: 0,
-            right: 0,
-            child: _buildWheelRow(w, h * 0.18),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildWagon(double w, double h, List<bool> seats) {
-    return Container(
-      width: w,
-      height: h,
-      margin: const EdgeInsets.only(right: 6),
-      decoration: BoxDecoration(
-        color: const Color(0xFF1565C0),
-        border: Border.all(color: Colors.black, width: 2),
-      ),
-      child: Stack(
-        clipBehavior: Clip.none,
-        children: [
-          Padding(
-            padding:
-                EdgeInsets.fromLTRB(w * 0.06, h * 0.08, w * 0.06, h * 0.22),
-            child: GridView.count(
-              crossAxisCount: 4,
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              mainAxisSpacing: 3,
-              crossAxisSpacing: 3,
-              children: seats.map((occupied) {
-                return Container(
-                  decoration: BoxDecoration(
-                    color: occupied
-                        ? const Color(0xFFFFCC02)
-                        : Colors.white.withValues(alpha: 0.12),
-                    border: Border.all(color: Colors.black45, width: 0.5),
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                  child: occupied
-                      ? const Icon(Icons.person,
-                          size: 10, color: Colors.black87)
-                      : null,
-                );
-              }).toList(),
-            ),
-          ),
-          Positioned(
-            bottom: h * 0.08,
-            left: 0,
-            right: 0,
-            child: Container(height: h * 0.06, color: const Color(0xFF0D47A1)),
-          ),
-          Positioned(
-            bottom: -h * 0.09,
-            left: 0,
-            right: 0,
-            child: _buildWheelRow(w, h * 0.16),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildWheelRow(double w, double wheelSize) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-      children: [_buildWheel(wheelSize), _buildWheel(wheelSize)],
-    );
-  }
-
-  Widget _buildWheel(double size) {
-    return Container(
-      width: size,
-      height: size,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        color: const Color(0xFF212121),
-        border: Border.all(color: Colors.grey.shade600, width: 2),
-      ),
-      child: Center(
-        child: Container(
-          width: size * 0.3,
-          height: size * 0.3,
-          decoration:
-              const BoxDecoration(shape: BoxShape.circle, color: Colors.grey),
-        ),
-      ),
-    );
-  }
-}
-
-class _TrackPainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final railPaint = Paint()
-      ..color = const Color(0xFF78909C)
-      ..strokeWidth = 5
-      ..style = PaintingStyle.stroke;
-    final sleeperPaint = Paint()
-      ..color = const Color(0xFF5D4037)
-      ..strokeWidth = 5;
-
-    final double rail1Y = size.height * 0.25;
-    final double rail2Y = size.height * 0.75;
-
-    double x = 0;
-    while (x < size.width) {
-      canvas.drawLine(
-          Offset(x, rail1Y - 8), Offset(x, rail2Y + 8), sleeperPaint);
-      x += 48;
-    }
-    canvas.drawLine(Offset(0, rail1Y), Offset(size.width, rail1Y), railPaint);
-    canvas.drawLine(Offset(0, rail2Y), Offset(size.width, rail2Y), railPaint);
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

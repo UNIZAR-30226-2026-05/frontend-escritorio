@@ -131,7 +131,8 @@ class _MinigameOverlayState extends ConsumerState<MinigameOverlay> {
 
     // Lógica normal (Si no es debug, se envía al backend)
     if (gameState.minigameName == 'Tren') {
-      final objetivo = gameState.minigameDetails?['objetivo'] as double?;
+      final objetivo =
+          (gameState.minigameDetails?['objetivo'] as num?)?.toDouble();
       ref.read(webSocketProvider).sendMinigameScore(score, objetivo: objetivo);
     } else {
       ref.read(webSocketProvider).sendMinigameScore(score);

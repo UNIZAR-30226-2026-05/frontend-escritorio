@@ -158,6 +158,9 @@ class RetroImgButton extends StatelessWidget {
   final double fontSize;
   // Callback al pulsar el botón. Si es null el botón queda desactivado.
   final VoidCallback? onTap;
+  // Si true: texto blanco con borde negro y sin sombras.
+  // Si false (por defecto): texto blanco con halo blanco exterior (estilo retro).
+  final bool outlined;
 
   const RetroImgButton({
     super.key,
@@ -167,6 +170,7 @@ class RetroImgButton extends StatelessWidget {
     required this.height,
     required this.fontSize,
     this.onTap,
+    this.outlined = false,
   });
 
   @override
@@ -195,19 +199,48 @@ class RetroImgButton extends StatelessWidget {
                 // FittedBox.scaleDown reduce el texto si no cabe en el botón,
                 // pero nunca lo amplía por encima de su tamaño natural.
                 fit: BoxFit.scaleDown,
-                child: Text(
-                  label,
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontFamily: 'Retro Gaming',
-                    fontSize: fontSize,
-                    color: Colors.white,
-                    shadows: const [
-                      Shadow(color: Colors.white, blurRadius: 14),
-                      Shadow(color: Colors.white54, blurRadius: 6),
-                    ],
-                  ),
-                ),
+                child: outlined
+                    ? Stack(
+                        alignment: Alignment.center,
+                        children: [
+                          // Contorno negro (trazo)
+                          Text(
+                            label,
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontFamily: 'Retro Gaming',
+                              fontSize: fontSize,
+                              foreground: Paint()
+                                ..style = PaintingStyle.stroke
+                                ..strokeWidth = 3
+                                ..color = Colors.black,
+                            ),
+                          ),
+                          // Relleno blanco
+                          Text(
+                            label,
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontFamily: 'Retro Gaming',
+                              fontSize: fontSize,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ],
+                      )
+                    : Text(
+                        label,
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontFamily: 'Retro Gaming',
+                          fontSize: fontSize,
+                          color: Colors.white,
+                          shadows: const [
+                            Shadow(color: Colors.white, blurRadius: 14),
+                            Shadow(color: Colors.white54, blurRadius: 6),
+                          ],
+                        ),
+                      ),
               ),
             ),
           ),

@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:math';
 import 'package:flutter/material.dart';
+import '../../../../../core/widgets/retro_widgets.dart';
 import 'minigame_base.dart';
 
 enum _TrenState { waiting, passing, adjusting, finished }
@@ -42,7 +43,7 @@ class _TrenGameState extends State<TrenGame>
 
     _trainCtrl = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 4200),
+      duration: const Duration(seconds: 6),
     );
     _trainPos = Tween<double>(begin: -1.6, end: 1.6).animate(
       CurvedAnimation(parent: _trainCtrl, curve: Curves.linear),
@@ -206,40 +207,66 @@ class _TrenGameState extends State<TrenGame>
 
   Widget _buildCounterBar(double h) {
     final canAct = _state != _TrenState.finished;
-    final btnSize = h * 0.09;
+    final btnW = h * 0.075;
+    final btnH = h * 0.075;
+    final counterFontSize = h * 0.065;
     return Positioned(
       bottom: h * 0.05,
       left: 0,
       right: 0,
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          _buildAdjustButton(
-            icon: Icons.remove,
-            enabled: canAct,
-            onTap: () => setState(() => _count = max(0, _count - 1)),
-            size: btnSize,
+      child: Center(
+        child: Container(
+          padding: EdgeInsets.symmetric(
+              horizontal: h * 0.02, vertical: h * 0.008),
+          decoration: BoxDecoration(
+            color: const Color(0xFF2A2A2A).withValues(alpha: 0.75),
+            borderRadius: BorderRadius.circular(h * 0.018),
+            border: Border.all(
+                color: const Color.fromARGB(255, 148, 148, 148).withValues(alpha: 0.75),
+                width: 2),
           ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 28),
-            child: Text(
-              '$_count',
-              style: TextStyle(
-                fontFamily: 'Retro Gaming',
-                color: Colors.white,
-                fontSize: h * 0.13,
-                fontWeight: FontWeight.bold,
-                shadows: const [Shadow(color: Colors.black, blurRadius: 8)],
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              RetroImgButton(
+                label: '-',
+                asset: 'assets/images/ui/btn_rojo.png',
+                width: btnW,
+                height: btnH,
+                fontSize: btnH * 0.55,
+                outlined: true,
+                onTap: canAct
+                    ? () => setState(() => _count = max(0, _count - 1))
+                    : null,
               ),
-            ),
+              Padding(
+                padding: EdgeInsets.symmetric(horizontal: h * 0.07),
+                child: Text(
+                  '$_count',
+                  style: TextStyle(
+                    fontFamily: 'Retro Gaming',
+                    color: const Color(0xFFFFCC02),
+                    fontSize: counterFontSize,
+                    fontWeight: FontWeight.bold,
+                    shadows: const [
+                      Shadow(color: Color(0xFFFFCC02), blurRadius: 6),
+                    ],
+                  ),
+                ),
+              ),
+              RetroImgButton(
+                label: '+',
+                asset: 'assets/images/ui/btn_verde.png',
+                width: btnW,
+                height: btnH,
+                fontSize: btnH * 0.55,
+                outlined: true,
+                onTap: canAct ? () => setState(() => _count++) : null,
+              ),
+            ],
           ),
-          _buildAdjustButton(
-            icon: Icons.add,
-            enabled: canAct,
-            onTap: () => setState(() => _count++),
-            size: btnSize,
-          ),
-        ],
+        ),
       ),
     );
   }
@@ -283,38 +310,6 @@ class _TrenGameState extends State<TrenGame>
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildAdjustButton({
-    required IconData icon,
-    required bool enabled,
-    required VoidCallback onTap,
-    required double size,
-  }) {
-    return GestureDetector(
-      onTap: enabled ? onTap : null,
-      child: Container(
-        width: size,
-        height: size,
-        decoration: BoxDecoration(
-          color: enabled ? const Color(0xFF1565C0) : Colors.grey.shade800,
-          shape: BoxShape.circle,
-          boxShadow: enabled
-              ? const [
-                  BoxShadow(
-                      color: Colors.black45,
-                      blurRadius: 6,
-                      offset: Offset(0, 3))
-                ]
-              : null,
-        ),
-        child: Icon(
-          icon,
-          color: enabled ? Colors.white : Colors.grey,
-          size: size * 0.5,
-        ),
       ),
     );
   }

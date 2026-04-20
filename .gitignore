@@ -53,3 +53,12 @@ app.*.map.json
 
 # Documentación interna 
 doc.md
+
+# Build and binary artifacts
+*.Z
+*.lib
+*.obj
+*.exp
+*.tlog
+bin/
+*.ttf

@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/scheduler.dart';
+import '../../../../../core/widgets/retro_widgets.dart';
 import 'minigame_base.dart';
 
 enum CronometroState { active, finished }
@@ -228,14 +229,24 @@ class _CronometroGameState extends State<CronometroGame>
               children: [
                 // Arriba: Tiempo Objetivo
                 Padding(
-                  padding: const EdgeInsets.only(top: 20.0),
-                  child: Text(
-                    "Tiempo objetivo: $_objetivoSec",
-                    style: const TextStyle(
-                      fontSize: 28,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.amber,
-                      shadows: [Shadow(color: Colors.black, blurRadius: 4)],
+                  padding: const EdgeInsets.only(top: 30.0),
+                  child: Center(
+                    child: Text(
+                      "TIEMPO OBJETIVO: 0$_objetivoSec:00",
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        fontFamily: 'Retro Gaming',
+                        fontSize: 48,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFFFFC107),
+                        shadows: [
+                          Shadow(
+                            color: Colors.black,
+                            offset: Offset(2, 2),
+                            blurRadius: 4,
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ),
@@ -252,38 +263,18 @@ class _CronometroGameState extends State<CronometroGame>
                     ),
                   ),
 
-                // Abajo: Botón Rojo de Parar
+                // Abajo: Botón Rosa de Parar
                 Padding(
-                  padding: const EdgeInsets.only(bottom: 40.0),
-                  child: GestureDetector(
-                    onTap: _pararCronometro,
-                    child: Container(
-                      width: 120,
-                      height: 120,
-                      decoration: BoxDecoration(
-                        color: _state == CronometroState.active
-                            ? Colors.red
-                            : Colors.grey,
-                        shape: BoxShape.circle,
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.5),
-                            blurRadius: 10,
-                            offset: const Offset(0, 5),
-                          )
-                        ],
-                        border: Border.all(color: Colors.white24, width: 4),
-                      ),
-                      child: const Center(
-                        child: Text(
-                          "STOP",
-                          style: TextStyle(
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                          ),
-                        ),
-                      ),
+                  padding: const EdgeInsets.only(bottom: 60.0),
+                  child: Align(
+                    alignment: Alignment.bottomCenter,
+                    child: RetroImgButton(
+                      label: "PARAR",
+                      asset: 'assets/images/ui/btn_rojo.png',
+                      width: 240,
+                      height: 60,
+                      fontSize: 24,
+                      onTap: _pararCronometro,
                     ),
                   ),
                 ),

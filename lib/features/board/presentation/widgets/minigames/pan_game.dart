@@ -42,11 +42,6 @@ class _PanGameState extends State<PanGame> with SingleTickerProviderStateMixin {
     _controller.repeat(reverse: true);
   }
 
-  @override
-  void dispose() {
-    super.dispose();
-  }
-
   void _handleTap() {
     if (_state == PanState.active) {
       // Detener la barra

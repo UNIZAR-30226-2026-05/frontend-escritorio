@@ -113,7 +113,7 @@ class ShopModal extends ConsumerWidget {
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   Text(
-                    '${playerCoins}¢',
+                    '$playerCoins¢',
                     style: const TextStyle(
                       color: Color(0xFFFFD700), // Amarillo oro para la moneda
                       fontWeight: FontWeight.bold,

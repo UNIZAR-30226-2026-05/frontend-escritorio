@@ -119,7 +119,7 @@ class _DobleNadaGameState extends State<DobleNadaGame> {
                       width: 60,
                       height: 52,
                       fontSize: 30,
-                      onTap: (_enviado || _apuesta <= 1)
+                      onTap: (_enviado || _apuesta <= 0)
                           ? null
                           : () {
                               setState(() => _apuesta--);

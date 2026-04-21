@@ -178,6 +178,11 @@ class WebSocketService {
           debugPrint("Ignorado: Intercambiar objeto delegado");
           break;
 
+        case 'dice_shown':
+          final List<int> sumas = List<int>.from(decoded['punt'] ?? []);
+          _ref.read(gameProvider.notifier).showVidenteDice(sumas);
+          break;
+
         // Tipo de mensaje de inicio de minijuego
         case 'ini_minijuego':
           _localPlayerSentEndRound = false;

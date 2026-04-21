@@ -408,6 +408,35 @@ class GameController extends StateNotifier<GameState> {
     state = state.copyWith(players: updated);
   }
 
+  void showVidenteDice(List<int> diceResults) {
+    state = state.copyWith(videnteDiceResults: diceResults);
+  }
+
+  void hideVidenteDice() {
+    state = GameState(
+      currentPhase: state.currentPhase,
+      currentRound: state.currentRound,
+      players: state.players,
+      turnOrder: state.turnOrder,
+      activePlayerIndex: state.activePlayerIndex,
+      serverMessage: state.serverMessage,
+      lastDiceResult: state.lastDiceResult,
+      lastDice1: state.lastDice1,
+      lastDice2: state.lastDice2,
+      lastDiceRollId: state.lastDiceRollId,
+      minigameName: state.minigameName,
+      minigameDescription: state.minigameDescription,
+      minigameDetails: state.minigameDetails,
+      minigameResults: state.minigameResults,
+      minigameChoices: state.minigameChoices,
+      isWaitingForMinigameChoice: state.isWaitingForMinigameChoice,
+      isMovementActive: state.isMovementActive,
+      obtainedItemName: state.obtainedItemName,
+      obtainedItemDesc: state.obtainedItemDesc,
+      // videnteDiceResults: null by default
+    );
+  }
+
   // MODO DEBUG: Inicia un minijuego localmente sin avisar al backend
   void startDebugMinigameLocal(String name) {
     Map<String, dynamic> mockDetails = {};

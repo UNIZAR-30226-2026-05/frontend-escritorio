@@ -11,6 +11,7 @@ import '../../lobby/presentation/controllers/lobby_provider.dart';
 import '../../shop/presentation/controllers/shop_providers.dart';
 import 'widgets/minigame_overlay.dart';
 import 'widgets/banquero_modal.dart';
+import 'widgets/vidente_modal.dart';
 import 'widgets/ruleta_modal.dart';
 
 // BoardScreen — Pantalla principal del tablero de juego
@@ -513,6 +514,23 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
                               setState(() => _isBanqueroOpen = false),
                           onSkillUsed: () =>
                               setState(() => _hasUsedBanqueroSkill = true),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+              // UI OVERLAY: Modal de la Vidente (ENCIMA DEL TABLERO)
+              if (gameState.videnteDiceResults != null)
+                Positioned.fill(
+                  child: Stack(
+                    children: [
+                      Container(color: Colors.black.withValues(alpha: 0.6)),
+                      Center(
+                        child: VidenteModal(
+                          diceResults: gameState.videnteDiceResults!,
+                          onClose: () =>
+                              ref.read(gameProvider.notifier).hideVidenteDice(),
                         ),
                       ),
                     ],

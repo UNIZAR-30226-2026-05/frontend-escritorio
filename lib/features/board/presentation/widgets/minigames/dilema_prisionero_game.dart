@@ -82,7 +82,7 @@ class _DilemaPrisioneroGameState extends ConsumerState<DilemaPrisioneroGame> {
             top: 60,
             left: 0,
             right: 0,
-            child: const Column(
+            child: Column(
               children: [
                 Text(
                   '¿COOPERAR O TRAICIONAR?',

@@ -188,6 +188,9 @@ class GameState {
   // Animaciones / Locks
   final bool isMovementActive;
 
+  // Habilidades
+  final List<int>? videnteDiceResults;
+
   //Constructor de la clase
   GameState({
     this.currentPhase = GamePhase.waitingForPlayers,
@@ -209,6 +212,7 @@ class GameState {
     this.isMovementActive = false,
     this.obtainedItemName,
     this.obtainedItemDesc,
+    this.videnteDiceResults,
   });
 
   GameState copyWith({
@@ -231,6 +235,7 @@ class GameState {
     bool? isMovementActive,
     String? obtainedItemName,
     String? obtainedItemDesc,
+    List<int>? videnteDiceResults,
   }) {
     return GameState(
       currentPhase: currentPhase ?? this.currentPhase,
@@ -253,6 +258,7 @@ class GameState {
       isMovementActive: isMovementActive ?? this.isMovementActive,
       obtainedItemName: obtainedItemName ?? this.obtainedItemName,
       obtainedItemDesc: obtainedItemDesc ?? this.obtainedItemDesc,
+      videnteDiceResults: videnteDiceResults ?? this.videnteDiceResults,
     );
   }
 }

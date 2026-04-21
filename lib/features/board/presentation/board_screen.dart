@@ -248,6 +248,30 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
       },
     );
 
+    // Escuchar desconexiones de jugadores para mostrar SnackBar reactivo
+    ref.listen(
+      gameProvider.select((s) => s.players),
+      (prev, next) {
+        if (prev == null) return;
+        for (var pNext in next) {
+          if (!pNext.isConnected) {
+            // Buscamos si antes estaba conectado
+            final pPrev = prev.firstWhere((p) => p.id == pNext.id,
+                orElse: () => pNext.copyWith(isConnected: true));
+            if (pPrev.isConnected) {
+              // Notificación de desconexión
+              ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                  content: Text(
+                      'El jugador ${pNext.username} se ha desconectado de la partida',
+                      style: const TextStyle(fontFamily: 'Retro Gaming')),
+                  backgroundColor: Colors.redAccent,
+                  duration: const Duration(seconds: 4)));
+            }
+          }
+        }
+      },
+    );
+
     // Resetear _hasRolledThisTurn cuando cambia el turno,
     // vuelve la fase al tablero o es un juego de 1 jugador
     ref.listen(
@@ -1100,6 +1124,23 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
     const Color inactiveBorderColor = Colors.white;
     final Color badgeColor = _getBadgeColor(player.characterClass);
 
+    Widget avatarWidget = Image.asset(
+      getCharacterPerfilPath(player.characterClass),
+      fit: BoxFit.contain,
+    );
+
+    if (!player.isConnected) {
+      avatarWidget = ColorFiltered(
+        colorFilter: const ColorFilter.matrix([
+          0.2126, 0.7152, 0.0722, 0, 0,
+          0.2126, 0.7152, 0.0722, 0, 0,
+          0.2126, 0.7152, 0.0722, 0, 0,
+          0,      0,      0,      0.5, 0,
+        ]),
+        child: avatarWidget,
+      );
+    }
+
     return Container(
       width: 200,
       padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 8),
@@ -1125,10 +1166,7 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
               children: [
                 Padding(
                   padding: const EdgeInsets.all(2.0),
-                  child: Image.asset(
-                    getCharacterPerfilPath(player.characterClass),
-                    fit: BoxFit.contain,
-                  ),
+                  child: avatarWidget,
                 ),
                 if (player.penaltyTurns > 0)
                   Positioned(
@@ -1138,6 +1176,17 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
                       decoration: const BoxDecoration(
                           color: Colors.black54, shape: BoxShape.circle),
                       child: const Icon(Icons.lock,
+                          color: Colors.redAccent, size: 16),
+                    ),
+                  ),
+                if (!player.isConnected)
+                  Positioned(
+                    top: -2,
+                    right: -2,
+                    child: Container(
+                      decoration: const BoxDecoration(
+                          color: Colors.black54, shape: BoxShape.circle),
+                      child: const Icon(Icons.wifi_off,
                           color: Colors.redAccent, size: 16),
                     ),
                   ),

@@ -166,7 +166,21 @@ class WebSocketService {
         // Tipo de mensaje de que se ha desconectado un jugador
         case 'player_disconnected':
           debugPrint("Jugador desconectado: \${decoded['message']}");
-          // TODO Realizar acción pertinente cuando se soporte
+          final String discPlayer = decoded['player'] ?? '';
+          if (discPlayer.isNotEmpty) {
+            _ref
+                .read(gameProvider.notifier)
+                .setPlayerConnectionStatus(discPlayer, false);
+          }
+          break;
+
+        case 'not_playing':
+          final String notPlayingPlayer = decoded['player'] ?? '';
+          if (notPlayingPlayer.isNotEmpty) {
+            _ref
+                .read(gameProvider.notifier)
+                .setPlayerConnectionStatus(notPlayingPlayer, false);
+          }
           break;
 
         // Tipo de mensaje sobre en qué tipo de casilla ha caído el jugador

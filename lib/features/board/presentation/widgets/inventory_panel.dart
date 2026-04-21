@@ -4,6 +4,8 @@ import '../../domain/gamemodels.dart';
 import '../../../shop/data/shop_repository.dart';
 import '../../../shop/presentation/controllers/shop_providers.dart';
 
+import 'target_selection_modal.dart';
+
 class InventoryPanel extends ConsumerWidget {
   final List<ItemType> items;
 
@@ -86,8 +88,26 @@ class InventoryPanel extends ConsumerWidget {
                     ),
                     trailing: GestureDetector(
                       onTap: () {
-                        // Al pulsar, se envía la orden de uso a través del socket
-                        ref.read(shopProvider).useItem(itemData.name);
+                        // Si el objeto es una 'Barrera', requiere seleccion de un objetivo
+                        if (itemData.name == 'Barrera') {
+                          showDialog(
+                            context: context,
+                            barrierColor: Colors.black87,
+                            builder: (context) => TargetSelectionModal(
+                              itemName: itemData.name,
+                              onClose: () => Navigator.of(context).pop(),
+                              onTargetSelected: (target) {
+                                ref
+                                    .read(shopProvider)
+                                    .useItem(itemData.name, targetPlayerId: target);
+                                Navigator.of(context).pop();
+                              },
+                            ),
+                          );
+                        } else {
+                          // Al pulsar, se envía la orden de uso a través del socket
+                          ref.read(shopProvider).useItem(itemData.name);
+                        }
                       },
                       child: Container(
                         padding: const EdgeInsets.symmetric(

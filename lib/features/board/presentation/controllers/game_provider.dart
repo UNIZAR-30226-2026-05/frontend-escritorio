@@ -469,4 +469,16 @@ class GameController extends StateNotifier<GameState> {
       details: mockDetails,
     );
   }
+
+  // Actualiza el estado de conexión de un jugador
+  void setPlayerConnectionStatus(String playerId, bool isConnected) {
+    final updatedPlayers = state.players.map((p) {
+      if (p.id == playerId || p.username == playerId) {
+        return p.copyWith(isConnected: isConnected);
+      }
+      return p;
+    }).toList();
+
+    state = state.copyWith(players: updatedPlayers);
+  }
 }

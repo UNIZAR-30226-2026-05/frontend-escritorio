@@ -174,14 +174,28 @@ class _MayorMenorGameState extends State<MayorMenorGame> {
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: List.generate(4, (index) {
+                      final bool haySeleccion = _indiceSeleccionado != null;
+                      final bool esNoSeleccionada =
+                          haySeleccion && _indiceSeleccionado != index;
+
                       return Padding(
                         padding: EdgeInsets.symmetric(
                             horizontal: index == 0 || index == 3 ? 0 : 32),
-                        child: CartaWidget(
-                          cartaInfo: CartaInfo.decodificar(_cartasRaw[index]),
-                          seleccionada: _indiceSeleccionado == index,
-                          onTap: () => _seleccionarCarta(index),
-                          onAnimationComplete: _onAnimacionGiroCompletada,
+                        child: AnimatedOpacity(
+                          duration: const Duration(milliseconds: 300),
+                          opacity: esNoSeleccionada ? 0.5 : 1.0,
+                          child: AnimatedScale(
+                            duration: const Duration(milliseconds: 300),
+                            scale: esNoSeleccionada ? 0.85 : 1.0,
+                            curve: Curves.easeOut,
+                            child: CartaWidget(
+                              cartaInfo:
+                                  CartaInfo.decodificar(_cartasRaw[index]),
+                              seleccionada: _indiceSeleccionado == index,
+                              onTap: () => _seleccionarCarta(index),
+                              onAnimationComplete: _onAnimacionGiroCompletada,
+                            ),
+                          ),
                         ),
                       );
                     }),

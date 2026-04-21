@@ -36,7 +36,7 @@ class ShopController {
       'action': 'usar_objeto',
       'payload': {
         'objeto': item.name,
-        if (targetPlayerId != null) 'target': targetPlayerId
+        if (targetPlayerId != null) 'penalizar_a': targetPlayerId
       }
     };
 
@@ -46,10 +46,13 @@ class ShopController {
     debugPrint(" [SHOP] Compra y uso instantáneo enviado: ${item.name}");
   }
 
-  void useItem(String itemName) {
+  void useItem(String itemName, {String? targetPlayerId}) {
     final payload = {
       'action': 'usar_objeto',
-      'payload': {'objeto': itemName}
+      'payload': {
+        'objeto': itemName,
+        if (targetPlayerId != null) 'penalizar_a': targetPlayerId
+      }
     };
 
     _ref.read(webSocketProvider).sendGenericAction(payload);

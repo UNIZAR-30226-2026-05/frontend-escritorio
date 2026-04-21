@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -9,6 +10,7 @@ import '../../auth/presentation/controllers/auth_provider.dart';
 import '../../lobby/presentation/controllers/lobby_provider.dart';
 
 import '../../shop/presentation/controllers/shop_providers.dart';
+import '../../shop/data/shop_repository.dart';
 import 'widgets/minigame_overlay.dart';
 import 'widgets/banquero_modal.dart';
 import 'widgets/vidente_modal.dart';
@@ -30,6 +32,8 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
   int _choiceCountdown = 10;
   bool _hasRolledThisTurn = false;
   bool _debugShowWinScreen = false;
+  bool _debugShowRuleta = false;
+  String _debugRuletaItem = 'Barrera'; // Default
 
   // Estado de la habilidad del banquero
   bool _isBanqueroOpen = false; // esta abierta la habilidad
@@ -49,6 +53,7 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
     'Doble o Nada',
     'Dilema del Prisionero',
     'Test: Fin de Partida',
+    'Ruleta',
   ];
 
   // Coordenadas de los centros de las casillas en el tablero
@@ -167,6 +172,14 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
         onSelected: (String minigame) {
           if (minigame == 'Test: Fin de Partida') {
             setState(() => _debugShowWinScreen = true);
+          } else if (minigame == 'Ruleta') {
+            // Seleccionamos un ítem al azar del catálogo para testear
+            final items = ShopRepository.catalog.map((i) => i.name).toList();
+            final randomItem = items[Random().nextInt(items.length)];
+            setState(() {
+              _debugRuletaItem = randomItem;
+              _debugShowRuleta = true;
+            });
           } else {
             // Llamamos a nuestro nuevo método local
             ref.read(gameProvider.notifier).startDebugMinigameLocal(minigame);
@@ -561,6 +574,25 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
                           onClose: _debugShowWinScreen
                               ? () => setState(() => _debugShowWinScreen = false)
                               : null,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+              // UI OVERLAY: Ruleta de Objetos (DEBUG)
+              if (_debugShowRuleta)
+                Positioned.fill(
+                  child: Stack(
+                    children: [
+                      // Fondo oscurecido
+                      Container(color: Colors.black.withValues(alpha: 0.85)),
+                      Center(
+                        child: RuletaModal(
+                          itemName: _debugRuletaItem,
+                          isDebug: true,
+                          onClose: () =>
+                              setState(() => _debugShowRuleta = false),
                         ),
                       ),
                     ],

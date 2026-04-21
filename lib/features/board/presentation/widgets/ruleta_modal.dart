@@ -3,15 +3,18 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../data/websocket_service.dart';
 import '../../../../core/widgets/retro_widgets.dart';
+import '../../../shop/data/shop_repository.dart';
 
 class RuletaModal extends ConsumerStatefulWidget {
   final String itemName;
   final VoidCallback onClose;
+  final bool isDebug;
 
   const RuletaModal({
     super.key,
     required this.itemName,
     required this.onClose,
+    this.isDebug = false,
   });
 
   @override
@@ -24,6 +27,7 @@ class _RuletaModalState extends ConsumerState<RuletaModal>
   late Animation<double> _animation;
   bool _isSpinning = false;
   bool _hasSpun = false;
+  bool _showResult = false;
 
   @override
   void initState() {
@@ -79,14 +83,23 @@ class _RuletaModalState extends ConsumerState<RuletaModal>
       });
 
       // Enviamos el mensaje al backend para que el ítem se añada al inventario
-      ref.read(webSocketProvider).sendGenericAction({
-        'action': 'anyadir_objeto',
-        'payload': {'objeto': widget.itemName}
-      });
+      // SOLO si no estamos en modo debug
+      if (!widget.isDebug) {
+        ref.read(webSocketProvider).sendGenericAction({
+          'action': 'anyadir_objeto',
+          'payload': {
+            'objeto': widget.itemName
+          }
+        });
+      }
 
-      // Cerramos el modal automáticamente tras 1.5 segundos
-      Future.delayed(const Duration(milliseconds: 1500), () {
-        if (mounted) widget.onClose();
+      // Mostramos la pantalla de resultado tras 1 segundo
+      Future.delayed(const Duration(milliseconds: 1000), () {
+        if (mounted) {
+          setState(() {
+            _showResult = true;
+          });
+        }
       });
     });
   }
@@ -102,111 +115,184 @@ class _RuletaModalState extends ConsumerState<RuletaModal>
         border: Border.all(
             color: const Color(0xFFF5B922), width: 3), // Borde amarillo
       ),
-      child: Column(
-        children: [
-          const SizedBox(height: 30),
-          const Text(
-            'RUTA DE\nOBJETOS',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              fontFamily: 'Retro Gaming',
-              fontSize: 28,
-              fontWeight: FontWeight.bold,
-              color: Color(0xFFF5B922),
-              height: 1.2,
-            ),
-          ),
-          const SizedBox(height: 10),
-          const Text(
-            'GIRA PARA CONSEGUIR UN ITEM DE LA TIENDA',
-            style: TextStyle(
-              fontFamily: 'Retro Gaming',
-              fontSize: 10,
-              color: Colors.white54,
-            ),
-          ),
-          const SizedBox(height: 40),
-
-          // Contenedor de la Ruleta
-          SizedBox(
-            width: 260,
-            height: 260,
-            child: Stack(
-              clipBehavior: Clip.none,
-              alignment: Alignment.center,
-              children: [
-                // Ruleta giratoria
-                AnimatedBuilder(
-                  animation: _animation,
-                  builder: (context, child) {
-                    return Transform.rotate(
-                      angle: _animation.value,
-                      child: child,
-                    );
-                  },
-                  child: Stack(
-                    children: [
-                      CustomPaint(
-                        size: const Size(260, 260),
-                        painter: _WheelPainter(),
-                      ),
-                      _buildSliceContent('AVANZAR\nCASILLAS', '👞', -pi / 4),
-                      _buildSliceContent('MEJORAR\nDADOS', '🎲', pi / 4),
-                      _buildSliceContent('BARRERA', '🚧', 3 * pi / 4),
-                      _buildSliceContent(
-                          'SALVAVIDAS\nBLOQUEO', '🔓', 5 * pi / 4),
-                    ],
-                  ),
-                ),
-                // Puntero naranja fijo arriba
-                Positioned(
-                  top: -24,
-                  child: Column(
-                    children: [
-                      const Icon(Icons.arrow_drop_down,
-                          color: Color(0xFFE65100), size: 60),
-                      Container(
-                        width: 10,
-                        height: 10,
-                        transform: Matrix4.translationValues(0, -15, 0),
-                        decoration: const BoxDecoration(
-                          color: Colors.white,
-                          shape: BoxShape.circle,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-
-          const Spacer(),
-
-          RetroImgButton(
-            label: '¡GIRAR!',
-            asset: 'assets/images/ui/btn_morado.png',
-            width: 160,
-            height: 52,
-            fontSize: 16,
-            onTap: (_isSpinning || _hasSpun) ? null : _spin,
-          ),
-          const SizedBox(height: 20),
-
-          GestureDetector(
-            onTap: (_isSpinning || _hasSpun) ? null : widget.onClose,
-            child: const Text(
-              'ABANDONAR',
-              style: TextStyle(
-                fontFamily: 'Retro Gaming',
-                fontSize: 12,
-                color: Colors.white38,
-              ),
-            ),
-          ),
-          const SizedBox(height: 30),
-        ],
+      child: AnimatedSwitcher(
+        duration: const Duration(milliseconds: 500),
+        child: _showResult ? _buildResultContent() : _buildWheelContent(),
       ),
+    );
+  }
+
+  Widget _buildWheelContent() {
+    return Column(
+      key: const ValueKey('wheel'),
+      children: [
+        const SizedBox(height: 30),
+        const Text(
+          'RUTA DE\nOBJETOS',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            fontFamily: 'Retro Gaming',
+            fontSize: 28,
+            fontWeight: FontWeight.bold,
+            color: Color(0xFFF5B922),
+            height: 1.2,
+          ),
+        ),
+        const SizedBox(height: 10),
+        const Text(
+          'GIRA PARA CONSEGUIR UN ITEM DE LA TIENDA',
+          style: TextStyle(
+            fontFamily: 'Retro Gaming',
+            fontSize: 10,
+            color: Colors.white54,
+          ),
+        ),
+        const SizedBox(height: 40),
+
+        // Contenedor de la Ruleta
+        SizedBox(
+          width: 260,
+          height: 260,
+          child: Stack(
+            clipBehavior: Clip.none,
+            alignment: Alignment.center,
+            children: [
+              // Ruleta giratoria
+              AnimatedBuilder(
+                animation: _animation,
+                builder: (context, child) {
+                  return Transform.rotate(
+                    angle: _animation.value,
+                    child: child,
+                  );
+                },
+                child: Stack(
+                  children: [
+                    CustomPaint(
+                      size: const Size(260, 260),
+                      painter: _WheelPainter(),
+                    ),
+                    _buildSliceContent('AVANZAR\nCASILLAS', '👞', -pi / 4),
+                    _buildSliceContent('MEJORAR\nDADOS', '🎲', pi / 4),
+                    _buildSliceContent('BARRERA', '🚧', 3 * pi / 4),
+                    _buildSliceContent('SALVAVIDAS\nBLOQUEO', '🔓', 5 * pi / 4),
+                  ],
+                ),
+              ),
+              // Puntero naranja fijo arriba
+              Positioned(
+                top: -24,
+                child: Column(
+                  children: [
+                    const Icon(Icons.arrow_drop_down,
+                        color: Color(0xFFE65100), size: 60),
+                    Container(
+                      width: 10,
+                      height: 10,
+                      transform: Matrix4.translationValues(0, -15, 0),
+                      decoration: const BoxDecoration(
+                        color: Colors.white,
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+
+        const Spacer(),
+
+        RetroImgButton(
+          label: '¡GIRAR!',
+          asset: 'assets/images/ui/btn_morado.png',
+          width: 160,
+          height: 52,
+          fontSize: 16,
+          onTap: (_isSpinning || _hasSpun) ? null : _spin,
+        ),
+        const SizedBox(height: 20),
+
+        GestureDetector(
+          onTap: (_isSpinning || _hasSpun) ? null : widget.onClose,
+          child: const Text(
+            'ABANDONAR',
+            style: TextStyle(
+              fontFamily: 'Retro Gaming',
+              fontSize: 12,
+              color: Colors.white38,
+            ),
+          ),
+        ),
+        const SizedBox(height: 30),
+      ],
+    );
+  }
+
+  Widget _buildResultContent() {
+    final itemIcon = ShopRepository.catalog
+        .firstWhere(
+          (i) => i.name.toLowerCase() == widget.itemName.toLowerCase(),
+          orElse: () => ShopRepository.catalog.first,
+        )
+        .icon;
+
+    return Column(
+      key: const ValueKey('result'),
+      children: [
+        const SizedBox(height: 40),
+        const Text(
+          '¡ENHORABUENA!',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            fontFamily: 'Retro Gaming',
+            fontSize: 32,
+            fontWeight: FontWeight.bold,
+            color: Color(0xFFF5B922),
+          ),
+        ),
+        const SizedBox(height: 30),
+        const Text(
+          'HAS OBTENIDO UN OBJETO:',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            fontFamily: 'Retro Gaming',
+            fontSize: 12,
+            letterSpacing: 1.5,
+            color: Colors.white70,
+          ),
+        ),
+        const SizedBox(height: 50),
+        // Ícono del ítem
+        Text(
+          itemIcon,
+          style: const TextStyle(fontSize: 100),
+        ),
+        const SizedBox(height: 40),
+        // Nombre del ítem
+        Text(
+          widget.itemName.toUpperCase(),
+          textAlign: TextAlign.center,
+          style: const TextStyle(
+            fontFamily: 'Retro Gaming',
+            fontSize: 26,
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
+            letterSpacing: 2.0,
+          ),
+        ),
+        const Spacer(),
+        RetroImgButton(
+          label: 'ACEPTAR',
+          asset: 'assets/images/ui/btn_morado.png',
+          width: 200,
+          height: 52,
+          fontSize: 16,
+          onTap: widget.onClose,
+        ),
+        const SizedBox(height: 40),
+      ],
     );
   }
 

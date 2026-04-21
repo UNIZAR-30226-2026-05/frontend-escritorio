@@ -11,7 +11,10 @@ import '../../shop/data/shop_repository.dart';
 
 // Este Provider nos permite acceder al WebSocketService en toda la app de forma segura
 final webSocketProvider = Provider<WebSocketService>((ref) {
-  return WebSocketService(ref);
+  final service = WebSocketService(ref);
+  // Nos aseguramos de que el socket se cierre cuando el provider se destruya
+  ref.onDispose(() => service.disconnect());
+  return service;
 });
 
 // Definicion de la clase WebSocketService, que se encarga
@@ -171,6 +174,13 @@ class WebSocketService {
           debugPrint(
               "El jugador ha caído en una casilla de tipo: ${decoded['casilla']}");
           // TODO: Mostrar algún tipo de feedback en la UI (ej. animación u objeto obtenido)
+          break;
+
+        case 'fin_partida':
+          final String winner = decoded['winner'] ?? 'Desconocido';
+          debugPrint('¡FIN DE PARTIDA! El jugador $winner ha llegado a la meta.');
+          // El cambio a GamePhase.finished lo maneja el game_provider
+          // automáticamente cuando la animación del jugador alcanza la casilla final.
           break;
 
         // Tipo de mensaje cuando el jugador cae en una casilla de objeto y le toca intercambiar

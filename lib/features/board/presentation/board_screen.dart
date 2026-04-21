@@ -12,6 +12,7 @@ import '../../shop/presentation/controllers/shop_providers.dart';
 import 'widgets/minigame_overlay.dart';
 import 'widgets/banquero_modal.dart';
 import 'widgets/vidente_modal.dart';
+import 'widgets/win_screen_modal.dart';
 import 'widgets/ruleta_modal.dart';
 
 // BoardScreen — Pantalla principal del tablero de juego
@@ -28,6 +29,7 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
   Timer? _choiceTimer;
   int _choiceCountdown = 10;
   bool _hasRolledThisTurn = false;
+  bool _debugShowWinScreen = false;
 
   // Estado de la habilidad del banquero
   bool _isBanqueroOpen = false; // esta abierta la habilidad
@@ -46,6 +48,7 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
     'Mayor o Menor',
     'Doble o Nada',
     'Dilema del Prisionero',
+    'Test: Fin de Partida',
   ];
 
   // Coordenadas de los centros de las casillas en el tablero
@@ -148,7 +151,6 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
   @override
   void dispose() {
     _choiceTimer?.cancel();
-    ref.read(webSocketProvider).disconnect();
     super.dispose();
   }
 
@@ -163,8 +165,12 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
         icon: const Icon(Icons.bug_report, color: Colors.greenAccent, size: 36),
         color: const Color(0xFF2D1B4E),
         onSelected: (String minigame) {
-          // Llamamos a nuestro nuevo método local
-          ref.read(gameProvider.notifier).startDebugMinigameLocal(minigame);
+          if (minigame == 'Test: Fin de Partida') {
+            setState(() => _debugShowWinScreen = true);
+          } else {
+            // Llamamos a nuestro nuevo método local
+            ref.read(gameProvider.notifier).startDebugMinigameLocal(minigame);
+          }
         },
         itemBuilder: (BuildContext context) {
           return _debugMinigames.map((String choice) {
@@ -531,6 +537,30 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
                           diceResults: gameState.videnteDiceResults!,
                           onClose: () =>
                               ref.read(gameProvider.notifier).hideVidenteDice(),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+              // UI OVERLAY: Pantalla de Ganador (FIN DE PARTIDA)
+              if ((gameState.currentPhase == GamePhase.finished &&
+                      gameState.winnerName != null) ||
+                  _debugShowWinScreen)
+                Positioned.fill(
+                  child: Stack(
+                    children: [
+                      // Fondo oscurecido
+                      Container(color: Colors.black.withValues(alpha: 0.85)),
+                      Center(
+                        child: WinScreenModal(
+                          rankedPlayers: [...gameState.players]..sort(
+                              (a, b) => b.currentTileIndex
+                                  .compareTo(a.currentTileIndex),
+                            ),
+                          onClose: _debugShowWinScreen
+                              ? () => setState(() => _debugShowWinScreen = false)
+                              : null,
                         ),
                       ),
                     ],

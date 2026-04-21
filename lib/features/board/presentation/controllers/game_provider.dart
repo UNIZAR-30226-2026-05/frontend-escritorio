@@ -10,8 +10,8 @@ final gameProvider = StateNotifierProvider<GameController, GameState>((ref) {
 
 // El controlador del juego
 class GameController extends StateNotifier<GameState> {
-  // Tamaño del tablero para esta prueba (73 casillas según las coordenadas definidas)
-  final int totalTiles = 73;
+  // Tamaño del tablero para esta prueba (72 casillas — la meta es la 71)
+  final int totalTiles = 72;
 
   // Para manejar animaciones secuenciales de movimiento
   final List<Future<void> Function()> _animationQueue = [];
@@ -189,10 +189,12 @@ class GameController extends StateNotifier<GameState> {
     // AL FINAL DE LA ANIMACIÓN
     // Leemos la fase en tiempo real porque pudo haber llegado un ini_minijuego mientras tanto
     GamePhase finalPhase = state.currentPhase;
+    String? newWinner = state.winnerName;
 
     if (newTileIndex >= totalTiles - 1) {
       finalPhase = GamePhase.finished;
       newMessage = "¡${currentPlayer.username} HA GANADO LA PARTIDA!";
+      newWinner = currentPlayer.username;
     }
 
     if (diceRoll != 0) {
@@ -210,12 +212,14 @@ class GameController extends StateNotifier<GameState> {
         serverMessage: newMessage,
         currentPhase: finalPhase, // Usamos la fase final real
         isMovementActive: false, // Desbloqueo al final del turno
+        winnerName: newWinner,
       );
     } else {
       state = state.copyWith(
         serverMessage: newMessage,
         currentPhase: finalPhase, // Usamos la fase final real
         isMovementActive: false, // FIN de movimiento y desbloqueo
+        winnerName: newWinner,
       );
     }
   }
@@ -334,6 +338,7 @@ class GameController extends StateNotifier<GameState> {
       // minigameResults: null (por defecto) — reset intencional
       // minigameChoices: null (por defecto)
       isWaitingForMinigameChoice: false,
+      winnerName: state.winnerName,
     );
   }
 
@@ -356,6 +361,7 @@ class GameController extends StateNotifier<GameState> {
       serverMessage: state.serverMessage,
       // minigameName, Description, Details, Results, Choices: null por defecto
       isWaitingForMinigameChoice: false,
+      winnerName: state.winnerName,
     );
   }
 
@@ -398,6 +404,7 @@ class GameController extends StateNotifier<GameState> {
       activePlayerIndex: state.activePlayerIndex,
       serverMessage: state.serverMessage,
       isWaitingForMinigameChoice: state.isWaitingForMinigameChoice,
+      winnerName: state.winnerName,
     );
   }
 
@@ -433,6 +440,7 @@ class GameController extends StateNotifier<GameState> {
       isMovementActive: state.isMovementActive,
       obtainedItemName: state.obtainedItemName,
       obtainedItemDesc: state.obtainedItemDesc,
+      winnerName: state.winnerName,
       // videnteDiceResults: null by default
     );
   }

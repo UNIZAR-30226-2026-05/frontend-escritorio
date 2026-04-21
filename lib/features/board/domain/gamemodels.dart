@@ -190,6 +190,7 @@ class GameState {
 
   // Habilidades
   final List<int>? videnteDiceResults;
+  final String? winnerName;
 
   //Constructor de la clase
   GameState({
@@ -213,6 +214,7 @@ class GameState {
     this.obtainedItemName,
     this.obtainedItemDesc,
     this.videnteDiceResults,
+    this.winnerName,
   });
 
   GameState copyWith({
@@ -236,6 +238,7 @@ class GameState {
     String? obtainedItemName,
     String? obtainedItemDesc,
     List<int>? videnteDiceResults,
+    String? winnerName,
   }) {
     return GameState(
       currentPhase: currentPhase ?? this.currentPhase,
@@ -259,6 +262,7 @@ class GameState {
       obtainedItemName: obtainedItemName ?? this.obtainedItemName,
       obtainedItemDesc: obtainedItemDesc ?? this.obtainedItemDesc,
       videnteDiceResults: videnteDiceResults ?? this.videnteDiceResults,
+      winnerName: winnerName ?? this.winnerName,
     );
   }
 }

@@ -14,6 +14,7 @@ import 'cronometro_game.dart';
 import 'pan_game.dart';
 import 'mayor_menor_game.dart';
 import 'doble_nada_game.dart';
+import 'dilema_prisionero_game.dart';
 
 class MinigameFactory {
   /// Devuelve el widget del minijuego correspondiente al [minigameName].
@@ -22,7 +23,7 @@ class MinigameFactory {
   /// [details] son los parámetros específicos que envía el backend.
   static Widget buildGame({
     required String minigameName,
-    required Function(int score) onFinish,
+    required Function(dynamic score) onFinish,
     required Map<String, dynamic> details,
   }) {
     switch (minigameName) {
@@ -38,6 +39,8 @@ class MinigameFactory {
         return MayorMenorGame(onFinish: onFinish, details: details);
       case 'Doble o Nada':
         return DobleNadaGame(onFinish: onFinish, details: details);
+      case 'Dilema del Prisionero':
+        return DilemaPrisioneroGame(onFinish: onFinish, details: details);
 
       default:
         // Placeholder para minijuegos no implementados todavía
@@ -48,7 +51,7 @@ class MinigameFactory {
   /// Widget de placeholder que simula un minijuego no implementado.
   /// Permite probar el flujo completo sin tener el juego real.
   static Widget _buildPlaceholder(
-      String minigameName, Function(int score) onFinish) {
+      String minigameName, Function(dynamic score) onFinish) {
     return Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,

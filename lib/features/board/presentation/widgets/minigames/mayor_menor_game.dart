@@ -166,65 +166,30 @@ class _MayorMenorGameState extends State<MayorMenorGame> {
             ),
 
             // Ensamblaje del Tablero (Layout de Cartas)
-            SafeArea(
-              child: Center(
-                child: Wrap(
-                  alignment: WrapAlignment.center,
-                  spacing: 64,
-                  runSpacing: 64,
-                  children: List.generate(4, (index) {
-                    return CartaWidget(
-                      cartaInfo: CartaInfo.decodificar(_cartasRaw[index]),
-                      seleccionada: _indiceSeleccionado == index,
-                      onTap: () => _seleccionarCarta(index),
-                      onAnimationComplete: _onAnimacionGiroCompletada,
-                    );
-                  }),
+            Center(
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 40),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: List.generate(4, (index) {
+                      return Padding(
+                        padding: EdgeInsets.symmetric(
+                            horizontal: index == 0 || index == 3 ? 0 : 32),
+                        child: CartaWidget(
+                          cartaInfo: CartaInfo.decodificar(_cartasRaw[index]),
+                          seleccionada: _indiceSeleccionado == index,
+                          onTap: () => _seleccionarCarta(index),
+                          onAnimationComplete: _onAnimacionGiroCompletada,
+                        ),
+                      );
+                    }),
+                  ),
                 ),
               ),
             ),
 
-            // Overlay destacado con el valor bruto
-            if (_juegoTerminado && _indiceSeleccionado != null)
-              Positioned.fill(
-                child: Container(
-                  color: Colors.black.withValues(alpha: 0.6),
-                  child: Center(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Text(
-                          'VALOR REVELADO',
-                          style: TextStyle(
-                            color: Colors.white70,
-                            fontSize: 24,
-                            fontFamily: 'Retro Gaming',
-                            letterSpacing: 2,
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                        Text(
-                          // Mostramos el rango real (A, 2, 3... J, Q, K) usando tu propia clase
-                          CartaInfo.decodificar(
-                                  _cartasRaw[_indiceSeleccionado!])
-                              .rango,
-                          style: const TextStyle(
-                            color: Colors.amber,
-                            fontSize: 96,
-                            fontWeight: FontWeight.bold,
-                            shadows: [
-                              Shadow(
-                                  color: Colors.black,
-                                  blurRadius: 15,
-                                  offset: Offset(2, 4))
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
           ],
         ),
       );
@@ -359,7 +324,6 @@ class _CartaWidgetState extends State<CartaWidget>
       height: 260,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(12),
-        color: Colors.white,
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.5),
@@ -373,20 +337,7 @@ class _CartaWidgetState extends State<CartaWidget>
         child: Image.asset(
           assetPath,
           fit: BoxFit.fill,
-          errorBuilder: (context, error, stackTrace) {
-            // Fallback: carta blanca con el rango y palo en texto
-            return Center(
-              child: Text(
-                '${widget.cartaInfo.rango}\n${widget.cartaInfo.iconoPalo}',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontSize: 28,
-                  fontWeight: FontWeight.bold,
-                  color: widget.cartaInfo.color,
-                ),
-              ),
-            );
-          },
+          filterQuality: FilterQuality.none, // Mantener nitidez del pixel art
         ),
       ),
     );

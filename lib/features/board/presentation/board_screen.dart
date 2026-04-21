@@ -44,6 +44,7 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
     'Cronometro ciego',
     'Mayor o Menor',
     'Doble o Nada',
+    'Dilema del Prisionero',
   ];
 
   // Coordenadas de los centros de las casillas en el tablero

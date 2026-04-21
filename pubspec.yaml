@@ -38,6 +38,8 @@ flutter:
     - assets/images/minigames/pan/
     - assets/images/minigames/cronometro/
     - assets/images/minigames/cartas/
+    - assets/images/minigames/cartas/cards/
+    - assets/images/minigames/dilema/
     - assets/images/minigames/tren/
    # - assets/sounds/bgm/
    # - assets/sounds/sfx/

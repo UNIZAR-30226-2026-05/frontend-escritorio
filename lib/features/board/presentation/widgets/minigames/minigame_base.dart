@@ -16,7 +16,7 @@ import 'package:flutter/material.dart';
 /// [details]  — Mapa con los parámetros enviados por el backend
 ///              (ej: {"objetivo": 10} para Tren, {"cartas": [3,15,27]} para Mayor o Menor).
 abstract class MinigameBase extends StatefulWidget {
-  final Function(int score) onFinish;
+  final Function(dynamic score) onFinish;
   final Map<String, dynamic> details;
 
   const MinigameBase({

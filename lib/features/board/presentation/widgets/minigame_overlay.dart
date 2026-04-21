@@ -85,7 +85,7 @@ class _MinigameOverlayState extends ConsumerState<MinigameOverlay> {
   // Callback que recibe la puntuación del minijuego hijo y la envía al backend.
   // Utiliza sendMinigameScore del WebSocketService.
   // Para Tren el backend exige también el campo 'objetivo' en el payload.
-  void _onMinigameFinish(int score) {
+  void _onMinigameFinish(dynamic score) {
     final gameState = ref.read(gameProvider);
 
     // 1. INTERCEPTAMOS SI ES MODO DEBUG
@@ -98,9 +98,17 @@ class _MinigameOverlayState extends ConsumerState<MinigameOverlay> {
       int pos = 1;
       for (var p in gameState.turnOrder) {
         // A ti te ponemos la puntuación real, a los demás puntuaciones inventadas
+        // Si el score no es int (ej: es un string), no podemos hacer resta
+        dynamic fakeScore;
+        if (score is int) {
+          fakeScore = pos == 1 ? score : score - (pos * 10);
+        } else {
+          fakeScore = score;
+        }
+
         fakeResults[p] = {
           "posicion": pos,
-          "score": pos == 1 ? score : score - (pos * 10)
+          "score": fakeScore,
         };
         pos++;
       }

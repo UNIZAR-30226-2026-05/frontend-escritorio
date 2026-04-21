@@ -378,7 +378,7 @@ class WebSocketService {
 
   // Funcion publica para enviar la puntuación de un minijuego al backend.
   // Se hace para aquellos minijuegos que requieren enviar la puntuación (como Reflejos o Tren).
-  void sendMinigameScore(int score, {double? objetivo}) {
+  void sendMinigameScore(dynamic score, {double? objetivo}) {
     // Solo manda si el canal existe y está conectado
     if (_channel != null && _isConnected) {
       // Creamos inner para el payload con la puntuación.

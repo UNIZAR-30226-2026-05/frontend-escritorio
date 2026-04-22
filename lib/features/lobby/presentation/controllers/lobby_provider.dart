@@ -11,9 +11,19 @@ class LobbyState {
   final List<String> playersConnected;
   // Lista de invitaciones a partidas recibidas por el WebSocket de sesión.
   final List<GameInvite> invites;
+  // Última invitación entrante pendiente de mostrar como notificación.
+  // La UI la observa para disparar el SnackBar y después llama a clearLastInvite.
+  final GameInvite? lastInvite;
   // Conjunto de usernames de amigos actualmente online.
   // Se actualiza con cada mensaje 'friend_status_update' del WS de sesión.
   final Set<String> onlineFriends;
+  // Usernames a los que el jugador local ha enviado una invitacion de partida
+  // desde el lobby actual. Sirve para pintar el chip "Invitado".
+  // Se limpia al abandonar la partida o al terminarla.
+  final Set<String> sentInvites;
+  // Lista de usernames con solicitudes de amistad pendientes de aceptar/rechazar.
+  // Se inicializa con 'friend_requests_list' al conectar el WS de sesión.
+  final List<String> friendRequests;
   // Indica si el juego ha comenzado (los 4 jugadores se han conectado).
   final bool gameStarted;
   // Indica si este dispositivo ha sido desconectado a la fuerza por el backend.
@@ -34,7 +44,10 @@ class LobbyState {
     this.gameId,
     this.playersConnected = const [],
     this.invites = const [],
+    this.lastInvite,
     this.onlineFriends = const {},
+    this.sentInvites = const {},
+    this.friendRequests = const [],
     this.gameStarted = false,
     this.selectedCharacters = const {},
     this.allCharactersSelected = false,
@@ -51,7 +64,10 @@ class LobbyState {
     String? gameId,
     List<String>? playersConnected,
     List<GameInvite>? invites,
+    GameInvite? lastInvite,
     Set<String>? onlineFriends,
+    Set<String>? sentInvites,
+    List<String>? friendRequests,
     bool? gameStarted,
     Map<String, String>? selectedCharacters,
     bool? allCharactersSelected,
@@ -62,22 +78,27 @@ class LobbyState {
     // Estas variables permiten forzar a null campos específicos aunque se pase un valor para ellos.
     bool clearGameId = false,
     bool clearError = false,
+    bool clearLastInvite = false,
   }) =>
       LobbyState(
         // Si se pasa un nuevo valor para cada campo, se usa ese. Si no, se mantiene el valor actual del estado.
         playersConnected: playersConnected ?? this.playersConnected,
         invites: invites ?? this.invites,
         onlineFriends: onlineFriends ?? this.onlineFriends,
+        sentInvites: sentInvites ?? this.sentInvites,
+        friendRequests: friendRequests ?? this.friendRequests,
         gameStarted: gameStarted ?? this.gameStarted,
         selectedCharacters: selectedCharacters ?? this.selectedCharacters,
         allCharactersSelected: allCharactersSelected ?? this.allCharactersSelected,
         forceDisconnected: forceDisconnected ?? this.forceDisconnected,
         serverMessage: serverMessage ?? this.serverMessage,
         isLoading: isLoading ?? this.isLoading,
-        // Si clearGameId es true, se fuerza a null aunque se pase un gameId. 
-        // Si clearError es true, se fuerza a null aunque se pase un error.   
+        // Si clearGameId es true, se fuerza a null aunque se pase un gameId.
+        // Si clearError es true, se fuerza a null aunque se pase un error.
+        // Si clearLastInvite es true, se fuerza a null aunque se pase una invitación.
         gameId: clearGameId ? null : (gameId ?? this.gameId),
         error: clearError ? null : (error ?? this.error),
+        lastInvite: clearLastInvite ? null : (lastInvite ?? this.lastInvite),
       );
 }
 
@@ -133,9 +154,19 @@ class LobbyController extends StateNotifier<LobbyState> {
   // Callbacks del WebSocket de sesión.
   // -------------------------------------------------------------------------
   // Llamado por el WS de sesión cuando llega 'receive_invite'.
-  // Añade la invitación a la lista para que la UI la muestre al usuario.
+  // Añade la invitación al historial y marca lastInvite para que la UI
+  // muestre la notificación tipo SnackBar.
   void onInviteReceived(GameInvite invite) {
-    state = state.copyWith(invites: [...state.invites, invite]);
+    state = state.copyWith(
+      invites: [...state.invites, invite],
+      lastInvite: invite,
+    );
+  }
+
+  // Consume la última invitación tras mostrar la notificación. El historial
+  // en `invites` se mantiene para permitir reabrir notificaciones si se quisiera.
+  void clearLastInvite() {
+    state = state.copyWith(clearLastInvite: true);
   }
 
   // Elimina una invitación de la lista (al aceptarla o rechazarla).
@@ -151,8 +182,44 @@ class LobbyController extends StateNotifier<LobbyState> {
       updated.add(friendId);
     } else {
       updated.remove(friendId);
+      // Si el amigo se desconecta, invalida cualquier invitación pendiente que
+      // le hubiéramos enviado: ya no podrá unirse hasta reconectarse.
+      final invites = {...state.sentInvites}..remove(friendId);
+      state = state.copyWith(onlineFriends: updated, sentInvites: invites);
+      return;
     }
     state = state.copyWith(onlineFriends: updated);
+  }
+
+  // Llamado por el WS de sesión con la lista de solicitudes de amistad
+  // pendientes al conectarse (mensaje 'friend_requests_list').
+  void onFriendRequestsList(List<String> requests) {
+    state = state.copyWith(friendRequests: requests);
+  }
+
+  // Añade una solicitud de amistad entrante recibida en tiempo real.
+  // Se usa si el backend notifica nuevas solicitudes después del login.
+  void addFriendRequest(String fromUser) {
+    if (state.friendRequests.contains(fromUser)) return;
+    state = state.copyWith(
+      friendRequests: [...state.friendRequests, fromUser],
+    );
+  }
+
+  // Elimina una solicitud de la lista al aceptarla o rechazarla localmente,
+  // sin esperar confirmación del servidor (optimistic update).
+  void removeFriendRequest(String fromUser) {
+    state = state.copyWith(
+      friendRequests:
+          state.friendRequests.where((u) => u != fromUser).toList(),
+    );
+  }
+
+  // Registra que el jugador local ha enviado una invitación de partida al
+  // usuario indicado para poder pintar el chip "Invitado" en la UI.
+  void markInviteSent(String friendId) {
+    if (state.sentInvites.contains(friendId)) return;
+    state = state.copyWith(sentInvites: {...state.sentInvites, friendId});
   }
 
 
@@ -200,6 +267,7 @@ class LobbyController extends StateNotifier<LobbyState> {
       gameStarted: false,
       selectedCharacters: {},
       allCharactersSelected: false,
+      sentInvites: {},
     );
   }
 
@@ -237,6 +305,7 @@ class LobbyController extends StateNotifier<LobbyState> {
       allCharactersSelected: false,
       serverMessage: '',
       clearError: true,
+      sentInvites: {},
     );
   }
 

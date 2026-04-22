@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 // Importa los servicios y providers específicos del lobby, así como el provider de autenticación
 import '../data/lobby_websocket_service.dart';
+import '../data/session_websocket_service.dart';
 import 'controllers/lobby_provider.dart';
 import '../../auth/presentation/controllers/auth_provider.dart';
 import '../../../core/widgets/retro_widgets.dart';
@@ -47,9 +48,29 @@ class _LobbyScreenState extends ConsumerState<LobbyScreen> {
   final FocusNode _newPassFocus = FocusNode();
   final FocusNode _confirmPassFocus = FocusNode();
 
+  // Al montar el widget conectamos el WebSocket de sesión para recibir
+  // invitaciones y estado online de los amigos. El WS vive mientras el
+  // usuario esté en el lobby; en logout o al destruir el widget se cierra.
+  @override
+  void initState() {
+    super.initState();
+    // addPostFrameCallback asegura que el ref se lee después del primer frame,
+    // momento en el que el authProvider ya está disponible.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final auth = ref.read(authProvider);
+      if (auth.isAuthenticated && auth.username != null && auth.token != null) {
+        ref
+            .read(sessionWebSocketProvider)
+            .connect(auth.username!, auth.token!);
+      }
+    });
+  }
+
   // Metodo de limpieza que se llama al destruir el widget.
   @override
   void dispose() {
+    // Cierra el WS de sesión al salir del lobby para evitar fugas de conexión.
+    ref.read(sessionWebSocketProvider).disconnect();
     // Libera los recursos del controlador y el foco cuando el widget se destruye.
     _codeController.dispose();
     _codeFocus.dispose();
@@ -113,6 +134,7 @@ class _LobbyScreenState extends ConsumerState<LobbyScreen> {
   // lo que redirigirá automáticamente a la pantalla de login por el router.
   Future<void> _logout() async {
     ref.read(lobbyWebSocketProvider).disconnect();
+    ref.read(sessionWebSocketProvider).disconnect();
     ref.read(lobbyProvider.notifier).reset();
     await ref.read(authProvider.notifier).logout();
   }
@@ -146,6 +168,49 @@ class _LobbyScreenState extends ConsumerState<LobbyScreen> {
         );
         // Limpia el flag de forceDisconnected para que el mensaje solo se muestre una vez.
         ref.read(lobbyProvider.notifier).clearForceDisconnected();
+      }
+      // Al recibir una nueva invitación de partida muestra la notificación
+      // tipo SnackBar con el username del remitente y el código para unirse.
+      if (next.lastInvite != null &&
+          (prev == null || prev.lastInvite != next.lastInvite)) {
+        final invite = next.lastInvite!;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            backgroundColor: const Color(0xFF2D1B4E),
+            duration: const Duration(seconds: 6),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '¡${invite.fromUser} te ha invitado!',
+                  style: const TextStyle(
+                    fontFamily: 'Retro Gaming',
+                    color: Colors.white,
+                    fontSize: 14,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  'Únete con el código: ${invite.gameId}',
+                  style: const TextStyle(
+                    fontFamily: 'Retro Gaming',
+                    color: Colors.white70,
+                    fontSize: 12,
+                  ),
+                ),
+              ],
+            ),
+            action: SnackBarAction(
+              label: 'Copiar',
+              textColor: Colors.amberAccent,
+              onPressed: () {
+                _codeController.text = invite.gameId;
+              },
+            ),
+          ),
+        );
+        ref.read(lobbyProvider.notifier).clearLastInvite();
       }
       // Si el error indica que el token ha caducado o es inválido, cierra sesión.
       if (prev != null && next.error != null && next.error != prev.error) {
@@ -309,39 +374,34 @@ class _LobbyScreenState extends ConsumerState<LobbyScreen> {
 }
 
 // COLUMNA IZQUIERDA
-// Clase privada que define el panel lateral izquierdo con el botón de cerrar sesión y la sección
-// de partidas de amigos (actualmente un placeholder).
-class _LeftPanel extends StatelessWidget {
-  // Callback que ejecuta el logout cuando el usuario pulsa el icono.
+// Muestra el icono de logout y la lista de solicitudes de amistad pendientes.
+// Cada solicitud se puede aceptar o rechazar desde aquí; las acciones se envían
+// al WS de sesión y se eliminan localmente de forma optimista.
+class _LeftPanel extends ConsumerWidget {
   final VoidCallback onLogout;
-  // Dimensiones totales de la pantalla, usadas para calcular tamaños proporcionales.
   final double w, h;
 
-  // Constructor de la clase.
   const _LeftPanel({
     required this.onLogout,
     required this.w,
     required this.h,
   });
 
-  // Metodo que construye la UI del panel izquierdo.
   @override
-  Widget build(BuildContext context) {
-    // Tamaños de texto proporcionales al alto de la ventana.
+  Widget build(BuildContext context, WidgetRef ref) {
     final titleSize = h * 0.042;
     final textSize = h * 0.020;
+    final requests = ref.watch(
+      lobbyProvider.select((s) => s.friendRequests),
+    );
+    final session = ref.read(sessionWebSocketProvider);
 
-    // Padding es un widget de Flutter que añade espacio alrededor de su hijo.
-    // En este caso, se usa un padding proporcional al ancho de la ventana.
     return Padding(
-      // EdgeInsets añade un espacio de 1,8% del ancho de ventana por
-      // cada lado del panel.
       padding: EdgeInsets.all(w * 0.018),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Icono de logout alineado a la derecha del panel.
-          // Se usa Align en lugar de Row para no ocupar todo el ancho.
           Align(
             alignment: Alignment.topRight,
             child: GestureDetector(
@@ -350,13 +410,12 @@ class _LeftPanel extends StatelessWidget {
             ),
           ),
 
-          // Margen superior que baja el título para que no quede tapado
-          // por el fondo decorativo de la imagen de lobby.
+          // Margen superior para que el título no quede tapado por el marco.
           SizedBox(height: h * 0.12),
 
-          // Título de la sección con doble sombra blanca para efecto de brillo retro.
+          // Título retro con doble sombra blanca.
           Text(
-            'Partidas de\namigos',
+            'Solicitudes\nde amistad',
             style: TextStyle(
               fontFamily: 'Retro Gaming',
               fontSize: titleSize,
@@ -371,15 +430,47 @@ class _LeftPanel extends StatelessWidget {
 
           SizedBox(height: h * 0.025),
 
-          // Texto provisional mientras no está implementada la funcionalidad.
-          Text(
-            'Próximamente...',
-            style: TextStyle(
-              fontFamily: 'Retro Gaming',
-              fontSize: textSize * 0.85,
-              color: Colors.white38,
-            ),
+          // Si no hay solicitudes pendientes mostramos un texto guía; si hay,
+          // una lista scrollable con aceptar/rechazar por cada solicitud.
+          Expanded(
+            child: requests.isEmpty
+                ? Text(
+                    'No tienes solicitudes\npendientes',
+                    style: TextStyle(
+                      fontFamily: 'Retro Gaming',
+                      fontSize: textSize * 0.85,
+                      color: Colors.white38,
+                      height: 1.4,
+                    ),
+                  )
+                : ListView.separated(
+                    padding: EdgeInsets.zero,
+                    itemCount: requests.length,
+                    separatorBuilder: (_, __) => SizedBox(height: h * 0.015),
+                    itemBuilder: (context, i) {
+                      final from = requests[i];
+                      return _FriendRequestRow(
+                        username: from,
+                        width: w * 0.30,
+                        height: h * 0.055,
+                        fontSize: textSize * 0.9,
+                        onAccept: () => session.acceptFriendRequest(from),
+                        onReject: () => session.rejectFriendRequest(from),
+                      );
+                    },
+                  ),
           ),
+
+          // Formulario inferior para enviar una solicitud de amistad a un
+          // username concreto. Sirve para poder probar el flujo de solicitudes
+          // desde el propio lobby sin herramientas externas.
+          _AddFriendForm(
+            width: w * 0.30,
+            height: h * 0.055,
+            fontSize: textSize * 0.9,
+            onSend: session.sendFriendRequest,
+          ),
+          SizedBox(height: h * 0.015),
         ],
       ),
     );
@@ -809,28 +900,39 @@ class _PasswordChangePanel extends StatelessWidget {
 }
 
 // COLUMNA DERECHA
-// Clase privada que representa el panel lateral derecho con la lista de amigos
-// y el enlace a las reglas del juego en la parte inferior.
-class _RightPanel extends StatelessWidget {
-  // Dimensiones totales de la pantalla para calcular tamaños proporcionales.
+// Muestra la lista de amigos actualmente ONLINE con un chip de estado por cada uno:
+//   - Contigo (verde): el amigo ya está en la partida local.
+//   - Invitado (rojo): se le ha enviado una invitación desde esta partida.
+//   - Invitar (morado): clickable, envía invite_friend por el WS de sesión.
+// Si no hay partida activa, todos los amigos se muestran con el chip "Invitar"
+// deshabilitado, porque no hay gameId al que invitar.
+class _RightPanel extends ConsumerWidget {
   final double w, h;
-  // Constructor de la clase, con parámetros requeridos para las dimensiones.
   const _RightPanel({required this.w, required this.h});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final titleSize = h * 0.042;
-    // Padding horizontal para que el contenido no toque los bordes del panel.
+    final textSize = h * 0.020;
+
+    // select evita reconstrucciones del panel ante cambios irrelevantes del estado.
+    final online = ref.watch(lobbyProvider.select((s) => s.onlineFriends));
+    final inGame = ref.watch(lobbyProvider.select((s) => s.playersConnected));
+    final sent = ref.watch(lobbyProvider.select((s) => s.sentInvites));
+    final gameId = ref.watch(lobbyProvider.select((s) => s.gameId));
+    final session = ref.read(sessionWebSocketProvider);
+
+    // Orden alfabético estable para que la lista no baile entre updates.
+    final friends = online.toList()..sort();
+
     return Padding(
       padding: EdgeInsets.all(w * 0.018),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Margen superior para bajar el título y evitar que quede tapado
-          // por el decorado superior de la imagen de lobby.
           SizedBox(height: h * 0.12),
 
-          // Título de la sección con doble sombra blanca para efecto de brillo retro.
+          // Título retro con doble sombra blanca.
           Text(
             'Amigos',
             style: TextStyle(
@@ -846,24 +948,71 @@ class _RightPanel extends StatelessWidget {
 
           SizedBox(height: h * 0.025),
 
-          // Texto provisional mientras la funcionalidad no está implementada.
-          Text(
-            'Próximamente...',
-            style: TextStyle(
-              fontFamily: 'Retro Gaming',
-              fontSize: h * 0.018,
-              color: Colors.white38,
-            ),
+          Expanded(
+            child: friends.isEmpty
+                ? Text(
+                    'Ninguno de tus\namigos está online',
+                    style: TextStyle(
+                      fontFamily: 'Retro Gaming',
+                      fontSize: textSize * 0.85,
+                      color: Colors.white38,
+                      height: 1.4,
+                    ),
+                  )
+                : ListView.separated(
+                    padding: EdgeInsets.zero,
+                    itemCount: friends.length,
+                    separatorBuilder: (_, __) => SizedBox(height: h * 0.015),
+                    itemBuilder: (context, i) {
+                      final username = friends[i];
+                      final status = _resolveStatus(
+                        username: username,
+                        inGame: inGame,
+                        sent: sent,
+                        hasActiveGame: gameId != null,
+                      );
+                      return _FriendRow(
+                        username: username,
+                        status: status,
+                        nameWidth: w * 0.16,
+                        chipWidth: w * 0.09,
+                        chipHeight: h * 0.045,
+                        fontSize: textSize * 0.85,
+                        chipFontSize: textSize * 0.75,
+                        onInvite: status == _FriendChipStatus.invitar
+                            ? () => session.inviteFriend(username, gameId!)
+                            : null,
+                      );
+                    },
+                  ),
           ),
-
-          const Spacer(),
-
-          SizedBox(height: h * 0.02),
         ],
       ),
     );
   }
+
+  // Decide qué chip mostrar junto al nombre del amigo según:
+  //  1. Si ya está en la partida local => Contigo.
+  //  2. Si le hemos invitado desde esta partida => Invitado.
+  //  3. En otro caso => Invitar (solo habilitado si hay partida activa).
+  _FriendChipStatus _resolveStatus({
+    required String username,
+    required List<String> inGame,
+    required Set<String> sent,
+    required bool hasActiveGame,
+  }) {
+    if (hasActiveGame && inGame.contains(username)) {
+      return _FriendChipStatus.contigo;
+    }
+    if (hasActiveGame && sent.contains(username)) {
+      return _FriendChipStatus.invitado;
+    }
+    return _FriendChipStatus.invitar;
+  }
 }
+
+// Estados visuales del chip junto al nombre de un amigo en la lista.
+enum _FriendChipStatus { contigo, invitado, invitar }
 
 // WIDGETS AUXILIARES
 // Slot individual de jugador con fondo btn_morado.png.
@@ -929,6 +1078,316 @@ class _PlayerSlot extends StatelessWidget {
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+// Fila de la lista de amigos: nombre a la izquierda + chip de estado a la derecha.
+// El chip reutiliza el estilo visual de los slots del lobby (btn_verde/rojo/morado)
+// y solo el estado "Invitar" es interactivo.
+class _FriendRow extends StatelessWidget {
+  final String username;
+  final _FriendChipStatus status;
+  // Anchura reservada al nombre y al chip respectivamente.
+  final double nameWidth, chipWidth, chipHeight;
+  final double fontSize, chipFontSize;
+  // Solo se pasa cuando status == invitar y hay partida activa.
+  final VoidCallback? onInvite;
+
+  const _FriendRow({
+    required this.username,
+    required this.status,
+    required this.nameWidth,
+    required this.chipWidth,
+    required this.chipHeight,
+    required this.fontSize,
+    required this.chipFontSize,
+    required this.onInvite,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        SizedBox(
+          width: nameWidth,
+          child: Text(
+            username,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              fontFamily: 'Retro Gaming',
+              fontSize: fontSize,
+              color: Colors.white,
+              shadows: const [
+                Shadow(color: Colors.white, blurRadius: 14),
+                Shadow(color: Colors.white70, blurRadius: 6),
+              ],
+            ),
+          ),
+        ),
+        const Spacer(),
+        _FriendChip(
+          status: status,
+          width: chipWidth,
+          height: chipHeight,
+          fontSize: chipFontSize,
+          onTap: status == _FriendChipStatus.invitar ? onInvite : null,
+        ),
+      ],
+    );
+  }
+}
+
+// Chip de estado para la lista de amigos. Reutiliza los mismos assets que los
+// slots del panel central para mantener coherencia visual con el lobby:
+//   - btn_verde => Contigo (no clickable)
+//   - btn_rojo  => Invitado (no clickable)
+//   - btn_morado => Invitar (clickable si onTap != null)
+class _FriendChip extends StatelessWidget {
+  final _FriendChipStatus status;
+  final double width, height, fontSize;
+  final VoidCallback? onTap;
+
+  const _FriendChip({
+    required this.status,
+    required this.width,
+    required this.height,
+    required this.fontSize,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    late final String asset;
+    late final String label;
+    switch (status) {
+      case _FriendChipStatus.contigo:
+        asset = 'assets/images/ui/btn_verde.png';
+        label = 'Contigo';
+        break;
+      case _FriendChipStatus.invitado:
+        asset = 'assets/images/ui/btn_rojo.png';
+        label = 'Invitado';
+        break;
+      case _FriendChipStatus.invitar:
+        asset = 'assets/images/ui/btn_morado.png';
+        label = 'Invitar';
+        break;
+    }
+
+    // RetroImgButton ya se encarga de bajar la opacidad cuando onTap es null,
+    // así que el mismo botón sirve tanto para el estado clickable ("Invitar"
+    // con partida activa) como para los informativos ("Contigo" / "Invitado")
+    // y también para "Invitar" desactivado si no hay partida en curso.
+    return RetroImgButton(
+      label: label,
+      asset: asset,
+      width: width,
+      height: height,
+      fontSize: fontSize,
+      onTap: onTap,
+    );
+  }
+}
+
+// Fila para la lista de solicitudes de amistad entrantes: nombre del solicitante
+// a la izquierda y dos botones (aceptar / rechazar) a la derecha.
+class _FriendRequestRow extends StatelessWidget {
+  final String username;
+  final double width, height, fontSize;
+  final VoidCallback onAccept;
+  final VoidCallback onReject;
+
+  const _FriendRequestRow({
+    required this.username,
+    required this.width,
+    required this.height,
+    required this.fontSize,
+    required this.onAccept,
+    required this.onReject,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final btnW = height * 1.2;
+    return SizedBox(
+      width: width,
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              username,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontFamily: 'Retro Gaming',
+                fontSize: fontSize,
+                color: Colors.white,
+                shadows: const [
+                  Shadow(color: Colors.white, blurRadius: 14),
+                  Shadow(color: Colors.white70, blurRadius: 6),
+                ],
+              ),
+            ),
+          ),
+          SizedBox(width: height * 0.2),
+          // Botón aceptar: verde, con check.
+          _IconRetroButton(
+            asset: 'assets/images/ui/btn_verde.png',
+            icon: Icons.check,
+            width: btnW,
+            height: height,
+            onTap: onAccept,
+          ),
+          SizedBox(width: height * 0.2),
+          // Botón rechazar: rojo, con aspa.
+          _IconRetroButton(
+            asset: 'assets/images/ui/btn_rojo.png',
+            icon: Icons.close,
+            width: btnW,
+            height: height,
+            onTap: onReject,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// Botón pequeño con asset de fondo y un icono centrado.
+// Pensado para las acciones aceptar/rechazar de las solicitudes de amistad.
+class _IconRetroButton extends StatelessWidget {
+  final String asset;
+  final IconData icon;
+  final double width, height;
+  final VoidCallback onTap;
+
+  const _IconRetroButton({
+    required this.asset,
+    required this.icon,
+    required this.width,
+    required this.height,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: width,
+        height: height,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          image: DecorationImage(
+            image: AssetImage(asset),
+            fit: BoxFit.fill,
+          ),
+        ),
+        child: Icon(icon, color: Colors.white, size: height * 0.55),
+      ),
+    );
+  }
+}
+
+// Formulario compacto para enviar una solicitud de amistad a un username.
+// Es Stateful porque mantiene su propio TextEditingController asociado al campo
+// de entrada, sin obligar al panel padre a gestionar focos/controladores.
+// Al enviar, limpia el campo y muestra un SnackBar informativo.
+class _AddFriendForm extends StatefulWidget {
+  final double width, height, fontSize;
+  // Callback que envía la solicitud al backend a través del WS de sesión.
+  final void Function(String playerId) onSend;
+
+  const _AddFriendForm({
+    required this.width,
+    required this.height,
+    required this.fontSize,
+    required this.onSend,
+  });
+
+  @override
+  State<_AddFriendForm> createState() => _AddFriendFormState();
+}
+
+class _AddFriendFormState extends State<_AddFriendForm> {
+  final TextEditingController _ctrl = TextEditingController();
+  final FocusNode _focus = FocusNode();
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    _focus.dispose();
+    super.dispose();
+  }
+
+  void _submit() {
+    final target = _ctrl.text.trim();
+    if (target.isEmpty) return;
+    widget.onSend(target);
+    // Feedback al usuario y limpieza del campo para poder encadenar pruebas.
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Solicitud enviada a $target'),
+        duration: const Duration(seconds: 2),
+      ),
+    );
+    _ctrl.clear();
+    _focus.unfocus();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // Botón compacto a la derecha del input con el asset verde y un icono "+".
+    final btnW = widget.height * 1.2;
+    return SizedBox(
+      width: widget.width,
+      child: Row(
+        children: [
+          Expanded(
+            child: Container(
+              height: widget.height,
+              decoration: const BoxDecoration(
+                image: DecorationImage(
+                  image: AssetImage('assets/images/ui/rellenable.png'),
+                  fit: BoxFit.fill,
+                ),
+              ),
+              alignment: Alignment.center,
+              padding: EdgeInsets.symmetric(horizontal: widget.width * 0.04),
+              child: TextField(
+                controller: _ctrl,
+                focusNode: _focus,
+                textInputAction: TextInputAction.done,
+                onSubmitted: (_) => _submit(),
+                style: TextStyle(
+                  fontFamily: 'Retro Gaming',
+                  fontSize: widget.fontSize,
+                  color: Colors.black,
+                ),
+                cursorColor: const Color(0xFF6B21A8),
+                decoration: InputDecoration(
+                  hintText: 'username',
+                  hintStyle: TextStyle(
+                    fontFamily: 'Retro Gaming',
+                    fontSize: widget.fontSize * 0.9,
+                    color: Colors.black45,
+                  ),
+                  border: InputBorder.none,
+                  isCollapsed: true,
+                ),
+              ),
+            ),
+          ),
+          SizedBox(width: widget.height * 0.2),
+          _IconRetroButton(
+            asset: 'assets/images/ui/btn_verde.png',
+            icon: Icons.person_add,
+            width: btnW,
+            height: widget.height,
+            onTap: _submit,
+          ),
+        ],
       ),
     );
   }

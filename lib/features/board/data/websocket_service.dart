@@ -433,8 +433,7 @@ class WebSocketService {
         'action': 'ini_round',
         'payload': {
           'minijuego': minigameName,
-          // MENSAJE HARCODEADO PARA FORZAR REFLEJOS Y TREN (MINIJUEGOS IMPLMENTADOS)
-          'descripcion': '¿Ser rapido es tu virtud?'
+          'descripcion': ''
         }
       };
       // Enviamos el paquete codificado al backend.

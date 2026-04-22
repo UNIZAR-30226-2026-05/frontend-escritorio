@@ -76,12 +76,14 @@ class GameController extends StateNotifier<GameState> {
     if (_isAnimating || _animationQueue.isEmpty) return;
     _isAnimating = true;
 
-    while (_animationQueue.isNotEmpty) {
-      final task = _animationQueue.removeAt(0);
-      await task();
+    try {
+      while (_animationQueue.isNotEmpty) {
+        final task = _animationQueue.removeAt(0);
+        await task();
+      }
+    } finally {
+      _isAnimating = false;
     }
-
-    _isAnimating = false;
   }
 
   // Método para recibir datos del backend sobre el movimiento de un jugador
@@ -321,6 +323,19 @@ class GameController extends StateNotifier<GameState> {
     String? description,
     Map<String, dynamic>? details,
   }) {
+    // Mapeo de descripciones únicas para cada minijuego (evita mensajes genéricos)
+    final Map<String, String> customDescriptions = {
+      'Reflejos': '¡Pulsa al ver la señal!',
+      'Tren': 'Cuenta cuántos osos hay en el tren',
+      'Cortar pan': '¡Corta el pan con precisión!',
+      'Cronometro ciego': 'Para el tiempo en el segundo exacto',
+      'Mayor o Menor': 'Adivina la próxima carta',
+      'Doble o Nada': 'Arriésgate a doblar tus monedas',
+      'Dilema del Prisionero': '¿Colaborar o traicionar? Tú decides',
+    };
+
+    final finalDesc = customDescriptions[name] ?? description;
+
     // Usamos el constructor directamente porque copyWith no puede poner
     // campos nullable a null (null ?? valorAnterior = valorAnterior).
     // Si llamamos copyWith(minigameResults: null), el ?? devuelve el
@@ -333,7 +348,7 @@ class GameController extends StateNotifier<GameState> {
       activePlayerIndex: state.activePlayerIndex,
       serverMessage: state.serverMessage,
       minigameName: name,
-      minigameDescription: description,
+      minigameDescription: finalDesc,
       minigameDetails: details,
       // minigameResults: null (por defecto) — reset intencional
       // minigameChoices: null (por defecto)

@@ -16,6 +16,7 @@ import 'widgets/banquero_modal.dart';
 import 'widgets/vidente_modal.dart';
 import 'widgets/win_screen_modal.dart';
 import 'widgets/ruleta_modal.dart';
+import 'widgets/inventory_panel.dart';
 
 // BoardScreen — Pantalla principal del tablero de juego
 // Layout fijo con tablero centrado y paneles UI superpuestos
@@ -421,12 +422,26 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
                 ),
               ),
 
-              // UI OVERLAY: Panel de jugadores (top-left)
+              // UI OVERLAY: Panel de jugadores y Inventario (top-left)
               Positioned(
                 top: 16,
                 left: 16,
-                child: _buildPlayerPanel(
-                    gameState, activePlayerId, myUsername ?? ''),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildPlayerPanel(
+                        gameState, activePlayerId, myUsername ?? ''),
+                    const SizedBox(height: 16),
+                    // Inventario del Jugador Local
+                    InventoryPanel(
+                      items: gameState.players
+                          .firstWhere((p) => p.username == myUsername,
+                              orElse: () => gameState.players.first)
+                          .itemInventory,
+                    ),
+                  ],
+                ),
               ),
               // UI OVERLAY: Menú Debug (top-right)
               _buildDebugMenu(),
@@ -499,7 +514,7 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
                 ),
 
               // UI OVERLAY: Modal de Ruleta
-              if (gameState.obtainedItemName != null)
+              if (gameState.obtainedItemName != null && !gameState.isMovementActive)
                 Positioned.fill(
                   child: Stack(
                     children: [
@@ -762,11 +777,7 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
     final total = gameState.lastDiceResult ?? (d1 + d2);
 
     // Obtener el ranking del jugador que acaba de tirar para los colores del dado 2
-    // Pero espera, el provider cambia el activePlayerIndex JUSTO después de tirar.
-    // Necesitamos el estilo del jugador que TIRÓ, no del que va ahora.
-    // Para simplificar, si d2 > 0 asumimos que es el dado por ranking.
-    final myRankIndex = (gameState.activePlayerIndex - 1) %
-        (gameState.turnOrder.isEmpty ? 1 : gameState.turnOrder.length);
+    final myRankIndex = gameState.activePlayerIndex;
     final rank = myRankIndex + 1;
 
     return Positioned.fill(

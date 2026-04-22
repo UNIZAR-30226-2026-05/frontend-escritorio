@@ -49,13 +49,11 @@ class ShopRepository {
   // Helper para traducir el backend (String) a tu Enum (ItemType)
   static ItemType parseItemType(String backendName) {
     switch (backendName) {
-      case 'Avanzar casillas': return ItemType.avanzarRetroceder;
-      case 'Mejorar dados': return ItemType.modificadorDado;
-      case 'Barreras de bloqueo temporal': return ItemType.barrera;
-      case 'Robar monedas': return ItemType.robarMonedas;
-      case 'Ruleta': return ItemType.ruleta;
-      case 'Quitar turno': return ItemType.quitarTurno;
-      case 'Salvavidas': return ItemType.salvavidas;
+      case 'Avanzar Casillas': return ItemType.avanzarRetroceder;
+      case 'Mejorar Dados': return ItemType.modificadorDado;
+      case 'Barrera': return ItemType.barrera;
+      case 'Salvavidas movimiento': return ItemType.salvavidas;
+      case 'Salvavidas bloqueo': return ItemType.salvavidas;
       default: return ItemType.ruleta; // Fallback
     }
   }

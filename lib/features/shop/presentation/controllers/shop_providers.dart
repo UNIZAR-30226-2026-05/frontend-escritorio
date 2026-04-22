@@ -6,6 +6,7 @@ import '../../data/shop_repository.dart';
 import '../../../board/presentation/controllers/game_provider.dart';
 import '../../../auth/presentation/controllers/auth_provider.dart';
 import '../../../../core/widgets/retro_widgets.dart';
+import '../../../board/presentation/widgets/target_selection_modal.dart';
 
 final shopProvider = Provider<ShopController>((ref) {
   return ShopController(ref);
@@ -32,8 +33,9 @@ class ShopController {
       'payload': {'objeto': item.name}
     };
 
+    final actionName = item.name.toLowerCase().contains('salvavidas') ? 'usar_salvavidas' : 'usar_objeto';
     final payloadUse = {
-      'action': 'usar_objeto',
+      'action': actionName,
       'payload': {
         'objeto': item.name,
         if (targetPlayerId != null) 'penalizar_a': targetPlayerId
@@ -47,8 +49,9 @@ class ShopController {
   }
 
   void useItem(String itemName, {String? targetPlayerId}) {
+    final actionName = itemName.toLowerCase().contains('salvavidas') ? 'usar_salvavidas' : 'usar_objeto';
     final payload = {
-      'action': 'usar_objeto',
+      'action': actionName,
       'payload': {
         'objeto': itemName,
         if (targetPlayerId != null) 'penalizar_a': targetPlayerId
@@ -257,16 +260,35 @@ class ShopModal extends ConsumerWidget {
                     ),
                     const SizedBox(height: 12),
 
-                    // BOTÓN DE COMPRA RETRO CON LA IMAGEN "btn_verde.png"
+                    // BOTÓN DE COMPRA Y USO RETRO
                     RetroImgButton(
-                      label: 'Comprar',
+                      label: 'Comprar y Usar',
                       asset: 'assets/images/ui/btn_verde.png',
                       width: 140, // tamaño compacto para cuadrar
                       height: 38,
-                      fontSize: 10,
+                      fontSize: 8, // Ajustado para que quepa el texto más largo
                       onTap: canAfford
                           ? () {
-                              ref.read(shopProvider).buyItem(item);
+                              if (item.name == 'Barrera') {
+                                // Si es una Barrera, primero pedimos el objetivo
+                                showDialog(
+                                  context: context,
+                                  barrierColor: Colors.black87,
+                                  builder: (context) => TargetSelectionModal(
+                                    itemName: item.name,
+                                    onClose: () => Navigator.of(context).pop(),
+                                    onTargetSelected: (target) {
+                                      ref.read(shopProvider).buyAndUseItem(item, targetPlayerId: target);
+                                      Navigator.of(context).pop();
+                                      onClose(); // Cerramos la tienda tras el uso exitoso
+                                    },
+                                  ),
+                                );
+                              } else {
+                                // Para el resto de objetos, compra y uso directo
+                                ref.read(shopProvider).buyAndUseItem(item);
+                                onClose(); // Cerramos la tienda
+                              }
                             }
                           : null,
                     ),

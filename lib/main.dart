@@ -27,7 +27,6 @@ class SnowPartyApp extends ConsumerStatefulWidget {
 // incluyendo el intento de cierre de ventana en escritorio (didRequestAppExit).
 class _SnowPartyAppState extends ConsumerState<SnowPartyApp>
     with WidgetsBindingObserver {
-
   @override
   void initState() {
     super.initState();

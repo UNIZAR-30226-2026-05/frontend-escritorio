@@ -10,6 +10,7 @@ import 'controllers/lobby_provider.dart';
 import '../../auth/presentation/controllers/auth_provider.dart';
 import '../../../core/widgets/retro_widgets.dart';
 import '../../board/presentation/widgets/character_selection_modal.dart';
+import 'widgets/rules_modal.dart';
 
 // AVISO: los metodos build se invocan automaticamente cada vex que cambia el estado del lobby.
 
@@ -37,12 +38,27 @@ class _LobbyScreenState extends ConsumerState<LobbyScreen> {
   final TextEditingController _codeController = TextEditingController();
   final FocusNode _codeFocus = FocusNode();
 
+  // Estado para mostrar la pantalla de cambiar contraseña en vez del panel central.
+  bool _showPasswordChange = false;
+  final TextEditingController _currentPassCtrl = TextEditingController();
+  final TextEditingController _newPassCtrl = TextEditingController();
+  final TextEditingController _confirmPassCtrl = TextEditingController();
+  final FocusNode _currentPassFocus = FocusNode();
+  final FocusNode _newPassFocus = FocusNode();
+  final FocusNode _confirmPassFocus = FocusNode();
+
   // Metodo de limpieza que se llama al destruir el widget.
   @override
   void dispose() {
     // Libera los recursos del controlador y el foco cuando el widget se destruye.
     _codeController.dispose();
     _codeFocus.dispose();
+    _currentPassCtrl.dispose();
+    _newPassCtrl.dispose();
+    _confirmPassCtrl.dispose();
+    _currentPassFocus.dispose();
+    _newPassFocus.dispose();
+    _confirmPassFocus.dispose();
     super.dispose();
   }
 
@@ -158,7 +174,8 @@ class _LobbyScreenState extends ConsumerState<LobbyScreen> {
           fit: StackFit.expand,
           children: [
             // Tablero de fondo
-            Image.asset('assets/images/board/tablero_def.png', fit: BoxFit.cover),
+            Image.asset('assets/images/board/tablero_def.png',
+                fit: BoxFit.cover),
             // Overlay oscuro
             Container(color: Colors.black.withValues(alpha: 0.6)),
             // Modal de selección de personaje centrado
@@ -201,24 +218,38 @@ class _LobbyScreenState extends ConsumerState<LobbyScreen> {
                   width: w * 0.33,
                   child: _LeftPanel(onLogout: _logout, w: w, h: h),
                 ),
-                // Columna central: crear partida, slots de jugadores y unirse por código.
+                // Columna central: crear partida / cambiar contraseña.
                 SizedBox(
                   width: w * 0.34,
-                  child: _CenterPanel(
-                    lobbyState: lobbyState,
-                    username: username,
-                    codeController: _codeController,
-                    codeFocus: _codeFocus,
-                    // Desactiva "Crear partida" mientras carga o ya hay una sala activa.
-                    onCrear: lobbyState.isLoading || lobbyState.gameId != null
-                        ? null
-                        : _crearPartida,
-                    // Desactiva "Unirse" si el jugador ya está en una sala.
-                    onUnirse:
-                        lobbyState.gameId != null ? null : _unirseConCodigo,
-                    onAbandonar: _abandonarPartida,
-                    w: w, h: h,
-                  ),
+                  child: _showPasswordChange
+                      ? _PasswordChangePanel(
+                          w: w,
+                          h: h,
+                          currentPassCtrl: _currentPassCtrl,
+                          newPassCtrl: _newPassCtrl,
+                          confirmPassCtrl: _confirmPassCtrl,
+                          currentPassFocus: _currentPassFocus,
+                          newPassFocus: _newPassFocus,
+                          confirmPassFocus: _confirmPassFocus,
+                          onBack: () =>
+                              setState(() => _showPasswordChange = false),
+                        )
+                      : _CenterPanel(
+                          lobbyState: lobbyState,
+                          username: username,
+                          codeController: _codeController,
+                          codeFocus: _codeFocus,
+                          onCrear:
+                              lobbyState.isLoading || lobbyState.gameId != null
+                                  ? null
+                                  : _crearPartida,
+                          onUnirse: lobbyState.gameId != null
+                              ? null
+                              : _unirseConCodigo,
+                          onAbandonar: _abandonarPartida,
+                          w: w,
+                          h: h,
+                        ),
                 ),
                 // Columna derecha: lista de amigos y enlace a las reglas.
                 SizedBox(
@@ -228,6 +259,49 @@ class _LobbyScreenState extends ConsumerState<LobbyScreen> {
               ],
             );
           }),
+
+          // Botón invisible sobre el pingüino "Reglas" (esquina inferior derecha)
+          Positioned(
+            right: 0,
+            bottom: 0,
+            child: GestureDetector(
+              onTap: () => showDialog(
+                context: context,
+                barrierColor: Colors.black87,
+                builder: (context) => const RulesModal(),
+              ),
+              behavior: HitTestBehavior.opaque,
+              child: Container(
+                width: MediaQuery.of(context).size.width * 0.12,
+                height: MediaQuery.of(context).size.height * 0.22,
+                color: Colors.transparent,
+              ),
+            ),
+          ),
+
+          // Botón engranaje "Cambiar Contraseña" (esquina inferior izquierda)
+          Positioned(
+            left: 10,
+            bottom: 10,
+            child: GestureDetector(
+              onTap: () =>
+                  setState(() => _showPasswordChange = !_showPasswordChange),
+              child: Container(
+                width: 42,
+                height: 42,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF2D1B4E),
+                  border: Border.all(color: Colors.white54, width: 1.5),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                alignment: Alignment.center,
+                child: const Text(
+                  '⚙️',
+                  style: TextStyle(fontSize: 22),
+                ),
+              ),
+            ),
+          ),
         ],
       ),
     );
@@ -584,6 +658,156 @@ class _CenterPanel extends StatelessWidget {
   }
 }
 
+// PANEL CENTRAL: CAMBIAR CONTRASEÑA
+// Reemplaza el panel central cuando el usuario pulsa el engranaje.
+// Muestra tres campos de contraseña y un botón de guardar, con un enlace
+// "VOLVER AL MENÚ" para regresar al panel central normal.
+class _PasswordChangePanel extends StatelessWidget {
+  final double w, h;
+  final TextEditingController currentPassCtrl;
+  final TextEditingController newPassCtrl;
+  final TextEditingController confirmPassCtrl;
+  final FocusNode currentPassFocus;
+  final FocusNode newPassFocus;
+  final FocusNode confirmPassFocus;
+  final VoidCallback onBack;
+
+  const _PasswordChangePanel({
+    required this.w,
+    required this.h,
+    required this.currentPassCtrl,
+    required this.newPassCtrl,
+    required this.confirmPassCtrl,
+    required this.currentPassFocus,
+    required this.newPassFocus,
+    required this.confirmPassFocus,
+    required this.onBack,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final titleSize = h * 0.042;
+    final textSize = h * 0.026;
+    final fieldW = w * 0.23;
+    final fieldH = h * 0.075;
+
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: w * 0.015),
+      child: Column(
+        mainAxisSize: MainAxisSize.max,
+        children: [
+          const Spacer(flex: 12),
+
+          // Título
+          Text(
+            'CAMBIAR\nCONTRASEÑA',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontFamily: 'Retro Gaming',
+              fontSize: titleSize,
+              color: Colors.white,
+              height: 1.3,
+              shadows: const [
+                Shadow(color: Colors.white, blurRadius: 18),
+                Shadow(color: Colors.white70, blurRadius: 8),
+              ],
+            ),
+          ),
+
+          const Spacer(flex: 6),
+
+          // Campo: Contraseña actual
+          RetroField(
+            label: 'CONTRASEÑA ACTUAL',
+            controller: currentPassCtrl,
+            focusNode: currentPassFocus,
+            fieldWidth: fieldW,
+            fieldHeight: fieldH,
+            labelFontSize: textSize * 0.7,
+            inputFontSize: textSize * 0.9,
+            obscureText: true,
+            color: Colors.white,
+            textInputAction: TextInputAction.next,
+            onSubmitted: () =>
+                FocusScope.of(context).requestFocus(newPassFocus),
+          ),
+
+          const Spacer(flex: 4),
+
+          // Campo: Nueva contraseña
+          RetroField(
+            label: 'NUEVA CONTRASEÑA',
+            controller: newPassCtrl,
+            focusNode: newPassFocus,
+            fieldWidth: fieldW,
+            fieldHeight: fieldH,
+            labelFontSize: textSize * 0.7,
+            inputFontSize: textSize * 0.9,
+            obscureText: true,
+            color: Colors.white,
+            textInputAction: TextInputAction.next,
+            onSubmitted: () =>
+                FocusScope.of(context).requestFocus(confirmPassFocus),
+          ),
+
+          const Spacer(flex: 4),
+
+          // Campo: Confirmar nueva
+          RetroField(
+            label: 'CONFIRMAR NUEVA',
+            controller: confirmPassCtrl,
+            focusNode: confirmPassFocus,
+            fieldWidth: fieldW,
+            fieldHeight: fieldH,
+            labelFontSize: textSize * 0.7,
+            inputFontSize: textSize * 0.9,
+            obscureText: true,
+            color: Colors.white,
+            textInputAction: TextInputAction.done,
+            onSubmitted: () {
+              // TODO: Integración real con backend
+              onBack();
+            },
+          ),
+
+          const Spacer(flex: 6),
+
+          // Botón Guardar
+          RetroImgButton(
+            label: 'Guardar',
+            asset: 'assets/images/ui/btn_verde.png',
+            width: w * 0.15,
+            height: h * 0.08,
+            fontSize: titleSize * 0.65,
+            onTap: () {
+              // TODO: Integración real con backend
+              onBack();
+            },
+          ),
+
+          const Spacer(flex: 4),
+
+          // Enlace volver al menú
+          GestureDetector(
+            onTap: onBack,
+            child: Text(
+              'VOLVER AL MENÚ',
+              style: TextStyle(
+                fontFamily: 'Retro Gaming',
+                fontSize: textSize * 0.75,
+                color: Colors.white70,
+                decoration: TextDecoration.underline,
+              ),
+            ),
+          ),
+
+          const Spacer(flex: 8),
+        ],
+      ),
+    );
+  }
+}
+
 // COLUMNA DERECHA
 // Clase privada que representa el panel lateral derecho con la lista de amigos
 // y el enlace a las reglas del juego en la parte inferior.
@@ -632,10 +856,8 @@ class _RightPanel extends StatelessWidget {
             ),
           ),
 
-          // Spacer empuja el botón de reglas hasta el fondo del panel.
           const Spacer(),
 
-          // TODO: Enlace a las reglas del juego, anclado en la esquina inferior izquierda.
           SizedBox(height: h * 0.02),
         ],
       ),
@@ -711,4 +933,3 @@ class _PlayerSlot extends StatelessWidget {
     );
   }
 }
-

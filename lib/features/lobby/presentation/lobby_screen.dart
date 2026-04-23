@@ -11,6 +11,7 @@ import 'controllers/lobby_provider.dart';
 import '../../auth/presentation/controllers/auth_provider.dart';
 import '../../../core/widgets/retro_widgets.dart';
 import '../../board/presentation/widgets/character_selection_modal.dart';
+import 'widgets/friend_search_modal.dart';
 import 'widgets/rules_modal.dart';
 
 // AVISO: los metodos build se invocan automaticamente cada vex que cambia el estado del lobby.
@@ -62,6 +63,7 @@ class _LobbyScreenState extends ConsumerState<LobbyScreen> {
         ref
             .read(sessionWebSocketProvider)
             .connect(auth.username!, auth.token!);
+            print( 'Conectado al WebSocket de sesión como ${auth.username}'); // Debug: log de conexión
       }
     });
   }
@@ -69,8 +71,6 @@ class _LobbyScreenState extends ConsumerState<LobbyScreen> {
   // Metodo de limpieza que se llama al destruir el widget.
   @override
   void dispose() {
-    // Cierra el WS de sesión al salir del lobby para evitar fugas de conexión.
-    ref.read(sessionWebSocketProvider).disconnect();
     // Libera los recursos del controlador y el foco cuando el widget se destruye.
     _codeController.dispose();
     _codeFocus.dispose();
@@ -211,6 +211,20 @@ class _LobbyScreenState extends ConsumerState<LobbyScreen> {
           ),
         );
         ref.read(lobbyProvider.notifier).clearLastInvite();
+      }
+      // Error devuelto por el WS de sesión al enviar una solicitud de amistad
+      // (p. ej. el destinatario no existe). Lo mostramos y lo limpiamos.
+      if (next.friendRequestError != null &&
+          (prev == null ||
+              prev.friendRequestError != next.friendRequestError)) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(next.friendRequestError!),
+            backgroundColor: Colors.redAccent,
+            duration: const Duration(seconds: 3),
+          ),
+        );
+        ref.read(lobbyProvider.notifier).clearFriendRequestError();
       }
       // Si el error indica que el token ha caducado o es inválido, cierra sesión.
       if (prev != null && next.error != null && next.error != prev.error) {
@@ -460,17 +474,6 @@ class _LeftPanel extends ConsumerWidget {
                     },
                   ),
           ),
-
-          // Formulario inferior para enviar una solicitud de amistad a un
-          // username concreto. Sirve para poder probar el flujo de solicitudes
-          // desde el propio lobby sin herramientas externas.
-          _AddFriendForm(
-            width: w * 0.30,
-            height: h * 0.055,
-            fontSize: textSize * 0.9,
-            onSend: session.sendFriendRequest,
-          ),
-          SizedBox(height: h * 0.015),
         ],
       ),
     );
@@ -930,7 +933,27 @@ class _RightPanel extends ConsumerWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SizedBox(height: h * 0.12),
+          SizedBox(height: h * 0.07),
+
+          // Botón para abrir el modal de búsqueda de jugadores, encima de la
+          // sección de amigos. Envía solicitudes de amistad por el WS de sesión.
+          Align(
+            alignment: Alignment.centerLeft,
+            child: RetroImgButton(
+              label: 'Buscar jugadores',
+              asset: 'assets/images/ui/btn_morado.png',
+              width: w * 0.18,
+              height: h * 0.06,
+              fontSize: textSize * 0.85,
+              onTap: () => showDialog(
+                context: context,
+                barrierColor: Colors.black87,
+                builder: (_) => const FriendSearchModal(),
+              ),
+            ),
+          ),
+
+          SizedBox(height: h * 0.025),
 
           // Título retro con doble sombra blanca.
           Text(
@@ -1285,109 +1308,6 @@ class _IconRetroButton extends StatelessWidget {
           ),
         ),
         child: Icon(icon, color: Colors.white, size: height * 0.55),
-      ),
-    );
-  }
-}
-
-// Formulario compacto para enviar una solicitud de amistad a un username.
-// Es Stateful porque mantiene su propio TextEditingController asociado al campo
-// de entrada, sin obligar al panel padre a gestionar focos/controladores.
-// Al enviar, limpia el campo y muestra un SnackBar informativo.
-class _AddFriendForm extends StatefulWidget {
-  final double width, height, fontSize;
-  // Callback que envía la solicitud al backend a través del WS de sesión.
-  final void Function(String playerId) onSend;
-
-  const _AddFriendForm({
-    required this.width,
-    required this.height,
-    required this.fontSize,
-    required this.onSend,
-  });
-
-  @override
-  State<_AddFriendForm> createState() => _AddFriendFormState();
-}
-
-class _AddFriendFormState extends State<_AddFriendForm> {
-  final TextEditingController _ctrl = TextEditingController();
-  final FocusNode _focus = FocusNode();
-
-  @override
-  void dispose() {
-    _ctrl.dispose();
-    _focus.dispose();
-    super.dispose();
-  }
-
-  void _submit() {
-    final target = _ctrl.text.trim();
-    if (target.isEmpty) return;
-    widget.onSend(target);
-    // Feedback al usuario y limpieza del campo para poder encadenar pruebas.
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Solicitud enviada a $target'),
-        duration: const Duration(seconds: 2),
-      ),
-    );
-    _ctrl.clear();
-    _focus.unfocus();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    // Botón compacto a la derecha del input con el asset verde y un icono "+".
-    final btnW = widget.height * 1.2;
-    return SizedBox(
-      width: widget.width,
-      child: Row(
-        children: [
-          Expanded(
-            child: Container(
-              height: widget.height,
-              decoration: const BoxDecoration(
-                image: DecorationImage(
-                  image: AssetImage('assets/images/ui/rellenable.png'),
-                  fit: BoxFit.fill,
-                ),
-              ),
-              alignment: Alignment.center,
-              padding: EdgeInsets.symmetric(horizontal: widget.width * 0.04),
-              child: TextField(
-                controller: _ctrl,
-                focusNode: _focus,
-                textInputAction: TextInputAction.done,
-                onSubmitted: (_) => _submit(),
-                style: TextStyle(
-                  fontFamily: 'Retro Gaming',
-                  fontSize: widget.fontSize,
-                  color: Colors.black,
-                ),
-                cursorColor: const Color(0xFF6B21A8),
-                decoration: InputDecoration(
-                  hintText: 'username',
-                  hintStyle: TextStyle(
-                    fontFamily: 'Retro Gaming',
-                    fontSize: widget.fontSize * 0.9,
-                    color: Colors.black45,
-                  ),
-                  border: InputBorder.none,
-                  isCollapsed: true,
-                ),
-              ),
-            ),
-          ),
-          SizedBox(width: widget.height * 0.2),
-          _IconRetroButton(
-            asset: 'assets/images/ui/btn_verde.png',
-            icon: Icons.person_add,
-            width: btnW,
-            height: widget.height,
-            onTap: _submit,
-          ),
-        ],
       ),
     );
   }

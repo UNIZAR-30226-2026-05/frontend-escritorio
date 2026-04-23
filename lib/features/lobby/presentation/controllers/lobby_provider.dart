@@ -21,9 +21,17 @@ class LobbyState {
   // desde el lobby actual. Sirve para pintar el chip "Invitado".
   // Se limpia al abandonar la partida o al terminarla.
   final Set<String> sentInvites;
+  // Usernames a los que el jugador local ha enviado una solicitud de amistad
+  // (aún sin aceptar/rechazar por el destinatario). Sirve para pintar el chip
+  // "Pendiente" en el buscador de jugadores y evitar reenvíos duplicados.
+  final Set<String> sentFriendRequests;
   // Lista de usernames con solicitudes de amistad pendientes de aceptar/rechazar.
   // Se inicializa con 'friend_requests_list' al conectar el WS de sesión.
   final List<String> friendRequests;
+  // Último error recibido por el WS de sesión al enviar una solicitud de amistad
+  // (por ejemplo, usuario inexistente). La UI lo consume mostrando un SnackBar
+  // y llama a clearFriendRequestError para resetearlo.
+  final String? friendRequestError;
   // Indica si el juego ha comenzado (los 4 jugadores se han conectado).
   final bool gameStarted;
   // Indica si este dispositivo ha sido desconectado a la fuerza por el backend.
@@ -47,7 +55,9 @@ class LobbyState {
     this.lastInvite,
     this.onlineFriends = const {},
     this.sentInvites = const {},
+    this.sentFriendRequests = const {},
     this.friendRequests = const [],
+    this.friendRequestError,
     this.gameStarted = false,
     this.selectedCharacters = const {},
     this.allCharactersSelected = false,
@@ -67,7 +77,9 @@ class LobbyState {
     GameInvite? lastInvite,
     Set<String>? onlineFriends,
     Set<String>? sentInvites,
+    Set<String>? sentFriendRequests,
     List<String>? friendRequests,
+    String? friendRequestError,
     bool? gameStarted,
     Map<String, String>? selectedCharacters,
     bool? allCharactersSelected,
@@ -79,6 +91,7 @@ class LobbyState {
     bool clearGameId = false,
     bool clearError = false,
     bool clearLastInvite = false,
+    bool clearFriendRequestError = false,
   }) =>
       LobbyState(
         // Si se pasa un nuevo valor para cada campo, se usa ese. Si no, se mantiene el valor actual del estado.
@@ -86,7 +99,11 @@ class LobbyState {
         invites: invites ?? this.invites,
         onlineFriends: onlineFriends ?? this.onlineFriends,
         sentInvites: sentInvites ?? this.sentInvites,
+        sentFriendRequests: sentFriendRequests ?? this.sentFriendRequests,
         friendRequests: friendRequests ?? this.friendRequests,
+        friendRequestError: clearFriendRequestError
+            ? null
+            : (friendRequestError ?? this.friendRequestError),
         gameStarted: gameStarted ?? this.gameStarted,
         selectedCharacters: selectedCharacters ?? this.selectedCharacters,
         allCharactersSelected: allCharactersSelected ?? this.allCharactersSelected,
@@ -180,6 +197,14 @@ class LobbyController extends StateNotifier<LobbyState> {
     final updated = {...state.onlineFriends};
     if (status == 'online') {
       updated.add(friendId);
+      // Si estaba en "pendiente" significa que ya nos ha aceptado: lo limpiamos
+      // para que el buscador deje de mostrar el chip "Pendiente".
+      final pending = {...state.sentFriendRequests}..remove(friendId);
+      state = state.copyWith(
+        onlineFriends: updated,
+        sentFriendRequests: pending,
+      );
+      return;
     } else {
       updated.remove(friendId);
       // Si el amigo se desconecta, invalida cualquier invitación pendiente que
@@ -188,7 +213,6 @@ class LobbyController extends StateNotifier<LobbyState> {
       state = state.copyWith(onlineFriends: updated, sentInvites: invites);
       return;
     }
-    state = state.copyWith(onlineFriends: updated);
   }
 
   // Llamado por el WS de sesión con la lista de solicitudes de amistad
@@ -220,6 +244,36 @@ class LobbyController extends StateNotifier<LobbyState> {
   void markInviteSent(String friendId) {
     if (state.sentInvites.contains(friendId)) return;
     state = state.copyWith(sentInvites: {...state.sentInvites, friendId});
+  }
+
+  // Registra que el jugador local ha enviado una solicitud de amistad al
+  // usuario indicado. Se usa en el buscador de jugadores para mostrar el chip
+  // "Pendiente" y evitar reenvíos duplicados mientras no responda.
+  void markFriendRequestSent(String playerId) {
+    if (state.sentFriendRequests.contains(playerId)) return;
+    state = state.copyWith(
+      sentFriendRequests: {...state.sentFriendRequests, playerId},
+    );
+  }
+
+  // Limpia la marca de solicitud de amistad pendiente (p. ej. cuando la otra
+  // persona nos acepta y aparece como amigo online, o si queremos invalidarla).
+  void clearFriendRequestSent(String playerId) {
+    if (!state.sentFriendRequests.contains(playerId)) return;
+    final updated = {...state.sentFriendRequests}..remove(playerId);
+    state = state.copyWith(sentFriendRequests: updated);
+  }
+
+  // Guarda un mensaje de error devuelto por el WS de sesión al intentar enviar
+  // una solicitud de amistad (p. ej. usuario inexistente). La UI lo muestra
+  // como SnackBar y después llama a clearFriendRequestError.
+  void setFriendRequestError(String message) {
+    state = state.copyWith(friendRequestError: message);
+  }
+
+  // Limpia el error tras mostrarlo al usuario.
+  void clearFriendRequestError() {
+    state = state.copyWith(clearFriendRequestError: true);
   }
 
 

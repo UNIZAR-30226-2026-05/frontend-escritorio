@@ -79,17 +79,52 @@ class AuthService {
 
   // Método getSession de la clase de autenticación.
   // Devuelve un Future (promesa) que contendrá un UserSession o null (es una función asíncorna).
-  // Recupera la sesión guardada, o null si no existe.
+  // Recupera la sesión guardada, o null si no existe o el token ha expirado.
+  // La validación del `exp` se hace localmente decodificando el payload del JWT,
+  // así el arranque de la app redirige a /login sin necesidad de pegarle al back.
   Future<UserSession?> getSession() async {
     // Lee el token y username del almacenamiento encriptado.
     final token = await _storage.read(key: _tokenKey);
     final username = await _storage.read(key: _usernameKey);
-    // Si ambos existen devuelve un objeto UserSession con ellos.
-    if (token != null && username != null) {
-      return UserSession(token: token, username: username);
+    // Si falta alguno, no hay sesión utilizable.
+    if (token == null || username == null) return null;
+    // Si el JWT ya ha expirado, limpiamos el storage para que vuelvas a /login
+    // en el próximo arranque sin residuos.
+    if (_isJwtExpired(token)) {
+      await clearSession();
+      return null;
     }
-    // Si falta alguno devuelve null (no hay sesión guardada).
-    return null;
+    return UserSession(token: token, username: username);
+  }
+
+  // Decodifica el payload del JWT y comprueba si el claim `exp` (unix seconds)
+  // está por debajo del instante actual. Si el token no es un JWT válido o no
+  // contiene `exp`, lo consideramos expirado por seguridad — no queremos
+  // arrastrar tokens indescifrables en la sesión.
+  bool _isJwtExpired(String token) {
+    try {
+      final parts = token.split('.');
+      if (parts.length != 3) return true;
+      // Normaliza el padding base64url que los JWT suelen omitir.
+      String payload = parts[1].replaceAll('-', '+').replaceAll('_', '/');
+      switch (payload.length % 4) {
+        case 2:
+          payload += '==';
+          break;
+        case 3:
+          payload += '=';
+          break;
+      }
+      final decoded = utf8.decode(base64.decode(payload));
+      final map = jsonDecode(decoded) as Map<String, dynamic>;
+      final exp = map['exp'];
+      if (exp is! int) return true;
+      // `exp` viene en segundos unix; DateTime.now() en ms, dividimos por 1000.
+      final nowSeconds = DateTime.now().millisecondsSinceEpoch ~/ 1000;
+      return exp <= nowSeconds;
+    } catch (_) {
+      return true;
+    }
   }
 
   // Método clearSession de la clase de autenticación.

@@ -24,6 +24,11 @@ class SessionWebSocketService {
   WebSocketChannel? _channel;
   bool _isConnected = false;
 
+  // Cola FIFO de destinatarios de send_request a la espera de confirmación.
+  // Si llega un error del back asumimos que corresponde al envío más antiguo
+  // sin resolver y revertimos la marca "Pendiente" de ese usuario.
+  final List<String> _pendingFriendRequestTargets = [];
+
   // Credenciales para reconexión automática si se cae la conexión.
   String? _savedUsername;
   String? _savedToken;
@@ -90,6 +95,25 @@ class SessionWebSocketService {
       final decoded = jsonDecode(message) as Map<String, dynamic>;
       final notifier = _ref.read(lobbyProvider.notifier);
 
+      // Errores genéricos del back en formato {"error": "..."}. El back no
+      // especifica a qué acción pertenece el error, pero en la práctica las
+      // respuestas del WS llegan en orden, así que asumimos que corresponde al
+      // envío más antiguo pendiente de la cola de solicitudes de amistad.
+      if (decoded.containsKey('error')) {
+        final errorMsg = decoded['error']?.toString() ?? 'Error desconocido';
+        if (_pendingFriendRequestTargets.isNotEmpty) {
+          final target = _pendingFriendRequestTargets.removeAt(0);
+          notifier.clearFriendRequestSent(target);
+          notifier.setFriendRequestError(
+            'No se pudo enviar la solicitud a "$target": $errorMsg',
+          );
+        } else {
+          notifier.setFriendRequestError(errorMsg);
+        }
+        return;
+      }
+
+      print('Mensaje WS recibido: $decoded'); // Debug: log de mensajes entrantes
       switch (decoded['type'] as String?) {
         // Amigo cambia entre online/offline.
         case 'friend_status_update':
@@ -102,10 +126,20 @@ class SessionWebSocketService {
 
         // Lista de solicitudes pendientes al iniciar sesión.
         case 'friend_requests_list':
+          print('Lista de solicitudes de amistad recibida: ${decoded['lista']}'); // Debug: log de la lista recibida
           final list = (decoded['lista'] as List<dynamic>? ?? [])
               .map((e) => e.toString())
               .toList();
           notifier.onFriendRequestsList(list);
+          break;
+
+        case 'user_not_exists':
+          final target = _pendingFriendRequestTargets.isNotEmpty
+              ? _pendingFriendRequestTargets.removeAt(0)
+              : 'Usuario desconocido';
+          notifier.clearFriendRequestSent(target);
+          notifier.setFriendRequestError('No existe el usuario "$target"');
+          print('Error: Usuario "$target" no existe');
           break;
 
         default:
@@ -157,6 +191,11 @@ class SessionWebSocketService {
   // Envía una solicitud de amistad a otro usuario.
   void sendFriendRequest(String playerId) {
     _sendRaw({'action': 'send_request', 'player_id': playerId});
+    // Marca localmente la solicitud como pendiente para que la UI muestre
+    // "Pendiente" sin esperar un eco del servidor. Si el back responde con
+    // error (p. ej. usuario inexistente), el listener revertirá esta marca.
+    _ref.read(lobbyProvider.notifier).markFriendRequestSent(playerId);
+    _pendingFriendRequestTargets.add(playerId);
   }
 
   // Acepta una solicitud de amistad pendiente.

@@ -55,6 +55,7 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
     'Dilema del Prisionero',
     'Test: Fin de Partida',
     'Ruleta',
+    'Poker',
   ];
 
   // Coordenadas de los centros de las casillas en el tablero

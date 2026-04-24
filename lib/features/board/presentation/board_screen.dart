@@ -411,10 +411,36 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
                           top: topPos,
                           width: spriteSize,
                           height: spriteSize,
-                          child: Image.asset(
-                            getCharacterImagePath(
-                                p.characterClass, isFacingRight),
-                            fit: BoxFit.contain,
+                          child: Stack(
+                            clipBehavior: Clip.none,
+                            alignment: Alignment.center,
+                            children: [
+                              // Drop-shadow oval underneath the token
+                              Positioned(
+                                bottom: -spriteSize * 0.05,
+                                child: Container(
+                                  width: spriteSize * 0.8,
+                                  height: spriteSize * 0.15,
+                                  decoration: BoxDecoration(
+                                    color: Colors.black.withValues(alpha: 0.4),
+                                    borderRadius: BorderRadius.circular(50),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black.withValues(alpha: 0.4),
+                                        blurRadius: 4,
+                                        spreadRadius: 1,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                              // The penguin sprite
+                              Image.asset(
+                                getCharacterImagePath(
+                                    p.characterClass, isFacingRight),
+                                fit: BoxFit.contain,
+                              ),
+                            ],
                           ),
                         );
                       }),
@@ -1153,15 +1179,33 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
       );
     }
 
-    return Container(
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeOut,
       width: 200,
       padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 8),
+      transform: isActive ? Matrix4.diagonal3Values(1.05, 1.05, 1.0) : Matrix4.identity(),
+      transformAlignment: Alignment.center,
       decoration: BoxDecoration(
         color: cardBgColor,
         border: Border.all(
           color: isActive ? activeBorderColor : inactiveBorderColor,
           width: isActive ? 2 : 1,
         ),
+        boxShadow: isActive
+            ? [
+                BoxShadow(
+                  color: const Color(0xFF4ADE80).withValues(alpha: 0.8),
+                  blurRadius: 12,
+                  spreadRadius: 0,
+                ),
+                BoxShadow(
+                  color: const Color(0xFF4ADE80).withValues(alpha: 0.4),
+                  blurRadius: 20,
+                  spreadRadius: 0,
+                ),
+              ]
+            : [],
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,

@@ -82,6 +82,13 @@ class ShopModal extends ConsumerWidget {
           orElse: () => ref.watch(gameProvider).players.first,
         );
 
+    // Ranking: determine if local player is in 1st place
+    final gameState = ref.watch(gameProvider);
+    final sortedPlayers = gameState.players.toList()
+      ..sort((a, b) => b.currentTileIndex.compareTo(a.currentTileIndex));
+    final myRank = sortedPlayers.indexWhere((p) => p.username == myUsername) + 1;
+    final isFirstPlace = myRank == 1 && myUsername != null;
+
     return Container(
       width: 900,
       padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 24),
@@ -187,28 +194,56 @@ class ShopModal extends ConsumerWidget {
                             right: -5,
                             top: -5,
                             child: Container(
-                              width: 24,
-                              height: 24,
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 6, vertical: 2),
                               decoration: BoxDecoration(
-                                color: const Color(0xFFE53935),
-                                shape: BoxShape.circle,
-                                border: Border.all(color: Colors.white, width: 2),
+                                color: const Color(0xFFFFEB3B),
+                                border:
+                                    Border.all(color: Colors.black, width: 2),
                                 boxShadow: const [
                                   BoxShadow(
                                     color: Colors.black54,
                                     blurRadius: 4,
-                                    offset: Offset(1, 1), // Sombras estilo Pixel Art
+                                    offset: Offset(1, 1),
                                   )
                                 ],
                               ),
-                              alignment: Alignment.center,
                               child: Text(
-                                '$itemCount',
+                                'x$itemCount',
                                 style: const TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.bold,
                                   fontFamily: 'Retro Gaming',
+                                  fontSize: 10,
+                                  color: Colors.black,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ),
+                        if (isFirstPlace && item.name == 'Mejorar Dados')
+                          Positioned.fill(
+                            child: Center(
+                              child: Transform.rotate(
+                                angle: -0.26,
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 4, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFDC2626),
+                                    border: Border.all(
+                                        color: Colors.white, width: 2),
+                                    boxShadow: const [
+                                      BoxShadow(
+                                          color: Colors.black45, blurRadius: 4)
+                                    ],
+                                  ),
+                                  child: const Text(
+                                    'PROHIBIDO',
+                                    style: TextStyle(
+                                      fontFamily: 'Retro Gaming',
+                                      fontSize: 10,
+                                      color: Colors.white,
+                                    ),
+                                  ),
                                 ),
                               ),
                             ),

@@ -246,15 +246,24 @@ class _MinigameOverlayState extends ConsumerState<MinigameOverlay> {
       children: [
         const Text(
           'PREPÁRATE...',
-          style: TextStyle(color: Colors.white, fontSize: 24),
+          style: TextStyle(
+            color: Colors.white70,
+            fontFamily: 'Retro Gaming',
+            fontSize: 20,
+            letterSpacing: 2,
+          ),
         ),
-        const SizedBox(height: 20),
+        const SizedBox(height: 30),
         Text(
           '$_countdown',
           style: const TextStyle(
             color: Colors.white,
-            fontSize: 80,
+            fontFamily: 'Retro Gaming',
+            fontSize: 100,
             fontWeight: FontWeight.bold,
+            shadows: [
+              Shadow(color: Colors.amber, blurRadius: 20),
+            ],
           ),
         ),
       ],
@@ -279,7 +288,12 @@ class _MinigameOverlayState extends ConsumerState<MinigameOverlay> {
         const Text(
           '🏆 RESULTADOS',
           style: TextStyle(
-              color: Colors.amber, fontSize: 28, fontWeight: FontWeight.bold),
+            color: Colors.amber,
+            fontFamily: 'Retro Gaming',
+            fontSize: 24,
+            fontWeight: FontWeight.bold,
+            letterSpacing: 2,
+          ),
         ),
         const SizedBox(height: 24),
         Container(

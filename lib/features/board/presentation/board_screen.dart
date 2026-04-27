@@ -29,6 +29,14 @@ class BoardScreen extends ConsumerStatefulWidget {
 
 class _BoardScreenState extends ConsumerState<BoardScreen> {
   bool _isShopOpen = false;
+  // Estados locales para la animación de dados
+  int _lastHandledDiceId = 0;
+  bool _isRolling = false;
+  int _tempDice1 = 1;
+  int _tempDice2 = 1;
+  Timer? _rollTimer;
+
+  // Lista de minijuegos para el menú de debug
   Timer? _choiceTimer;
   int _choiceCountdown = 10;
   bool _hasRolledThisTurn = false;
@@ -158,7 +166,32 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
   @override
   void dispose() {
     _choiceTimer?.cancel();
+    _rollTimer?.cancel();
     super.dispose();
+  }
+
+  void _triggerDiceAnimation(int d1, int d2) {
+    _rollTimer?.cancel();
+    setState(() {
+      _isRolling = true;
+    });
+
+    int count = 0;
+    _rollTimer = Timer.periodic(const Duration(milliseconds: 100), (timer) {
+      setState(() {
+        _tempDice1 = Random().nextInt(6) + 1;
+        _tempDice2 = Random().nextInt(6) + 1;
+      });
+      count++;
+      if (count >= 10) {
+        timer.cancel();
+        setState(() {
+          _isRolling = false;
+          _tempDice1 = d1;
+          _tempDice2 = d2;
+        });
+      }
+    });
   }
 
   // Para poder poner/quitar el overlay de debug
@@ -489,23 +522,29 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
                         gameState.players
                                 .firstWhere((p) => p.username == myUsername)
                                 .characterClass ==
-                            CharacterClass.banquero) ...[
+                            CharacterClass.banquero)
                       _buildPixelButton(
                         text: 'HABILIDAD',
                         onPressed: () {
                           setState(() => _isBanqueroOpen = true);
                         },
                       ),
-                      const SizedBox(height: 16),
-                    ],
-                    // Botón Tienda (Siempre visible)
-                    _buildPixelButton(
-                      text: 'TIENDA',
-                      onPressed: () {
-                        setState(() => _isShopOpen = true);
-                      },
-                    ),
                   ],
+                ),
+              ),
+
+              // Botón Tienda (Independiente, alineado con la web: bottom-6 left-6 -> 24px)
+              Positioned(
+                bottom: 24.0,
+                left: 24.0,
+                child: _buildPixelButton(
+                  text: 'TIENDA',
+                  width: 140,
+                  height: 48,
+                  fontSize: 14,
+                  onPressed: () {
+                    setState(() => _isShopOpen = true);
+                  },
                 ),
               ),
 
@@ -731,7 +770,7 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
             const SizedBox(height: 40),
             // Botón específico para tirar
             _buildPixelButton(
-              text: 'TIRAR DADOS',
+              text: hasTwoDice ? 'TIRAR DADOS' : 'TIRAR DADO',
               onPressed: () {
                 setState(() => _hasRolledThisTurn = true);
                 ref.read(webSocketProvider).rollDiceCommand(gameId, myUsername);
@@ -799,9 +838,17 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
 
   // WIDGET: Overlay de resultado de dados (Animado)
   Widget _buildDiceResultOverlay(GameState gameState) {
-    final d1 = gameState.lastDice1;
-    final d2 = gameState.lastDice2;
-    final total = gameState.lastDiceResult ?? (d1 + d2);
+    // Detectar nuevo lanzamiento
+    if (gameState.lastDiceRollId != _lastHandledDiceId) {
+      _lastHandledDiceId = gameState.lastDiceRollId;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _triggerDiceAnimation(gameState.lastDice1, gameState.lastDice2);
+      });
+    }
+
+    final d1 = _isRolling ? _tempDice1 : gameState.lastDice1;
+    final d2 = _isRolling ? _tempDice2 : gameState.lastDice2;
+    final total = _isRolling ? (d1 + d2) : (gameState.lastDiceResult ?? (d1 + d2));
 
     // Obtener el ranking del jugador que acaba de tirar para los colores del dado 2
     final myRankIndex = gameState.activePlayerIndex;
@@ -839,9 +886,9 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Text(
-                    'RESULTADO',
-                    style: TextStyle(
+                  Text(
+                    _isRolling ? 'TIRANDO...' : 'RESULTADO',
+                    style: const TextStyle(
                       color: Colors.white70,
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
@@ -853,7 +900,7 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       _buildDiceFace(d1, Colors.white, Colors.black87),
-                      if (d2 > 0) ...[
+                      if (gameState.lastDice2 > 0 || (_isRolling && gameState.players[gameState.activePlayerIndex].diceInventory.isNotEmpty)) ...[
                         const SizedBox(width: 20),
                         _buildDiceFace(
                           d2,
@@ -866,12 +913,12 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
                   const SizedBox(height: 20),
                   Text(
                     '$total',
-                    style: const TextStyle(
-                      color: Colors.amber,
+                    style: TextStyle(
+                      color: _isRolling ? Colors.white38 : Colors.amber,
                       fontSize: 48,
                       fontWeight: FontWeight.bold,
-                      shadows: [
-                        Shadow(color: Colors.orange, blurRadius: 10),
+                      shadows: _isRolling ? [] : [
+                        const Shadow(color: Colors.orange, blurRadius: 10),
                       ],
                     ),
                   ),
@@ -1156,7 +1203,6 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
   }
 
   Widget _buildPlayerRow(Player player, bool isActive, bool isMe) {
-    // Colores basados en la imagen
     const Color cardBgColor = Color(0xFF422B7A);
     const Color activeBorderColor = Color(0xFF3CD37D);
     const Color inactiveBorderColor = Colors.white;
@@ -1195,12 +1241,12 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
         boxShadow: isActive
             ? [
                 BoxShadow(
-                  color: const Color(0xFF4ADE80).withValues(alpha: 0.8),
+                  color: const Color(0xFF3CD37D).withValues(alpha: 0.8),
                   blurRadius: 12,
                   spreadRadius: 0,
                 ),
                 BoxShadow(
-                  color: const Color(0xFF4ADE80).withValues(alpha: 0.4),
+                  color: const Color(0xFF3CD37D).withValues(alpha: 0.4),
                   blurRadius: 20,
                   spreadRadius: 0,
                 ),
@@ -1208,93 +1254,106 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
             : [],
       ),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          // Avatar miniatura
-          Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              color: badgeColor,
-              border: Border.all(color: Colors.white, width: 1.5),
-            ),
-            child: Stack(
-              children: [
-                Padding(
-                  padding: const EdgeInsets.all(2.0),
-                  child: avatarWidget,
+          // Avatar con Badge de rol
+          Stack(
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: badgeColor.withValues(alpha: 0.2),
+                  border: Border.all(color: Colors.white24),
                 ),
-                if (player.penaltyTurns > 0)
-                  Positioned(
-                    bottom: -2,
-                    right: -2,
-                    child: Container(
-                      decoration: const BoxDecoration(
-                          color: Colors.black54, shape: BoxShape.circle),
-                      child: const Icon(Icons.lock,
-                          color: Colors.redAccent, size: 16),
+                child: Stack(
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.all(2.0),
+                      child: avatarWidget,
                     ),
+                    if (player.penaltyTurns > 0)
+                      Positioned(
+                        bottom: -2,
+                        right: -2,
+                        child: Container(
+                          decoration: const BoxDecoration(
+                              color: Colors.black54, shape: BoxShape.circle),
+                          child: const Icon(Icons.lock,
+                              color: Colors.redAccent, size: 16),
+                        ),
+                      ),
+                    if (!player.isConnected)
+                      Positioned(
+                        top: -2,
+                        right: -2,
+                        child: Container(
+                          decoration: const BoxDecoration(
+                              color: Colors.black54, shape: BoxShape.circle),
+                          child: const Icon(Icons.wifi_off,
+                              color: Colors.redAccent, size: 16),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+              Positioned(
+                bottom: 0,
+                right: 0,
+                child: Container(
+                  width: 12,
+                  height: 12,
+                  decoration: BoxDecoration(
+                    color: badgeColor,
+                    border: Border.all(color: Colors.white, width: 1),
                   ),
-                if (!player.isConnected)
-                  Positioned(
-                    top: -2,
-                    right: -2,
-                    child: Container(
-                      decoration: const BoxDecoration(
-                          color: Colors.black54, shape: BoxShape.circle),
-                      child: const Icon(Icons.wifi_off,
-                          color: Colors.redAccent, size: 16),
-                    ),
-                  ),
-              ],
-            ),
+                ),
+              ),
+            ],
           ),
-          const SizedBox(width: 8),
-
-          // Nombre y clase
+          const SizedBox(width: 10),
+          // Info
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                FittedBox(
-                  fit: BoxFit.scaleDown,
-                  alignment: Alignment.centerLeft,
-                  child: Text(
-                    player.username,
-                    maxLines: 1,
-                    softWrap: false,
-                    style: const TextStyle(
-                      fontFamily: 'Retro Gaming',
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 12,
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
+                      child: Text(
+                        player.username.toUpperCase(),
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                          fontFamily: 'Retro Gaming',
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ),
-                  ),
+                    Text(
+                      '${player.coins}¢',
+                      style: const TextStyle(
+                        color: Color(0xFFFFD700),
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                        fontFamily: 'Retro Gaming',
+                      ),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  _getClassName(player.characterClass).toUpperCase(),
-                  style: const TextStyle(
-                    fontFamily: 'Retro Gaming',
-                    color: Colors.white70,
+                  _getClassName(player.characterClass),
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.6),
                     fontSize: 8,
+                    letterSpacing: 1,
+                    fontFamily: 'Retro Gaming',
                   ),
-                  overflow: TextOverflow.ellipsis,
                 ),
               ],
-            ),
-          ),
-          const SizedBox(width: 4),
-
-          // Monedas
-          Text(
-            '${player.coins}e',
-            style: const TextStyle(
-              fontFamily: 'Retro Gaming',
-              color: Color(0xFFFFD700),
-              fontWeight: FontWeight.bold,
-              fontSize: 12,
             ),
           ),
         ],
@@ -1328,16 +1387,18 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
     }
   }
 
-  // WIDGET: Botón con sprite morado pixel art
   Widget _buildPixelButton({
     required String text,
     VoidCallback? onPressed,
+    double width = 160,
+    double height = 52,
+    double fontSize = 16,
   }) {
     return GestureDetector(
       onTap: onPressed,
       child: Container(
-        width: 160,
-        height: 52,
+        width: width,
+        height: height,
         decoration: BoxDecoration(
           image: const DecorationImage(
             image: AssetImage('assets/images/ui/btn_morado.png'),
@@ -1354,12 +1415,12 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
         child: Center(
           child: Text(
             text,
-            style: const TextStyle(
+            style: TextStyle(
               color: Colors.white,
               fontWeight: FontWeight.bold,
-              fontSize: 16,
+              fontSize: fontSize,
               letterSpacing: 2,
-              shadows: [
+            shadows: const [
                 Shadow(
                   color: Color(0xFF000000),
                   offset: Offset(1, 1),

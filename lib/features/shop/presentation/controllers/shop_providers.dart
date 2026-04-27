@@ -33,7 +33,9 @@ class ShopController {
       'payload': {'objeto': item.name}
     };
 
-    final actionName = item.name.toLowerCase().contains('salvavidas') ? 'usar_salvavidas' : 'usar_objeto';
+    final actionName = item.name.toLowerCase().contains('salvavidas')
+        ? 'usar_salvavidas'
+        : 'usar_objeto';
     final payloadUse = {
       'action': actionName,
       'payload': {
@@ -49,7 +51,9 @@ class ShopController {
   }
 
   void useItem(String itemName, {String? targetPlayerId}) {
-    final actionName = itemName.toLowerCase().contains('salvavidas') ? 'usar_salvavidas' : 'usar_objeto';
+    final actionName = itemName.toLowerCase().contains('salvavidas')
+        ? 'usar_salvavidas'
+        : 'usar_objeto';
     final payload = {
       'action': actionName,
       'payload': {
@@ -63,7 +67,7 @@ class ShopController {
   }
 }
 
-class ShopModal extends ConsumerWidget {
+class ShopModal extends ConsumerStatefulWidget {
   final int playerCoins;
   final VoidCallback onClose;
 
@@ -74,19 +78,26 @@ class ShopModal extends ConsumerWidget {
   });
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    // Obtenemos el inventario del jugador activo para los contadores
+  ConsumerState<ShopModal> createState() => _ShopModalState();
+}
+
+class _ShopModalState extends ConsumerState<ShopModal> {
+  int _avanzarCount = 0;
+
+  @override
+  Widget build(BuildContext context) {
     final myUsername = ref.watch(authProvider).username;
-    final player = ref.watch(gameProvider).players.firstWhere(
-          (p) => p.username == myUsername,
-          orElse: () => ref.watch(gameProvider).players.first,
-        );
+    final gameState = ref.watch(gameProvider);
+    final player = gameState.players.firstWhere(
+      (p) => p.username == myUsername,
+      orElse: () => gameState.players.first,
+    );
 
     // Ranking: determine if local player is in 1st place
-    final gameState = ref.watch(gameProvider);
     final sortedPlayers = gameState.players.toList()
       ..sort((a, b) => b.currentTileIndex.compareTo(a.currentTileIndex));
-    final myRank = sortedPlayers.indexWhere((p) => p.username == myUsername) + 1;
+    final myRank =
+        sortedPlayers.indexWhere((p) => p.username == myUsername) + 1;
     final isFirstPlace = myRank == 1 && myUsername != null;
 
     return Container(
@@ -94,7 +105,8 @@ class ShopModal extends ConsumerWidget {
       padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 24),
       decoration: BoxDecoration(
         color: const Color(0xFF2D1B4E),
-        border: Border.all(color: Colors.white, width: 2), // Sin borde redondeado
+        border:
+            Border.all(color: Colors.white, width: 2), // Sin borde redondeado
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.7),
@@ -126,7 +138,7 @@ class ShopModal extends ConsumerWidget {
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   Text(
-                    '$playerCoins¢',
+                    '${widget.playerCoins}¢',
                     style: const TextStyle(
                       color: Color(0xFFFFD700), // Amarillo oro para la moneda
                       fontWeight: FontWeight.bold,
@@ -136,14 +148,20 @@ class ShopModal extends ConsumerWidget {
                   ),
                   const SizedBox(width: 24),
                   GestureDetector(
-                    onTap: onClose,
-                    child: const Text(
-                      'X',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 22,
-                        fontFamily: 'Retro Gaming',
+                    onTap: widget.onClose,
+                    child: Container(
+                      padding: const EdgeInsets.all(4),
+                      decoration: BoxDecoration(
+                        border: Border.all(color: Colors.white54),
+                      ),
+                      child: const Text(
+                        'X',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 18,
+                          fontFamily: 'Retro Gaming',
+                        ),
                       ),
                     ),
                   ),
@@ -160,11 +178,28 @@ class ShopModal extends ConsumerWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: ShopRepository.catalog.map((item) {
-              final canAfford = playerCoins >= item.price;
-              // Calculamos cuántos objetos de este tipo tiene en el inventario
-              final itemCount = player.itemInventory
-                  .where((i) => i == item.effectType)
-                  .length;
+              final canAfford = widget.playerCoins >= item.price;
+
+              final bool isAvanzar = item.name == 'Avanzar Casillas';
+              final int itemCount = (isAvanzar && _avanzarCount > 0) ? 1 : 0;
+              
+              // Lógica de deshabilitado alineada con la web
+              final bool isBlocked = player.penaltyTurns > 0;
+              final bool hasMoved = gameState.isMovementActive ||
+                  gameState.lastDiceResult != null;
+
+              bool isDisabled = isBlocked;
+              String disabledReason = '';
+
+              if (isBlocked) {
+                disabledReason = 'BLOQUEADO';
+              } else if (isAvanzar && hasMoved) {
+                isDisabled = true;
+                disabledReason = 'SOLO ANTES DE TIRAR';
+              } else if (!canAfford) {
+                isDisabled = true;
+                disabledReason = 'SIN MONEDAS';
+              }
 
               return Container(
                 width: 200,
@@ -173,7 +208,8 @@ class ShopModal extends ConsumerWidget {
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
                   color: const Color(0xFF2D1B4E), // Mismo fondo morado
-                  border: Border.all(color: Colors.white, width: 2), // Borde blanco afilado
+                  border: Border.all(
+                      color: Colors.white, width: 2), // Borde blanco afilado
                 ),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
@@ -185,7 +221,8 @@ class ShopModal extends ConsumerWidget {
                         SizedBox(
                           height: 54,
                           child: Center(
-                            child: Image.asset(item.icon, height: 48, filterQuality: FilterQuality.none),
+                            child: Image.asset(item.icon,
+                                height: 48, filterQuality: FilterQuality.none),
                           ),
                         ),
                         if (itemCount > 0)
@@ -208,7 +245,7 @@ class ShopModal extends ConsumerWidget {
                                 ],
                               ),
                               child: Text(
-                                'x$itemCount',
+                                '×$itemCount',
                                 style: const TextStyle(
                                   fontFamily: 'Retro Gaming',
                                   fontSize: 10,
@@ -295,36 +332,63 @@ class ShopModal extends ConsumerWidget {
                     const SizedBox(height: 12),
 
                     // BOTÓN DE COMPRA Y USO RETRO
-                    RetroImgButton(
-                      label: 'Comprar y Usar',
-                      asset: 'assets/images/ui/btn_verde.png',
-                      width: 140, // tamaño compacto para cuadrar
-                      height: 38,
-                      fontSize: 8, // Ajustado para que quepa el texto más largo
-                      onTap: canAfford
-                          ? () {
-                              if (item.name == 'Barrera') {
-                                // Si es una Barrera, primero pedimos el objetivo
-                                showDialog(
-                                  context: context,
-                                  barrierColor: Colors.black87,
-                                  builder: (context) => TargetSelectionModal(
-                                    itemName: item.name,
-                                    onClose: () => Navigator.of(context).pop(),
-                                    onTargetSelected: (target) {
-                                      ref.read(shopProvider).buyAndUseItem(item, targetPlayerId: target);
-                                      Navigator.of(context).pop();
-                                      onClose(); // Cerramos la tienda tras el uso exitoso
-                                    },
-                                  ),
-                                );
-                              } else {
-                                // Para el resto de objetos, compra y uso directo
-                                ref.read(shopProvider).buyAndUseItem(item);
-                                onClose(); // Cerramos la tienda
-                              }
-                            }
-                          : null,
+                    Column(
+                      children: [
+                        RetroImgButton(
+                          label: 'COMPRAR',
+                          asset: 'assets/images/ui/btn_verde.png',
+                          width: 140, // tamaño compacto para cuadrar
+                          height: 38,
+                          fontSize: 10,
+                          onTap: (canAfford && !isDisabled)
+                              ? () {
+                                  if (item.name == 'Barrera') {
+                                    // Si es una Barrera, primero pedimos el objetivo
+                                    showDialog(
+                                      context: context,
+                                      barrierColor: Colors.black87,
+                                      builder: (context) =>
+                                          TargetSelectionModal(
+                                        itemName: item.name,
+                                        onClose: () =>
+                                            Navigator.of(context).pop(),
+                                        onTargetSelected: (target) {
+                                          ref.read(shopProvider).buyAndUseItem(
+                                              item,
+                                              targetPlayerId: target);
+                                          Navigator.of(context).pop();
+                                          // Se ha quitado onClose() para que la tienda permanezca abierta como en web
+                                        },
+                                      ),
+                                    );
+                                  } else {
+                                    // Para el resto de objetos, compra y uso directo
+                                    ref.read(shopProvider).buyAndUseItem(item);
+                                    if (isAvanzar) {
+                                      setState(() {
+                                        _avanzarCount++;
+                                      });
+                                    }
+                                    // Se ha quitado onClose() para paridad con web
+                                  }
+                                }
+                              : null,
+                        ),
+                        if (isDisabled)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 4),
+                            child: Text(
+                              disabledReason,
+                              style: const TextStyle(
+                                color: Color(0xFFFFB3B3),
+                                fontSize: 7,
+                                fontFamily: 'Retro Gaming',
+                                fontWeight: FontWeight.bold,
+                              ),
+                              textAlign: TextAlign.center,
+                            ),
+                          ),
+                      ],
                     ),
                   ],
                 ),

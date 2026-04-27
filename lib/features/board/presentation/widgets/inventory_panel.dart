@@ -56,81 +56,43 @@ class InventoryPanel extends ConsumerWidget {
             ),
           ),
 
-          // Listado de objetos usando tus ItemType
+          // Listado de objetos únicos
           Flexible(
-            child: ListView.builder(
-              shrinkWrap: true,
-              itemCount: items.length,
-              itemBuilder: (context, index) {
-                final type = items[index];
-                // Buscamos los datos visuales (icono/nombre) en el repositorio de la tienda
-                final itemData = ShopRepository.getItemByType(type);
+            child: () {
+              final uniqueItems = items.toSet().toList();
+              return ListView.builder(
+                shrinkWrap: true,
+                itemCount: uniqueItems.length,
+                itemBuilder: (context, index) {
+                  final type = uniqueItems[index];
+                  // Buscamos los datos visuales (icono/nombre) en el repositorio de la tienda
+                  final itemData = ShopRepository.getItemByType(type);
 
-                if (itemData == null) return const SizedBox.shrink();
+                  if (itemData == null) return const SizedBox.shrink();
 
-                return Container(
-                  decoration: const BoxDecoration(
-                    border: Border(
-                      bottom: BorderSide(color: Color(0x33FFFFFF), width: 1),
-                    ),
-                  ),
-                  child: ListTile(
-                    dense: true,
-                    leading: Image.asset(itemData.icon, height: 20, filterQuality: FilterQuality.none),
-                    title: Text(
-                      itemData.name,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 11,
-                        fontWeight: FontWeight.w500,
+                  return Container(
+                    decoration: const BoxDecoration(
+                      border: Border(
+                        bottom: BorderSide(color: Color(0x33FFFFFF), width: 1),
                       ),
                     ),
-                    trailing: GestureDetector(
-                      onTap: () {
-                        // Si el objeto es una 'Barrera', requiere seleccion de un objetivo
-                        if (itemData.name == 'Barrera') {
-                          showDialog(
-                            context: context,
-                            barrierColor: Colors.black87,
-                            builder: (context) => TargetSelectionModal(
-                              itemName: itemData.name,
-                              onClose: () => Navigator.of(context).pop(),
-                              onTargetSelected: (target) {
-                                ref
-                                    .read(shopProvider)
-                                    .useItem(itemData.name, targetPlayerId: target);
-                                Navigator.of(context).pop();
-                              },
-                            ),
-                          );
-                        } else {
-                          // Al pulsar, se envía la orden de uso a través del socket
-                          ref.read(shopProvider).useItem(itemData.name);
-                        }
-                      },
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 10, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF2E8B57),
-                          borderRadius: BorderRadius.circular(4),
-                          border: Border.all(
-                              color: const Color(0xFF3CB371), width: 1),
-                        ),
-                        child: const Text(
-                          'USAR',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 9,
-                            fontWeight: FontWeight.bold,
-                          ),
+                    child: ListTile(
+                      dense: true,
+                      leading: Image.asset(itemData.icon,
+                          height: 20, filterQuality: FilterQuality.none),
+                      title: Text(
+                        itemData.name,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w500,
                         ),
                       ),
                     ),
-                  ),
-                );
-              },
-            ),
+                  );
+                },
+              );
+            }(),
           ),
         ],
       ),

@@ -117,45 +117,69 @@ class _CharacterSelectionModalState
     ref.read(lobbyWebSocketProvider).sendCharacterSelection(character);
   }
 
-  Widget _buildElegirButton({VoidCallback? onTap, double opacity = 1.0}) {
+  Widget _buildElegirButton({required String text, VoidCallback? onTap}) {
     return GestureDetector(
       onTap: onTap,
-      child: Opacity(
-        opacity: onTap == null ? opacity : 1.0,
-        child: Container(
-          width: double.infinity,
-          height: 52,
-          decoration: const BoxDecoration(
-            image: DecorationImage(
-              image: AssetImage('assets/images/ui/btn_verde.png'),
-              fit: BoxFit.fill,
-            ),
+      child: Container(
+        width: double.infinity,
+        height: 52,
+        decoration: const BoxDecoration(
+          image: DecorationImage(
+            image: AssetImage('assets/images/ui/btn_verde.png'),
+            fit: BoxFit.fill,
           ),
+        ),
+        alignment: Alignment.center,
+        child: Stack(
           alignment: Alignment.center,
-          child: Stack(
-            alignment: Alignment.center,
-            children: [
-              Text(
-                'Elegir',
-                style: TextStyle(
-                  fontFamily: 'Retro Gaming',
-                  fontSize: 16,
-                  foreground: Paint()
-                    ..style = PaintingStyle.stroke
-                    ..strokeWidth = 3
-                    ..color = Colors.black,
-                ),
+          children: [
+            Text(
+              text,
+              style: TextStyle(
+                fontFamily: 'Retro Gaming',
+                fontSize: 16,
+                foreground: Paint()
+                  ..style = PaintingStyle.stroke
+                  ..strokeWidth = 3
+                  ..color = Colors.black,
               ),
-              const Text(
-                'Elegir',
-                style: TextStyle(
-                  fontFamily: 'Retro Gaming',
-                  fontSize: 16,
-                  color: Colors.white,
-                ),
+            ),
+            Text(
+              text,
+              style: const TextStyle(
+                fontFamily: 'Retro Gaming',
+                fontSize: 16,
+                color: Colors.white,
               ),
-            ],
-          ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStatusLabel({
+    required String text,
+    required Color bgColor,
+    required Color borderColor,
+    required Color textColor,
+  }) {
+    return Container(
+      width: double.infinity,
+      height: 52,
+      decoration: BoxDecoration(
+        color: bgColor,
+        border: Border.all(color: borderColor, width: 2),
+      ),
+      alignment: Alignment.center,
+      child: Text(
+        text,
+        style: TextStyle(
+          fontFamily: 'Retro Gaming',
+          fontSize: 12,
+          color: textColor,
+          fontWeight: FontWeight.bold,
+          letterSpacing: 1.2,
         ),
       ),
     );
@@ -179,6 +203,7 @@ class _CharacterSelectionModalState
   @override
   Widget build(BuildContext context) {
     final numPersonajes = widget.lobbyState.selectedCharacters.length;
+    final allChosen = numPersonajes >= widget.lobbyState.playersConnected.length;
     String jugadorActual = '';
     if (numPersonajes < widget.lobbyState.playersConnected.length) {
       jugadorActual = widget.lobbyState.playersConnected[numPersonajes];
@@ -187,8 +212,6 @@ class _CharacterSelectionModalState
     // Colores fieles a la imagen proporcionada
     const mainBgColor = Color(0xFF2C2255); // Oscuro morado para el cuerpo
     const headerBgColor = Color(0xFF57468B); // Morado más claro cabecera
-    const statusBgColor = Color(0xFF1E382B); // Verde barra estado
-    const statusTextColor = Color(0xFF6DE899); // Verde brillante texto
     const whiteLineColor = Colors.white;
 
     return Container(
@@ -235,28 +258,36 @@ class _CharacterSelectionModalState
           // ---------------- 2. BARRA DE ESTADO ----------------
           Container(
             width: double.infinity,
-            color: statusBgColor,
+            decoration: BoxDecoration(
+              color: allChosen
+                  ? const Color(0xFF1E382B)
+                  : _isMyTurn
+                      ? const Color(0xFF1E382B).withValues(alpha: 0.6)
+                      : const Color(0xFF382B1E), // Tono amarillento/marrón
+              border: Border(
+                bottom: BorderSide(
+                  color: _isMyTurn ? const Color(0xFF3CD37D) : const Color(0xFFD3A03C),
+                  width: 2,
+                ),
+              ),
+            ),
             padding: const EdgeInsets.symmetric(vertical: 8),
             child: Text(
-              _isMyTurn
-                  ? 'ES TU TURNO DE ELEGIR'
-                  : 'TURNO DE ELEGIR DE: ${jugadorActual.toUpperCase()}',
+              allChosen
+                  ? '✓ TODOS LOS JUGADORES HAN ELEGIDO'
+                  : _isMyTurn
+                      ? 'ES TU TURNO DE ELEGIR'
+                      : 'ESPERANDO A: ${jugadorActual.toUpperCase()}',
               textAlign: TextAlign.center,
-              style: const TextStyle(
+              style: TextStyle(
                 fontFamily: 'Retro Gaming',
                 fontSize: 16,
-                color: statusTextColor,
+                color: _isMyTurn ? const Color(0xFF6DE899) : const Color(0xFFE8D36D),
                 fontWeight: FontWeight.bold,
                 letterSpacing: 1.5,
               ),
             ),
           ),
-
-          // Linea separadora inferior de la barra de estado
-          Container(
-              height: 2,
-              width: double.infinity,
-              color: const Color(0xFF3B9560)),
 
           // ---------------- 3. TARJETAS DE PERSONAJES ----------------
           Expanded(
@@ -265,10 +296,10 @@ class _CharacterSelectionModalState
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: _availableCharacters.map((character) {
-                  final isTaken = widget.lobbyState.selectedCharacters
+                  final isUnavailable = widget.lobbyState.selectedCharacters
                       .containsValue(character);
                   String takenBy = '';
-                  if (isTaken) {
+                  if (isUnavailable) {
                     widget.lobbyState.selectedCharacters.forEach((user, char) {
                       if (char == character) takenBy = user;
                     });
@@ -276,10 +307,10 @@ class _CharacterSelectionModalState
 
                   final isMySelection = takenBy == widget.currentUsername;
                   final bool isActiveCard =
-                      isMySelection || (_isMyTurn && !isTaken);
-                  final bool canSelect = _isMyTurn && !isTaken;
+                      isMySelection || (_isMyTurn && !isUnavailable);
+                  final bool canSelect = _isMyTurn && !isUnavailable;
 
-                  final bool dimCard = isTaken && !isMySelection;
+                  final bool dimCard = isUnavailable && !isMySelection;
 
                   return Expanded(
                     child: Opacity(
@@ -347,15 +378,33 @@ class _CharacterSelectionModalState
                               ),
                             ),
 
-                            // Botón inferior
-                            if (isActiveCard)
+                            // Botón inferior / Estado
+                            if (isUnavailable)
+                              _buildStatusLabel(
+                                text: 'OCUPADO',
+                                bgColor: Colors.red.withValues(alpha: 0.2),
+                                borderColor: Colors.redAccent,
+                                textColor: Colors.redAccent,
+                              )
+                            else if (canSelect)
                               _buildElegirButton(
-                                onTap: canSelect
-                                    ? () => _selectCharacter(character)
-                                    : null,
+                                text: 'ELEGIR',
+                                onTap: () => _selectCharacter(character),
+                              )
+                            else if (isMySelection)
+                              _buildStatusLabel(
+                                text: 'SELECCIONADO',
+                                bgColor: Colors.green.withValues(alpha: 0.2),
+                                borderColor: Colors.greenAccent,
+                                textColor: Colors.greenAccent,
                               )
                             else
-                              _buildElegirButton(),
+                              _buildStatusLabel(
+                                text: 'ESPERA...',
+                                bgColor: Colors.grey.withValues(alpha: 0.2),
+                                borderColor: Colors.grey,
+                                textColor: Colors.white54,
+                              ),
                           ],
                         ),
                       ),
@@ -372,15 +421,33 @@ class _CharacterSelectionModalState
           Container(
               height: 2,
               width: double.infinity,
-              color: Colors.white70), // Separador mismo tono que el texto
+              color: Colors.white24),
           const SizedBox(height: 16),
-          const Text(
-            'ELIGE TU PERSONAJE PARA CONTINUAR...',
-            style: TextStyle(
-              fontFamily: 'Retro Gaming',
-              fontSize: 11,
-              color: Colors.white70,
-              letterSpacing: 1.0,
+          TweenAnimationBuilder<double>(
+            tween: Tween(begin: 0.7, end: 1.0),
+            duration: const Duration(seconds: 1),
+            curve: Curves.easeInOut,
+            builder: (context, value, child) {
+              return Opacity(
+                opacity: value,
+                child: child,
+              );
+            },
+            onEnd: () {
+              // No podemos forzar un rebuild aquí fácilmente sin setState, 
+              // pero TweenAnimationBuilder puede reiniciarse si cambiamos el tween o usamos un Controller.
+              // Para simplificar, usaremos un loop infinito si es posible o simplemente lo dejamos como está.
+            },
+            child: Text(
+              _isMyTurn
+                  ? 'ELIEGE TU PERSONAJE PARA CONTINUAR...'
+                  : 'ESPERANDO A LOS DEMÁS JUGADORES...',
+              style: const TextStyle(
+                fontFamily: 'Retro Gaming',
+                fontSize: 11,
+                color: Colors.white70,
+                letterSpacing: 1.0,
+              ),
             ),
           ),
           const SizedBox(height: 16),

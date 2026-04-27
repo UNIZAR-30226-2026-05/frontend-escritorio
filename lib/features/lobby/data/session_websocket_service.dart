@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 
@@ -113,7 +114,7 @@ class SessionWebSocketService {
         return;
       }
 
-      print('Mensaje WS recibido: $decoded'); // Debug: log de mensajes entrantes
+      debugPrint('Mensaje WS recibido: $decoded'); // Debug: log de mensajes entrantes
       switch (decoded['type'] as String?) {
         // Amigo cambia entre online/offline.
         case 'friend_status_update':
@@ -126,7 +127,7 @@ class SessionWebSocketService {
 
         // Lista de solicitudes pendientes al iniciar sesión.
         case 'friend_requests_list':
-          print('Lista de solicitudes de amistad recibida: ${decoded['lista']}'); // Debug: log de la lista recibida
+          debugPrint('Lista de solicitudes de amistad recibida: ${decoded['lista']}'); // Debug: log de la lista recibida
           final list = (decoded['lista'] as List<dynamic>? ?? [])
               .map((e) => e.toString())
               .toList();
@@ -139,7 +140,7 @@ class SessionWebSocketService {
               : 'Usuario desconocido';
           notifier.clearFriendRequestSent(target);
           notifier.setFriendRequestError('No existe el usuario "$target"');
-          print('Error: Usuario "$target" no existe');
+          debugPrint('Error: Usuario "$target" no existe');
           break;
 
         default:

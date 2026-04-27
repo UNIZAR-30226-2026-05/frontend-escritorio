@@ -63,7 +63,7 @@ class _LobbyScreenState extends ConsumerState<LobbyScreen> {
         ref
             .read(sessionWebSocketProvider)
             .connect(auth.username!, auth.token!);
-            print( 'Conectado al WebSocket de sesión como ${auth.username}'); // Debug: log de conexión
+            debugPrint('Conectado al WebSocket de sesión como ${auth.username}'); // Debug: log de conexión
       }
     });
   }

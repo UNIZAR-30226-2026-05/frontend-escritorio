@@ -172,10 +172,10 @@ class _RuletaModalState extends ConsumerState<RuletaModal>
                       size: const Size(260, 260),
                       painter: _WheelPainter(),
                     ),
-                    _buildSliceContent('AVANZAR\nCASILLAS', '👞', -pi / 4),
-                    _buildSliceContent('MEJORAR\nDADOS', '🎲', pi / 4),
-                    _buildSliceContent('BARRERA', '🚧', 3 * pi / 4),
-                    _buildSliceContent('SALVAVIDAS\nBLOQUEO', '🔓', 5 * pi / 4),
+                    _buildSliceContent('AVANZAR\nCASILLAS', 'assets/images/items/item_avanzar.png', -pi / 4),
+                    _buildSliceContent('MEJORAR\nDADOS', 'assets/images/items/item_dados.png', pi / 4),
+                    _buildSliceContent('BARRERA', 'assets/images/items/item_barrera.png', 3 * pi / 4),
+                    _buildSliceContent('SALVAVIDAS\nBLOQUEO', 'assets/images/items/item_salvavidas.png', 5 * pi / 4),
                   ],
                 ),
               ),
@@ -265,9 +265,10 @@ class _RuletaModalState extends ConsumerState<RuletaModal>
         ),
         const SizedBox(height: 50),
         // Ícono del ítem
-        Text(
+        Image.asset(
           itemIcon,
-          style: const TextStyle(fontSize: 100),
+          height: 100,
+          filterQuality: FilterQuality.none,
         ),
         const SizedBox(height: 40),
         // Nombre del ítem
@@ -313,7 +314,7 @@ class _RuletaModalState extends ConsumerState<RuletaModal>
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Text(icon, style: const TextStyle(fontSize: 24)),
+              Image.asset(icon, height: 24, filterQuality: FilterQuality.none),
               const SizedBox(height: 4),
               Text(
                 text,

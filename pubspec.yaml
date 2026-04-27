@@ -32,7 +32,7 @@ flutter:
     - assets/images/characters/
     - assets/images/characters/general/
     - assets/images/characters/tablero/
-   # - assets/images/items/
+    - assets/images/items/
     - assets/images/ui/
     - assets/images/minigames/reflejos/
     - assets/images/minigames/pan/

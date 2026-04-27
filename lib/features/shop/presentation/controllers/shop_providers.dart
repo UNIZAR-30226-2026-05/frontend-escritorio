@@ -185,8 +185,7 @@ class ShopModal extends ConsumerWidget {
                         SizedBox(
                           height: 54,
                           child: Center(
-                            child: Text(item.icon,
-                                style: const TextStyle(fontSize: 48)),
+                            child: Image.asset(item.icon, height: 48, filterQuality: FilterQuality.none),
                           ),
                         ),
                         if (itemCount > 0)

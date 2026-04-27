@@ -8,7 +8,7 @@ class ShopRepository {
       name: 'Avanzar Casillas',
       price: 1, 
       description: 'Suma casillas extra a tu próxima tirada.',
-      icon: '👟',
+      icon: 'assets/images/items/item_avanzar.png',
       effectType: ItemType.avanzarRetroceder, // TU ENUM
     ),
     ShopItem(
@@ -16,7 +16,7 @@ class ShopRepository {
       name: 'Mejorar Dados',
       price: 3,
       description: 'Mejora tu segundo dado a un dado de plata (1-4).',
-      icon: '🎲',
+      icon: 'assets/images/items/item_dados.png',
       effectType: ItemType.modificadorDado, // TU ENUM
     ),
     ShopItem(
@@ -24,7 +24,7 @@ class ShopRepository {
       name: 'Barrera',
       price: 10,
       description: 'Bloquea el turno de un jugador a tu elección.',
-      icon: '🚧',
+      icon: 'assets/images/items/item_barrera.png',
       effectType: ItemType.barrera, // TU ENUM
     ),
     ShopItem(
@@ -32,7 +32,7 @@ class ShopRepository {
       name: 'Salvavidas bloqueo',
       price: 10,
       description: 'Te libra de una penalización de bloqueo del tablero.',
-      icon: '🛟',
+      icon: 'assets/images/items/item_salvavidas.png',
       effectType: ItemType.salvavidas, // TU ENUM
     ),
   ];

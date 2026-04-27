@@ -76,8 +76,7 @@ class InventoryPanel extends ConsumerWidget {
                   ),
                   child: ListTile(
                     dense: true,
-                    leading: Text(itemData.icon,
-                        style: const TextStyle(fontSize: 20)),
+                    leading: Image.asset(itemData.icon, height: 20, filterQuality: FilterQuality.none),
                     title: Text(
                       itemData.name,
                       style: const TextStyle(

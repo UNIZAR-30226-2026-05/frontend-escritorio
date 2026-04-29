@@ -5,6 +5,7 @@ import '../../../core/constants/api_constants.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 import '../../board/presentation/controllers/game_provider.dart';
+import 'dart:async';
 import '../domain/gamemodels.dart';
 import '../../auth/presentation/controllers/auth_provider.dart';
 import '../../shop/data/shop_repository.dart';
@@ -31,6 +32,10 @@ class WebSocketService {
   // El backend, al recibir todos los end_round, manda balances_changed a todos.
   // Eso es cuando activamos el overlay de espera del Videojugador para todos.
   bool _localPlayerSentEndRound = false;
+
+  // Controlador para notificar eventos especiales a la UI (ej. navegación forzada)
+  final _eventController = StreamController<Map<String, dynamic>>.broadcast();
+  Stream<Map<String, dynamic>> get eventStream => _eventController.stream;
 
   // Constructor que recibe Ref para poder usar otros providers dentro de esta clase
   WebSocketService(this._ref);
@@ -192,7 +197,8 @@ class WebSocketService {
 
         case 'fin_partida':
           final String winner = decoded['winner'] ?? 'Desconocido';
-          debugPrint('¡FIN DE PARTIDA! El jugador $winner ha llegado a la meta.');
+          debugPrint(
+              '¡FIN DE PARTIDA! El jugador $winner ha llegado a la meta.');
           // El cambio a GamePhase.finished lo maneja el game_provider
           // automáticamente cuando la animación del jugador alcanza la casilla final.
           break;
@@ -213,12 +219,10 @@ class WebSocketService {
 
           final String? name = decoded['minijuego'];
           final String? desc = decoded['descripcion'];
-          final Map<String, dynamic>? details = decoded['detalles'] != null
-              ? Map<String, dynamic>.from(decoded['detalles'])
-              : null;
+          // 'details' no se extrae de aquí para evitar sobreescribir datos recibidos durante la animación
 
           debugPrint(
-              "Minijuego ${name?.toUpperCase() ?? "DESCONOCIDO"} encolado.");
+              "Minijuego ${name?.toUpperCase() ?? "DESCONOCIDO"} encolado. Detalles: ${desc?.toUpperCase() ?? "DESCONOCIDO"}");
 
           if (name != null) {
             // Esperar a que la cola de animación se vacíe antes de lanzarlo
@@ -233,7 +237,7 @@ class WebSocketService {
               _ref.read(gameProvider.notifier).startMinigame(
                     name: name,
                     description: desc,
-                    details: details,
+                    details: _ref.read(gameProvider).minigameDetails,
                   );
             });
           }
@@ -341,6 +345,31 @@ class WebSocketService {
           _ref.read(gameProvider.notifier).updatePenalty(userId, 0);
           break;
 
+        case 'poker_inicio_ronda':
+        case 'poker_nueva_fase':
+        case 'poker_resultados':
+        case 'poker_victoria_abandono':
+        case 'poker_flop':
+        case 'poker_turno':
+        case 'poker_bote':
+        case 'poker_cartas':
+          debugPrint(" [WS] Poker message: ${decoded['type']}");
+          // Actualizar los detalles del minijuego en el estado global para que PokerGame reaccione
+          _ref.read(gameProvider.notifier).updateMinigameDetails(decoded);
+          break;
+
+        case 'minijuego_casilla':
+          // Guardamos los detalles iniciales en el provider
+          _ref.read(gameProvider.notifier).updateMinigameDetails(decoded);
+          break;
+
+        case 'info':
+          final String msg = decoded['message'] ?? '';
+          if (msg.isNotEmpty) {
+            _eventController.add({'type': 'info_message', 'message': msg});
+          }
+          break;
+
         // Tipo de mensaje por defecto
         default:
           // Si el mensaje tiene una clave "error""
@@ -348,6 +377,11 @@ class WebSocketService {
             // Iprimimos el error y liberamos la acción
             debugPrint('Error desde el backend: ${decoded['error']}');
             _isActionLocked = false;
+            // Notificamos al minijuego activo para que pueda recuperarse
+            _ref.read(gameProvider.notifier).updateMinigameDetails({
+              'type': 'backend_error',
+              'error': decoded['error'],
+            });
           } else {
             debugPrint(
                 'Mensaje WebSocket parseado, pero no manejado: $decoded');
@@ -431,10 +465,7 @@ class WebSocketService {
       // creamos el payload como se especifica en la docuemntacion de los WS
       final payload = {
         'action': 'ini_round',
-        'payload': {
-          'minijuego': minigameName,
-          'descripcion': ''
-        }
+        'payload': {'minijuego': minigameName, 'descripcion': ''}
       };
       // Enviamos el paquete codificado al backend.
       _channel!.sink.add(jsonEncode(payload));
@@ -457,6 +488,23 @@ class WebSocketService {
       // Si no hay conexion imrpimimos un msj de error
     } else {
       debugPrint("No se pudo enviar la acción porque no hay conexión.");
+    }
+  }
+
+  /// Envía una acción de póker al backend (apostar, igualar, retirarse, etc.)
+  void sendPokerAction(String decision, int cantidad) {
+    if (_channel != null && _isConnected) {
+      final payload = {
+        'action': 'poker_accion',
+        'payload': {
+          'decision': decision,
+          'cantidad': cantidad,
+        }
+      };
+      _channel!.sink.add(jsonEncode(payload));
+      debugPrint(" [POKER] Acción enviada: $decision ($cantidad)");
+    } else {
+      debugPrint("No se pudo enviar 'poker_accion' porque no hay conexión.");
     }
   }
 }

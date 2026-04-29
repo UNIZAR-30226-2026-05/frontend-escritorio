@@ -14,6 +14,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../controllers/game_provider.dart';
 import '../../data/websocket_service.dart';
+import '../../../auth/presentation/controllers/auth_provider.dart';
 
 import 'minigames/minigame_factory.dart';
 
@@ -142,16 +143,47 @@ class _MinigameOverlayState extends ConsumerState<MinigameOverlay> {
       final objetivo =
           (gameState.minigameDetails?['objetivo'] as num?)?.toDouble();
       ref.read(webSocketProvider).sendMinigameScore(score, objetivo: objetivo);
-    } else {
+    } else if (gameState.minigameName != 'Mano de Poker' &&
+        gameState.minigameName != 'Poker' &&
+        gameState.minigameName != 'Dilema del Prisionero') {
       ref.read(webSocketProvider).sendMinigameScore(score);
     }
 
-    if (gameState.minigameName == 'Doble o Nada') {
-      Future.delayed(const Duration(seconds: 2), () {
+    final isMinijuegoCasilla = gameState.minigameName == 'Doble o Nada' ||
+        gameState.minigameName == 'Mano de Poker' ||
+        gameState.minigameName == 'Poker' ||
+        gameState.minigameName == 'Dilema del Prisionero';
+
+    if (isMinijuegoCasilla) {
+      // Reducimos el delay drásticamente para Póker porque el usuario ya ha pulsado el botón "VOLVER" manualmente
+      int delayMs = (gameState.minigameName == 'Mano de Poker' ||
+              gameState.minigameName == 'Poker')
+          ? 100
+          : 2000;
+
+      Future.delayed(Duration(milliseconds: delayMs), () {
         if (mounted) {
+          final currentGameState = ref.read(gameProvider);
+          final authUsername = ref.read(authProvider).username;
+
+          // Identificar quién es el jugador que tiró los dados (el dueño del turno)
+          final activePlayerId = (currentGameState.turnOrder.isNotEmpty &&
+                  currentGameState.activePlayerIndex >= 0 &&
+                  currentGameState.activePlayerIndex <
+                      currentGameState.turnOrder.length)
+              ? currentGameState.turnOrder[currentGameState.activePlayerIndex]
+              : null;
+
+          final isMyTurn = authUsername == activePlayerId;
+
+          // Cierra el overlay para todos los participantes
           ref.read(gameProvider.notifier).finishMinigame();
-          // Avisa al backend para pasar el turno
-          ref.read(webSocketProvider).sendEndRound();
+
+          // SOLO el dueño del turno envía la orden de fin de turno al servidor
+          // Esto evita que 'players_en_fin_ronda' sume +4 cuando juegan al Póker
+          if (isMyTurn) {
+            ref.read(webSocketProvider).sendEndRound();
+          }
         }
       });
     }

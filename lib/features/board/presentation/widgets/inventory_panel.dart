@@ -2,9 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../domain/gamemodels.dart';
 import '../../../shop/data/shop_repository.dart';
-import '../../../shop/presentation/controllers/shop_providers.dart';
 
-import 'target_selection_modal.dart';
 
 class InventoryPanel extends ConsumerWidget {
   final List<ItemType> items;

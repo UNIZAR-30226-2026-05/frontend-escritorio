@@ -349,7 +349,9 @@ class GameController extends StateNotifier<GameState> {
       serverMessage: state.serverMessage,
       minigameName: name,
       minigameDescription: finalDesc,
-      minigameDetails: details,
+      minigameDetails: (details == null || details.isEmpty)
+          ? state.minigameDetails
+          : details,
       // minigameResults: null (por defecto) — reset intencional
       // minigameChoices: null (por defecto)
       isWaitingForMinigameChoice: false,
@@ -362,6 +364,19 @@ class GameController extends StateNotifier<GameState> {
       minigameResults: results,
       turnOrder: newOrder,
     );
+  }
+
+  /// Actualiza los detalles del minijuego actual fusionando los nuevos datos.
+  /// Útil para minijuegos con múltiples fases como el Póker.
+  void updateMinigameDetails(Map<String, dynamic> newDetails) {
+    final type = newDetails['type'];
+    final isNewGame =
+        type == 'minijuego_casilla' || type == 'poker_inicio_ronda';
+
+    final currentDetails =
+        isNewGame ? <String, dynamic>{} : (state.minigameDetails ?? {});
+    final merged = {...currentDetails, ...newDetails};
+    state = state.copyWith(minigameDetails: merged);
   }
 
   void finishMinigame() {

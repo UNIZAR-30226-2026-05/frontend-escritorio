@@ -1,7 +1,7 @@
 // Valores de direcciones para la API
 class ApiConstants {
-  static const String baseUrl = 'https://snowparty.ddns.net';
-  static const String wsBaseUrl = 'wss://snowparty.ddns.net';
+  static const String baseUrl = 'http://localhost:8080';
+  static const String wsBaseUrl = 'ws://localhost:8080';
 
   // Autenticacion
   static const String loginEndpoint = '/usuarios/login';

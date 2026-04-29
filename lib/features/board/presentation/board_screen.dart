@@ -35,6 +35,7 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
   int _tempDice1 = 1;
   int _tempDice2 = 1;
   Timer? _rollTimer;
+  StreamSubscription? _wsEventSubscription;
 
   // Lista de minijuegos para el menú de debug
   Timer? _choiceTimer;
@@ -160,6 +161,21 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
         final gameId = ref.read(lobbyProvider).gameId ?? '1';
         ref.read(webSocketProvider).connect(gameId, token);
       }
+
+      _wsEventSubscription =
+          ref.read(webSocketProvider).eventStream.listen((event) {
+        if (event['type'] == 'info_message') {
+          if (!mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(event['message'] ?? '',
+                  style: const TextStyle(fontFamily: 'Retro Gaming')),
+              backgroundColor: Colors.blueAccent,
+              duration: const Duration(seconds: 4),
+            ),
+          );
+        }
+      });
     });
   }
 
@@ -167,6 +183,7 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
   void dispose() {
     _choiceTimer?.cancel();
     _rollTimer?.cancel();
+    _wsEventSubscription?.cancel();
     super.dispose();
   }
 
@@ -459,7 +476,8 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
                                     borderRadius: BorderRadius.circular(50),
                                     boxShadow: [
                                       BoxShadow(
-                                        color: Colors.black.withValues(alpha: 0.4),
+                                        color:
+                                            Colors.black.withValues(alpha: 0.4),
                                         blurRadius: 4,
                                         spreadRadius: 1,
                                       ),
@@ -580,7 +598,8 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
                 ),
 
               // UI OVERLAY: Modal de Ruleta
-              if (gameState.obtainedItemName != null && !gameState.isMovementActive)
+              if (gameState.obtainedItemName != null &&
+                  !gameState.isMovementActive)
                 Positioned.fill(
                   child: Stack(
                     children: [
@@ -677,7 +696,8 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
                                   .compareTo(a.currentTileIndex),
                             ),
                           onClose: _debugShowWinScreen
-                              ? () => setState(() => _debugShowWinScreen = false)
+                              ? () =>
+                                  setState(() => _debugShowWinScreen = false)
                               : null,
                         ),
                       ),
@@ -848,7 +868,8 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
 
     final d1 = _isRolling ? _tempDice1 : gameState.lastDice1;
     final d2 = _isRolling ? _tempDice2 : gameState.lastDice2;
-    final total = _isRolling ? (d1 + d2) : (gameState.lastDiceResult ?? (d1 + d2));
+    final total =
+        _isRolling ? (d1 + d2) : (gameState.lastDiceResult ?? (d1 + d2));
 
     // Obtener el ranking del jugador que acaba de tirar para los colores del dado 2
     final myRankIndex = gameState.activePlayerIndex;
@@ -900,7 +921,10 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       _buildDiceFace(d1, Colors.white, Colors.black87),
-                      if (gameState.lastDice2 > 0 || (_isRolling && gameState.players[gameState.activePlayerIndex].diceInventory.isNotEmpty)) ...[
+                      if (gameState.lastDice2 > 0 ||
+                          (_isRolling &&
+                              gameState.players[gameState.activePlayerIndex]
+                                  .diceInventory.isNotEmpty)) ...[
                         const SizedBox(width: 20),
                         _buildDiceFace(
                           d2,
@@ -917,9 +941,12 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
                       color: _isRolling ? Colors.white38 : Colors.amber,
                       fontSize: 48,
                       fontWeight: FontWeight.bold,
-                      shadows: _isRolling ? [] : [
-                        const Shadow(color: Colors.orange, blurRadius: 10),
-                      ],
+                      shadows: _isRolling
+                          ? []
+                          : [
+                              const Shadow(
+                                  color: Colors.orange, blurRadius: 10),
+                            ],
                     ),
                   ),
                 ],
@@ -1216,10 +1243,26 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
     if (!player.isConnected) {
       avatarWidget = ColorFiltered(
         colorFilter: const ColorFilter.matrix([
-          0.2126, 0.7152, 0.0722, 0, 0,
-          0.2126, 0.7152, 0.0722, 0, 0,
-          0.2126, 0.7152, 0.0722, 0, 0,
-          0,      0,      0,      0.5, 0,
+          0.2126,
+          0.7152,
+          0.0722,
+          0,
+          0,
+          0.2126,
+          0.7152,
+          0.0722,
+          0,
+          0,
+          0.2126,
+          0.7152,
+          0.0722,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0.5,
+          0,
         ]),
         child: avatarWidget,
       );
@@ -1230,7 +1273,9 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
       curve: Curves.easeOut,
       width: 200,
       padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 8),
-      transform: isActive ? Matrix4.diagonal3Values(1.05, 1.05, 1.0) : Matrix4.identity(),
+      transform: isActive
+          ? Matrix4.diagonal3Values(1.05, 1.05, 1.0)
+          : Matrix4.identity(),
       transformAlignment: Alignment.center,
       decoration: BoxDecoration(
         color: cardBgColor,
@@ -1420,7 +1465,7 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
               fontWeight: FontWeight.bold,
               fontSize: fontSize,
               letterSpacing: 2,
-            shadows: const [
+              shadows: const [
                 Shadow(
                   color: Color(0xFF000000),
                   offset: Offset(1, 1),

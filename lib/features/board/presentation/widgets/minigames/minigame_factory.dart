@@ -14,7 +14,6 @@ import 'cronometro_game.dart';
 import 'pan_game.dart';
 import 'mayor_menor_game.dart';
 import 'doble_nada_game.dart';
-import 'dilema_prisionero_game.dart';
 import 'poker_game.dart';
 
 class MinigameFactory {
@@ -40,10 +39,11 @@ class MinigameFactory {
         return MayorMenorGame(onFinish: onFinish, details: details);
       case 'Doble o Nada':
         return DobleNadaGame(onFinish: onFinish, details: details);
-      case 'Dilema del Prisionero':
-        return DilemaPrisioneroGame(onFinish: onFinish, details: details);
       case 'Poker':
+      case 'Mano de Poker':
         return PokerGame(onFinish: onFinish, details: details);
+      case 'Dilema del Prisionero':
+      //return PokerGame(onFinish: onFinish, details: details);
 
       default:
         // Placeholder para minijuegos no implementados todavía

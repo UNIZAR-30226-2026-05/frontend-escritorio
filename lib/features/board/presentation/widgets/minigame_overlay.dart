@@ -166,7 +166,10 @@ class _MinigameOverlayState extends ConsumerState<MinigameOverlay> {
           final currentGameState = ref.read(gameProvider);
           final authUsername = ref.read(authProvider).username;
 
-          // Identificar quién es el jugador que tiró los dados (el dueño del turno)
+          // Identificar quién es el jugador que tiró los dados (el dueño del turno).
+          // Gracias a que ya NO adelantamos el índice durante la animación de
+          // movimiento cuando hay un minijuego de casilla, activePlayerIndex
+          // sigue apuntando al jugador correcto (el que cayó en la casilla).
           final activePlayerId = (currentGameState.turnOrder.isNotEmpty &&
                   currentGameState.activePlayerIndex >= 0 &&
                   currentGameState.activePlayerIndex <
@@ -178,6 +181,10 @@ class _MinigameOverlayState extends ConsumerState<MinigameOverlay> {
 
           // Cierra el overlay para todos los participantes
           ref.read(gameProvider.notifier).finishMinigame();
+
+          // Avanzamos el turno para TODOS los clientes (equivale a lo que
+          // antes hacía _performUpdatePlayer tras la animación de movimiento).
+          ref.read(gameProvider.notifier).advanceTurn();
 
           // SOLO el dueño del turno envía la orden de fin de turno al servidor
           // Esto evita que 'players_en_fin_ronda' sume +4 cuando juegan al Póker

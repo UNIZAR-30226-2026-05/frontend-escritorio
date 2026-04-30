@@ -199,7 +199,11 @@ class GameController extends StateNotifier<GameState> {
       newWinner = currentPlayer.username;
     }
 
-    if (diceRoll != 0) {
+    if (diceRoll != 0 &&
+        (finalPhase == GamePhase.boardTurn ||
+            finalPhase == GamePhase.finished)) {
+      // Solo avanzamos turno si NO se ha iniciado un minijuego de casilla.
+      // Si hay minijuego, el turno se avanzará cuando este termine.
       int nextPlayerIndex =
           (state.activePlayerIndex + 1) % state.turnOrder.length;
       int nextRound = state.currentRound;
@@ -212,15 +216,15 @@ class GameController extends StateNotifier<GameState> {
         activePlayerIndex: nextPlayerIndex,
         currentRound: nextRound,
         serverMessage: newMessage,
-        currentPhase: finalPhase, // Usamos la fase final real
-        isMovementActive: false, // Desbloqueo al final del turno
+        currentPhase: finalPhase,
+        isMovementActive: false,
         winnerName: newWinner,
       );
     } else {
       state = state.copyWith(
         serverMessage: newMessage,
-        currentPhase: finalPhase, // Usamos la fase final real
-        isMovementActive: false, // FIN de movimiento y desbloqueo
+        currentPhase: finalPhase,
+        isMovementActive: false,
         winnerName: newWinner,
       );
     }
@@ -392,6 +396,24 @@ class GameController extends StateNotifier<GameState> {
       // minigameName, Description, Details, Results, Choices: null por defecto
       isWaitingForMinigameChoice: false,
       winnerName: state.winnerName,
+    );
+  }
+
+  /// Avanza el turno al siguiente jugador. Se usa al terminar un minijuego
+  /// de casilla, ya que en ese caso el turno no se avanza durante la animación
+  /// de movimiento para no desincronizar el estado con el backend.
+  void advanceTurn() {
+    int nextPlayerIndex =
+        (state.activePlayerIndex + 1) % state.turnOrder.length;
+    int nextRound = state.currentRound;
+
+    if (nextPlayerIndex == 0) {
+      nextRound += 1;
+    }
+
+    state = state.copyWith(
+      activePlayerIndex: nextPlayerIndex,
+      currentRound: nextRound,
     );
   }
 

@@ -123,6 +123,9 @@ class WebSocketService {
               .updatePlayerFromBackend(userId, newTile, diceTotal,
                   dice1: dado1, dice2: dado2)
               .then((_) {
+            // Esto esta hecho para pasar el turno si en 100ms se sigue en el tablero
+            // con la ruleta. Como la ruleta no es un minijuego, no manda el endRound
+            // ella solita. Hay que mandarla manualmente.
             Future.delayed(const Duration(milliseconds: 100), () {
               final isQueueEmpty =
                   _ref.read(gameProvider.notifier).isAnimationQueueEmpty;

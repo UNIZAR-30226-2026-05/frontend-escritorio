@@ -1,18 +1,20 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../data/websocket_service.dart';
-import '../../../../core/widgets/retro_widgets.dart';
-import '../../../shop/data/shop_repository.dart';
+
 
 class RuletaModal extends ConsumerStatefulWidget {
   final String itemName;
+  final String playerName;
+  final bool isLocalPlayer;
   final VoidCallback onClose;
   final bool isDebug;
 
   const RuletaModal({
     super.key,
     required this.itemName,
+    required this.playerName,
+    required this.isLocalPlayer,
     required this.onClose,
     this.isDebug = false,
   });
@@ -37,6 +39,11 @@ class _RuletaModalState extends ConsumerState<RuletaModal>
       duration: const Duration(milliseconds: 3500),
     );
     _animation = Tween<double>(begin: 0, end: 0).animate(_controller);
+    
+    // Girar automáticamente al abrirse
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _spin();
+    });
   }
 
   @override
@@ -54,16 +61,16 @@ class _RuletaModalState extends ConsumerState<RuletaModal>
     // Calculamos el ángulo objetivo para que el ítem seleccionado quede bajo el puntero
     double targetAngle = 0;
     switch (widget.itemName) {
-      case 'Avanzar Casillas':
+      case '+3 Casillas':
         targetAngle = -pi / 4;
         break;
-      case 'Mejorar Dados':
+      case '+3 Monedas':
         targetAngle = -3 * pi / 4;
         break;
-      case 'Barrera':
+      case '-3 Casillas':
         targetAngle = -5 * pi / 4;
         break;
-      case 'Salvavidas bloqueo':
+      case '-3 Monedas':
         targetAngle = -7 * pi / 4;
         break;
       default:
@@ -82,22 +89,22 @@ class _RuletaModalState extends ConsumerState<RuletaModal>
         _hasSpun = true;
       });
 
-      // Enviamos el mensaje al backend para que el ítem se añada al inventario
-      // SOLO si no estamos en modo debug
-      if (!widget.isDebug) {
-        ref.read(webSocketProvider).sendGenericAction({
-          'action': 'anyadir_objeto',
-          'payload': {
-            'objeto': widget.itemName
-          }
-        });
-      }
+      // Ya no enviamos anyadir_objeto porque el backend aplica el efecto inmediatamente
 
       // Mostramos la pantalla de resultado tras 1 segundo
       Future.delayed(const Duration(milliseconds: 1000), () {
         if (mounted) {
           setState(() {
             _showResult = true;
+          });
+          
+          // REVELADO: Ya sabemos el premio, permitimos el movimiento si lo hubiera
+          
+          // Cerramos el modal automáticamente tras mostrar el resultado 3 segundos
+          Future.delayed(const Duration(milliseconds: 3000), () {
+            if (mounted) {
+              widget.onClose();
+            }
           });
         }
       });
@@ -139,9 +146,11 @@ class _RuletaModalState extends ConsumerState<RuletaModal>
           ),
         ),
         const SizedBox(height: 10),
-        const Text(
-          'GIRA PARA CONSEGUIR UN ITEM DE LA TIENDA',
-          style: TextStyle(
+        Text(
+          widget.isLocalPlayer 
+              ? 'GIRANDO LA RULETA DE OBJETOS' 
+              : '${widget.playerName} ESTÁ GIRANDO LA RULETA',
+          style: const TextStyle(
             fontFamily: 'Retro Gaming',
             fontSize: 10,
             color: Colors.white54,
@@ -172,10 +181,10 @@ class _RuletaModalState extends ConsumerState<RuletaModal>
                       size: const Size(260, 260),
                       painter: _WheelPainter(),
                     ),
-                    _buildSliceContent('AVANZAR\nCASILLAS', 'assets/images/items/item_avanzar.png', -pi / 4),
-                    _buildSliceContent('MEJORAR\nDADOS', 'assets/images/items/item_dados.png', pi / 4),
-                    _buildSliceContent('BARRERA', 'assets/images/items/item_barrera.png', 3 * pi / 4),
-                    _buildSliceContent('SALVAVIDAS\nBLOQUEO', 'assets/images/items/item_salvavidas.png', 5 * pi / 4),
+                    _buildSliceContent('+3\nCASILLAS', 'assets/images/items/item_avanzar.png', -pi / 4),
+                    _buildSliceContent('+3\nMONEDAS', 'assets/images/items/item_dados.png', pi / 4), // Placeholder icon
+                    _buildSliceContent('-3\nCASILLAS', 'assets/images/items/item_barrera.png', 3 * pi / 4), // Placeholder icon
+                    _buildSliceContent('-3\nMONEDAS', 'assets/images/items/item_salvavidas.png', 5 * pi / 4), // Placeholder icon
                   ],
                 ),
               ),
@@ -203,94 +212,67 @@ class _RuletaModalState extends ConsumerState<RuletaModal>
         ),
 
         const Spacer(),
-
-        RetroImgButton(
-          label: '¡GIRAR!',
-          asset: 'assets/images/ui/btn_morado.png',
-          width: 160,
-          height: 52,
-          fontSize: 16,
-          onTap: (_isSpinning || _hasSpun) ? null : _spin,
-        ),
-        const SizedBox(height: 20),
-
-        GestureDetector(
-          onTap: (_isSpinning || _hasSpun) ? null : widget.onClose,
-          child: const Text(
-            'ABANDONAR',
-            style: TextStyle(
-              fontFamily: 'Retro Gaming',
-              fontSize: 12,
-              color: Colors.white38,
-            ),
-          ),
-        ),
-        const SizedBox(height: 30),
+        // Los botones se han eliminado porque la ruleta es automática
       ],
     );
   }
 
+  bool get _isPositivePrize => widget.itemName.startsWith('+');
+
   Widget _buildResultContent() {
-    final itemIcon = ShopRepository.catalog
-        .firstWhere(
-          (i) => i.name.toLowerCase() == widget.itemName.toLowerCase(),
-          orElse: () => ShopRepository.catalog.first,
-        )
-        .icon;
+    final isPositive = _isPositivePrize;
+    final accentColor = isPositive ? const Color(0xFF4CAF50) : const Color(0xFFE53935);
+
+    String headline;
+    if (widget.isLocalPlayer) {
+      headline = isPositive ? '¡ENHORABUENA!' : '¡MALA SUERTE!';
+    } else {
+      final who = widget.playerName;
+      headline = isPositive ? '¡$who está de suerte!' : '¡$who tiene mala suerte!';
+    }
 
     return Column(
       key: const ValueKey('result'),
       children: [
         const SizedBox(height: 40),
-        const Text(
-          '¡ENHORABUENA!',
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            fontFamily: 'Retro Gaming',
-            fontSize: 32,
-            fontWeight: FontWeight.bold,
-            color: Color(0xFFF5B922),
-          ),
-        ),
-        const SizedBox(height: 30),
-        const Text(
-          'HAS OBTENIDO UN OBJETO:',
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            fontFamily: 'Retro Gaming',
-            fontSize: 12,
-            letterSpacing: 1.5,
-            color: Colors.white70,
-          ),
-        ),
-        const SizedBox(height: 50),
-        // Ícono del ítem
-        Image.asset(
-          itemIcon,
-          height: 100,
-          filterQuality: FilterQuality.none,
-        ),
-        const SizedBox(height: 40),
-        // Nombre del ítem
         Text(
-          widget.itemName.toUpperCase(),
+          headline,
           textAlign: TextAlign.center,
-          style: const TextStyle(
+          style: TextStyle(
             fontFamily: 'Retro Gaming',
-            fontSize: 26,
+            fontSize: 28,
             fontWeight: FontWeight.bold,
-            color: Colors.white,
-            letterSpacing: 2.0,
+            color: accentColor,
           ),
         ),
         const Spacer(),
-        RetroImgButton(
-          label: 'ACEPTAR',
-          asset: 'assets/images/ui/btn_morado.png',
-          width: 200,
-          height: 52,
-          fontSize: 16,
-          onTap: widget.onClose,
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+          decoration: BoxDecoration(
+            color: accentColor.withValues(alpha: 0.15),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: accentColor, width: 2),
+          ),
+          child: Text(
+            widget.itemName.toUpperCase(),
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontFamily: 'Retro Gaming',
+              fontSize: 26,
+              fontWeight: FontWeight.bold,
+              color: accentColor,
+              letterSpacing: 2.0,
+            ),
+          ),
+        ),
+        const Spacer(),
+        const Text(
+          'CERRANDO...',
+          style: TextStyle(
+            fontFamily: 'Retro Gaming',
+            fontSize: 10,
+            color: Colors.white54,
+          ),
         ),
         const SizedBox(height: 40),
       ],

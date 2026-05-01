@@ -184,6 +184,7 @@ class GameState {
   //Objetos del tablero (ruleta)
   final String? obtainedItemName;
   final String? obtainedItemDesc;
+  final String? obtainedItemPlayer;
 
   // Animaciones / Locks
   final bool isMovementActive;
@@ -191,6 +192,9 @@ class GameState {
   // Habilidades
   final List<int>? videnteDiceResults;
   final String? winnerName;
+
+  // Evento bloqueante individual (Doble o Nada, ruleta) — bloquea al siguiente jugador
+  final String? blockingTurnPlayer;
 
   //Constructor de la clase
   GameState({
@@ -213,8 +217,10 @@ class GameState {
     this.isMovementActive = false,
     this.obtainedItemName,
     this.obtainedItemDesc,
+    this.obtainedItemPlayer,
     this.videnteDiceResults,
     this.winnerName,
+    this.blockingTurnPlayer,
   });
 
   GameState copyWith({
@@ -237,8 +243,10 @@ class GameState {
     bool? isMovementActive,
     String? obtainedItemName,
     String? obtainedItemDesc,
+    String? obtainedItemPlayer,
     List<int>? videnteDiceResults,
     String? winnerName,
+    Object? blockingTurnPlayer = _sentinel,
   }) {
     return GameState(
       currentPhase: currentPhase ?? this.currentPhase,
@@ -261,8 +269,14 @@ class GameState {
       isMovementActive: isMovementActive ?? this.isMovementActive,
       obtainedItemName: obtainedItemName ?? this.obtainedItemName,
       obtainedItemDesc: obtainedItemDesc ?? this.obtainedItemDesc,
+      obtainedItemPlayer: obtainedItemPlayer ?? this.obtainedItemPlayer,
       videnteDiceResults: videnteDiceResults ?? this.videnteDiceResults,
       winnerName: winnerName ?? this.winnerName,
+      blockingTurnPlayer: blockingTurnPlayer == _sentinel
+          ? this.blockingTurnPlayer
+          : blockingTurnPlayer as String?,
     );
   }
 }
+
+const Object _sentinel = Object();

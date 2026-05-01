@@ -32,6 +32,12 @@ class _MinigameOverlayState extends ConsumerState<MinigameOverlay> {
   bool _countdownFinished = false;
   Timer? _countdownTimer;
   ProviderSubscription<Map<String, dynamic>?>? _resultsSubscription;
+  ProviderSubscription<List<dynamic>>? _balancesSubscription;
+
+  // Para Doble o Nada: guardamos la apuesta y si ha terminado
+  int? _apuestaDobleNada;
+  bool?
+      _dobleNadaGanado; // null = esperando resultado, true = ganó, false = perdió
 
   @override
   void initState() {
@@ -43,10 +49,46 @@ class _MinigameOverlayState extends ConsumerState<MinigameOverlay> {
         gameProvider.select((s) => s.minigameResults),
         (prev, next) {
           if (prev == null && next != null) {
-            // El cierre automático ocurre 5 s despues de mostrar los resultados
+            // El cierre automático ocurre 5 s después de mostrar los resultados
             Future.delayed(const Duration(seconds: 5), () {
               if (mounted && ref.read(gameProvider).minigameResults != null) {
                 ref.read(gameProvider.notifier).finishMinigame();
+              }
+            });
+          }
+        },
+      );
+
+      // Escuchamos cambios de monedas para detectar el resultado de Doble o Nada
+      _balancesSubscription = ref.listenManual(
+        gameProvider.select((s) => s.players.map((p) => p.coins).toList()),
+        (prev, next) {
+          if (!mounted) return;
+          final gameState = ref.read(gameProvider);
+          if (gameState.minigameName != 'Doble o Nada') return;
+          if (_apuestaDobleNada == null) return;
+          if (_dobleNadaGanado != null) return; // ya procesado
+
+          final myUsername = ref.read(authProvider).username;
+          final myPlayer = gameState.players.firstWhere(
+            (p) => p.username == myUsername,
+            orElse: () => gameState.players.first,
+          );
+          final myNewCoins = myPlayer.coins;
+          final myPrevCoins = prev != null && prev.length == next.length
+              ? prev[gameState.players.indexOf(myPlayer)]
+              : null;
+
+          if (myPrevCoins != null) {
+            final ganado = myNewCoins > myPrevCoins;
+            setState(() => _dobleNadaGanado = ganado);
+
+            // Cerramos automáticamente tras 3 segundos
+            Future.delayed(const Duration(seconds: 3), () {
+              if (mounted) {
+                ref.read(gameProvider.notifier).finishMinigame();
+                // Delegamos el avance y el end_round al evaluador maestro
+                ref.read(webSocketProvider).checkAndFinalizeTurn();
               }
             });
           }
@@ -57,8 +99,9 @@ class _MinigameOverlayState extends ConsumerState<MinigameOverlay> {
 
   @override
   void dispose() {
-    _countdownTimer?.cancel(); // <-- AÑADE ESTO PARA CANCELAR EL TIMER
+    _countdownTimer?.cancel();
     _resultsSubscription?.close();
+    _balancesSubscription?.close();
     super.dispose();
   }
 
@@ -149,8 +192,14 @@ class _MinigameOverlayState extends ConsumerState<MinigameOverlay> {
       ref.read(webSocketProvider).sendMinigameScore(score);
     }
 
-    final isMinijuegoCasilla = gameState.minigameName == 'Doble o Nada' ||
-        gameState.minigameName == 'Mano de Poker' ||
+    // Para Doble o Nada: guardamos la apuesta y esperamos al listener de balances
+    // que detectará el resultado cuando llegue balances_changed del backend.
+    if (gameState.minigameName == 'Doble o Nada') {
+      setState(() => _apuestaDobleNada = score is int ? score : 0);
+      return; // El listener _balancesSubscription se encarga del cierre
+    }
+
+    final isMinijuegoCasilla = gameState.minigameName == 'Mano de Poker' ||
         gameState.minigameName == 'Poker' ||
         gameState.minigameName == 'Dilema del Prisionero';
 
@@ -177,20 +226,11 @@ class _MinigameOverlayState extends ConsumerState<MinigameOverlay> {
               ? currentGameState.turnOrder[currentGameState.activePlayerIndex]
               : null;
 
-          final isMyTurn = authUsername == activePlayerId;
-
           // Cierra el overlay para todos los participantes
           ref.read(gameProvider.notifier).finishMinigame();
 
-          // Avanzamos el turno para TODOS los clientes (equivale a lo que
-          // antes hacía _performUpdatePlayer tras la animación de movimiento).
-          ref.read(gameProvider.notifier).advanceTurn();
-
-          // SOLO el dueño del turno envía la orden de fin de turno al servidor
-          // Esto evita que 'players_en_fin_ronda' sume +4 cuando juegan al Póker
-          if (isMyTurn) {
-            ref.read(webSocketProvider).sendEndRound();
-          }
+          // Delegamos el avance y el end_round al evaluador maestro
+          ref.read(webSocketProvider).checkAndFinalizeTurn();
         }
       });
     }
@@ -271,12 +311,79 @@ class _MinigameOverlayState extends ConsumerState<MinigameOverlay> {
                   _buildCountdownScreen(),
               ],
             ),
+          // 3. Resultado de Doble o Nada (se superpone si ya tenemos el resultado)
+          if (_dobleNadaGanado != null)
+            _buildDobleNadaResult(_dobleNadaGanado!, _apuestaDobleNada ?? 0),
         ],
       ),
     );
   }
 
   // Widgets auxiliares
+
+  // Pantalla de resultado de Doble o Nada
+  Widget _buildDobleNadaResult(bool ganado, int apuesta) {
+    final color = ganado ? const Color(0xFF4CAF50) : const Color(0xFFE53935);
+    final emoji = ganado ? '🎉' : '💸';
+    final titulo = ganado ? '¡DOBLE O NADA!' : '¡MALA SUERTE!';
+    final subtitulo = ganado
+        ? 'Has ganado $apuesta monedas 🪙'
+        : 'Has perdido $apuesta monedas 🪙';
+
+    return Container(
+      color: Colors.black.withValues(alpha: 0.85),
+      child: Center(
+        child: Container(
+          padding: const EdgeInsets.all(40),
+          decoration: BoxDecoration(
+            color: const Color(0xFF1A1A2E),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: color, width: 3),
+            boxShadow: [
+              BoxShadow(
+                  color: color.withValues(alpha: 0.4),
+                  blurRadius: 30,
+                  spreadRadius: 5),
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(emoji, style: const TextStyle(fontSize: 64)),
+              const SizedBox(height: 16),
+              Text(
+                titulo,
+                style: TextStyle(
+                  fontFamily: 'Retro Gaming',
+                  fontSize: 30,
+                  fontWeight: FontWeight.bold,
+                  color: color,
+                  letterSpacing: 2,
+                ),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                subtitulo,
+                style: const TextStyle(
+                  fontFamily: 'Retro Gaming',
+                  fontSize: 18,
+                  color: Colors.white,
+                ),
+              ),
+              const SizedBox(height: 24),
+              const Text(
+                'Volviendo al tablero...',
+                style: TextStyle(
+                    color: Colors.white38,
+                    fontSize: 13,
+                    fontFamily: 'Retro Gaming'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 
   // Pantalla de cuenta atrás (3, 2, 1...)
   Widget _buildCountdownScreen() {

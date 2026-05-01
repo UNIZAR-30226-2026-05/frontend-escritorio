@@ -574,6 +574,8 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
                   !_hasRolledThisTurn &&
                   !gameState.isMovementActive &&
                   !gameState.isWaitingForMinigameChoice &&
+                  gameState.blockingTurnPlayer == null &&
+                  gameState.obtainedItemName == null &&
                   (gameState.minigameChoices == null ||
                       gameState.minigameChoices!.isEmpty))
                 _buildCenterDiceOverlay(gameState, myUsername ?? ''),
@@ -598,8 +600,7 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
                 ),
 
               // UI OVERLAY: Modal de Ruleta
-              if (gameState.obtainedItemName != null &&
-                  !gameState.isMovementActive)
+              if (gameState.obtainedItemName != null)
                 Positioned.fill(
                   child: Stack(
                     children: [
@@ -607,11 +608,14 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
                       Center(
                         child: RuletaModal(
                           itemName: gameState.obtainedItemName!,
+                          playerName: gameState.obtainedItemPlayer ?? 'Jugador',
+                          isLocalPlayer:
+                              gameState.obtainedItemPlayer == myUsername,
                           onClose: () {
-                            // Ocultamos la ruleta
+                            // Ocultamos la ruleta de la interfaz
                             ref.read(gameProvider.notifier).hideObtainedItem();
-                            // AÑADIDO: Avisamos al backend que hemos terminado la casilla
-                            ref.read(webSocketProvider).sendEndRound();
+                            // El evaluador maestro decide si avanzar turno (sin pasar argumento)
+                            ref.read(webSocketProvider).checkAndFinalizeTurn();
                           },
                         ),
                       ),
@@ -715,6 +719,8 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
                       Center(
                         child: RuletaModal(
                           itemName: _debugRuletaItem,
+                          playerName: 'Debug',
+                          isLocalPlayer: true,
                           isDebug: true,
                           onClose: () =>
                               setState(() => _debugShowRuleta = false),

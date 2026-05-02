@@ -36,6 +36,11 @@ class WebSocketService {
   // Cuando el jugador activo ha hecho su tirada principal
   bool _pendingTurnAdvance = false;
 
+  // Indica que el jugador ha caído en una casilla con minijuego y el minijuego
+  // todavía no ha arrancado. Bloquea checkAndFinalizeTurn hasta que
+  // startMinigame cambie la fase a minigameTile.
+  bool _pendingTileMinigame = false;
+
   // Controlador para notificar eventos especiales a la UI (ej. navegación forzada)
   final _eventController = StreamController<Map<String, dynamic>>.broadcast();
   Stream<Map<String, dynamic>> get eventStream => _eventController.stream;
@@ -197,9 +202,12 @@ class WebSocketService {
           debugPrint("¡Es el turno de: $nextUser (Ronda $ronda)!");
           _ref.read(gameProvider.notifier).setActivePlayerName(nextUser, round: ronda);
           
-          // Al recibir un nuevo turno, reseteamos flags locales de fin de turno
+          // Al recibir un nuevo turno, reseteamos todos los flags del turno anterior.
+          // _pendingTileMinigame se resetea por si el minijuego de casilla
+          // anterior no llegó a limpiarla (ej. jugador no participante en Doble o Nada).
           _localPlayerSentEndRound = false;
-          _isActionLocked = false; // Liberamos para que el jugador pueda tirar
+          _isActionLocked = false;
+          _pendingTileMinigame = false;
           break;
 
         case 'fin_partida':
@@ -228,6 +236,11 @@ class WebSocketService {
               name == 'Dilema del Prisionero' ||
               name == 'Doble o Nada';
 
+          // Activamos el flag aquí (no en minijuego_casilla) porque ini_minijuego
+          // solo llega a los participantes reales del minijuego de casilla,
+          // garantizando que también llegará la señal que lo limpia.
+          if (isTileMinigame) _pendingTileMinigame = true;
+
           if (!isTileMinigame) {
             _localPlayerSentEndRound = false;
           }
@@ -247,6 +260,10 @@ class WebSocketService {
               await Future.delayed(const Duration(milliseconds: 200));
               return true; // Sigue esperando
             }).then((_) {
+              // Limpiamos el flag ANTES de llamar a startMinigame.
+              // A partir de aquí la fase pasa a minigameTile, que es lo que
+              // usa checkAndFinalizeTurn para saber que no debe enviar fin_turno.
+              if (isTileMinigame) _pendingTileMinigame = false;
               // Ahora sí, el muñeco ha llegado a la casilla. Lanzamos el minijuego.
               _ref.read(gameProvider.notifier).startMinigame(
                     name: name,
@@ -375,9 +392,20 @@ class WebSocketService {
           break;
 
         case 'penalizacion_actualizada':
-          final userId = decoded['user'];
+          final affectedUser = decoded['user'] as String;
           final turns = decoded['penalizacion'] ?? 0;
-          _ref.read(gameProvider.notifier).updatePenalty(userId, turns);
+          _ref.read(gameProvider.notifier).updatePenalty(affectedUser, turns);
+
+          // Si el jugador penalizado es el usuario local y _isActionLocked es false,
+          // significa que el backend está saltando su turno por penalización sin haber
+          // enviado turno_de (el jugador no llegó a tirar).
+          // En ese caso auto-enviamos fin_turno para desbloquear la partida,
+          // igual que se hace al terminar las animaciones de movimiento.
+          final localUsername = _ref.read(authProvider).username ?? '';
+          if (affectedUser == localUsername && !_isActionLocked) {
+            await Future.delayed(const Duration(milliseconds: 800));
+            sendEndRound();
+          }
           break;
 
         case 'penalizacion_eliminada':
@@ -399,7 +427,10 @@ class WebSocketService {
           break;
 
         case 'minijuego_casilla':
-          // Guardamos los detalles iniciales en el provider
+          // Solo guardamos los detalles del minijuego. El flag _pendingTileMinigame
+          // se activa en ini_minijuego (cuando sabemos que somos participantes),
+          // no aquí (que es broadcast a todos), para evitar que se bloquee
+          // checkAndFinalizeTurn en jugadores que nunca recibirán ini_minijuego.
           _ref.read(gameProvider.notifier).updateMinigameDetails(decoded);
           break;
 
@@ -501,14 +532,14 @@ class WebSocketService {
     if (_channel != null && _isConnected) {
       // creamos el payload como se especifica en la docuemntacion de los WS
       final payload = {
-        'action': 'ini_round',
+        'action': 'select_mini',
         'payload': {'minijuego': minigameName, 'descripcion': ''}
       };
       // Enviamos el paquete codificado al backend.
       _channel!.sink.add(jsonEncode(payload));
       // Si no hay conexion imrpimimos un msj de error
     } else {
-      debugPrint("No se pudo enviar 'ini_round' porque no hay conexión.");
+      debugPrint("No se pudo enviar 'select_mini' porque no hay conexión.");
     }
   }
 
@@ -545,29 +576,44 @@ class WebSocketService {
     }
   }
 
-  /// Función robusta para evaluar si un turno ha finalizado por completo
+  /// Función robusta para evaluar si un turno ha finalizado por completo.
+  /// Espera a que todas las animaciones, la ruleta y cualquier minijuego de
+  /// casilla hayan terminado antes de enviar fin_turno al backend.
   void checkAndFinalizeTurn() {
-    // Usamos un bucle para esperar a que las animaciones terminen, en lugar de un delay fijo
     Future.doWhile(() async {
       final gameState = _ref.read(gameProvider);
       final isQueueEmpty =
           _ref.read(gameProvider.notifier).isAnimationQueueEmpty;
 
-      // Si la cola no está vacía o la ruleta está abierta, seguimos esperando
-      if (!isQueueEmpty || gameState.obtainedItemName != null) {
+      // Salida temprana si no es el turno del jugador local: no hace falta
+      // esperar ni enviar nada, y así evitamos un bucle infinito en los
+      // jugadores que no participan en el minijuego de casilla.
+      final myUsername = _ref.read(authProvider).username;
+      if (gameState.activePlayerName != myUsername) return false;
+
+      // Seguimos esperando mientras:
+      //   - La cola de animaciones no esté vacía.
+      //   - La ruleta de objeto esté abierta.
+      //   - Haya un minijuego de casilla inminente (_pendingTileMinigame).
+      //   - Un minijuego de casilla esté en curso (fase minigameTile).
+      if (!isQueueEmpty ||
+          gameState.obtainedItemName != null ||
+          _pendingTileMinigame ||
+          gameState.currentPhase == GamePhase.minigameTile) {
         await Future.delayed(const Duration(milliseconds: 100));
-        return true; // Continuar esperando
+        return true;
       }
-      return false; // Salir del bucle, todo está listo
+      return false;
     }).then((_) {
       final gameState = _ref.read(gameProvider);
 
-      // Verificamos que no haya bloqueos de eventos
       if (gameState.currentPhase == GamePhase.boardTurn) {
         if (_pendingTurnAdvance) {
           _pendingTurnAdvance = false; // Consumimos el ticket
 
-          // Si es nuestro turno según el servidor, enviamos el aviso de fin de acciones
+          // Solo el jugador activo envía fin_turno.
+          // El ticket _pendingTurnAdvance actúa como mutex: si dos llamadas
+          // concurrentes llegan aquí, solo la primera envía.
           final myUsername = _ref.read(authProvider).username;
           if (gameState.activePlayerName == myUsername) {
             sendEndRound();

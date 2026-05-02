@@ -223,9 +223,16 @@ class WebSocketService {
 
         // Tipo de mensaje de inicio de minijuego
         case 'ini_minijuego':
-          _localPlayerSentEndRound = false;
-
           final String? name = decoded['minijuego'];
+          final isTileMinigame = name == 'Mano de Poker' ||
+              name == 'Poker' ||
+              name == 'Dilema del Prisionero' ||
+              name == 'Doble o Nada';
+
+          if (!isTileMinigame) {
+            _localPlayerSentEndRound = false;
+          }
+
           final String? desc = decoded['descripcion'];
           // 'details' no se extrae de aquí para evitar sobreescribir datos recibidos durante la animación
 
@@ -373,8 +380,10 @@ class WebSocketService {
           _ref.read(gameProvider.notifier).enqueueTask(() async {
             // Añadimos un pequeño delay extra para que el jugador aprecie que ha llegado a la casilla
             await Future.delayed(const Duration(milliseconds: 400));
-            _ref.read(gameProvider.notifier).showObtainedItem(itemName, desc, userRuleta);
-            
+            _ref
+                .read(gameProvider.notifier)
+                .showObtainedItem(itemName, desc, userRuleta);
+
             // Pausamos la cola de animaciones hasta que el modal de ruleta se cierre completamente
             await _ref.read(gameProvider.notifier).waitForRouletteToClose();
           });

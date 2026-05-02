@@ -274,12 +274,15 @@ class GameController extends StateNotifier<GameState> {
 
     final finalDesc = customDescriptions[name] ?? description;
 
-    // Usamos el constructor directamente porque copyWith no puede poner
-    // campos nullable a null (null ?? valorAnterior = valorAnterior).
-    // Si llamamos copyWith(minigameResults: null), el ?? devuelve el
-    // resultado de la ronda anterior y la pantalla de resultados persiste.
+    // Identificamos si es un minijuego de casilla para no bloquear el tablero global
+    final isTileMinigame = name == 'Mano de Poker' ||
+        name == 'Poker' ||
+        name == 'Dilema del Prisionero' ||
+        name == 'Doble o Nada';
+
     state = GameState(
-      currentPhase: GamePhase.minigameOrder,
+      currentPhase:
+          isTileMinigame ? GamePhase.minigameTile : GamePhase.minigameOrder,
       currentRound: state.currentRound,
       players: state.players,
       turnOrder: state.turnOrder,
@@ -327,7 +330,8 @@ class GameController extends StateNotifier<GameState> {
       turnOrder: state.turnOrder,
       activePlayerIndex: state.activePlayerIndex,
       serverMessage: state.serverMessage,
-      isWaitingForMinigameChoice: false,
+      isWaitingForMinigameChoice: state.isWaitingForMinigameChoice,
+      minigameChoices: state.minigameChoices,
       winnerName: state.winnerName,
       lastDiceResult: state.lastDiceResult,
       lastDice1: state.lastDice1,
@@ -506,5 +510,4 @@ class GameController extends StateNotifier<GameState> {
   }
 
   // Sincronización Ruleta: marca si la ruleta está en fase de giro (bloquea movimiento)
-
 }

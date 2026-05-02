@@ -258,11 +258,7 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
   @override
   Widget build(BuildContext context) {
     final gameState = ref.watch(gameProvider);
-    final activePlayerId = (gameState.turnOrder.isNotEmpty &&
-            gameState.activePlayerIndex >= 0 &&
-            gameState.activePlayerIndex < gameState.turnOrder.length)
-        ? gameState.turnOrder[gameState.activePlayerIndex]
-        : '';
+    final activePlayerId = gameState.activePlayerName ?? '';
     final myUsername = ref.watch(authProvider).username;
     final isMyTurn = myUsername == activePlayerId && activePlayerId.isNotEmpty;
 
@@ -327,7 +323,7 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
     // Resetear _hasRolledThisTurn cuando cambia el turno,
     // vuelve la fase al tablero o es un juego de 1 jugador
     ref.listen(
-      gameProvider.select((s) => '${s.activePlayerIndex}_${s.currentPhase}'),
+      gameProvider.select((s) => '${s.activePlayerName}_${s.currentPhase}'),
       (prev, next) {
         if (prev != next && mounted) {
           setState(() => _hasRolledThisTurn = false);
@@ -574,7 +570,6 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
                   !_hasRolledThisTurn &&
                   !gameState.isMovementActive &&
                   !gameState.isWaitingForMinigameChoice &&
-                  gameState.blockingTurnPlayer == null &&
                   gameState.obtainedItemName == null &&
                   (gameState.minigameChoices == null ||
                       gameState.minigameChoices!.isEmpty))
@@ -878,7 +873,9 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
         _isRolling ? (d1 + d2) : (gameState.lastDiceResult ?? (d1 + d2));
 
     // Obtener el ranking del jugador que acaba de tirar para los colores del dado 2
-    final myRankIndex = gameState.activePlayerIndex;
+    // El índice ya no lo calculamos localmente, lo obtenemos buscando el nombre en la lista
+    final activePlayerId = gameState.activePlayerName ?? '';
+    final myRankIndex = gameState.turnOrder.indexOf(activePlayerId);
     final rank = myRankIndex + 1;
 
     return Positioned.fill(
@@ -929,7 +926,9 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
                       _buildDiceFace(d1, Colors.white, Colors.black87),
                       if (gameState.lastDice2 > 0 ||
                           (_isRolling &&
-                              gameState.players[gameState.activePlayerIndex]
+                              gameState.players.firstWhere(
+                                  (p) => p.username == gameState.activePlayerName,
+                                  orElse: () => gameState.players[0])
                                   .diceInventory.isNotEmpty)) ...[
                         const SizedBox(width: 20),
                         _buildDiceFace(

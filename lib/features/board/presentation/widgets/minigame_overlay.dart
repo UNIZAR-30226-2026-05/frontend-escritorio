@@ -215,16 +215,7 @@ class _MinigameOverlayState extends ConsumerState<MinigameOverlay> {
           final currentGameState = ref.read(gameProvider);
           final authUsername = ref.read(authProvider).username;
 
-          // Identificar quién es el jugador que tiró los dados (el dueño del turno).
-          // Gracias a que ya NO adelantamos el índice durante la animación de
-          // movimiento cuando hay un minijuego de casilla, activePlayerIndex
-          // sigue apuntando al jugador correcto (el que cayó en la casilla).
-          final activePlayerId = (currentGameState.turnOrder.isNotEmpty &&
-                  currentGameState.activePlayerIndex >= 0 &&
-                  currentGameState.activePlayerIndex <
-                      currentGameState.turnOrder.length)
-              ? currentGameState.turnOrder[currentGameState.activePlayerIndex]
-              : null;
+          final activePlayerId = currentGameState.activePlayerName;
 
           // Cierra el overlay para todos los participantes
           ref.read(gameProvider.notifier).finishMinigame();

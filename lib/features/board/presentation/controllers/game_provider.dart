@@ -24,7 +24,7 @@ class GameController extends StateNotifier<GameState> {
       : super(GameState(
           currentPhase: GamePhase.boardTurn,
           turnOrder: ['1', '2', '3', '4'],
-          activePlayerIndex: 0,
+          activePlayerName: 'David',
           players: [
             Player(
               id: '1',
@@ -246,10 +246,22 @@ class GameController extends StateNotifier<GameState> {
     debugPrint('  Turno order: $cleanTurnOrder');
     debugPrint('═══════════════════════════════════════════');
 
+    // Buscamos de quién es el turno
+    final int turnoActual = boardState['turn'] ?? boardState['turno_actual'] ?? 1;
+    String? activeName;
+    order.forEach((key, value) {
+      if (value == turnoActual) activeName = key;
+    });
+    
+    debugPrint('  • Turno actual (backend): $turnoActual');
+    debugPrint('  • Jugador activo identificado: $activeName');
+
+
     state = state.copyWith(
       currentPhase: newPhase,
       players: updatedPlayers.isNotEmpty ? updatedPlayers : state.players,
       turnOrder: cleanTurnOrder.isNotEmpty ? cleanTurnOrder : state.turnOrder,
+      activePlayerName: activeName,
       serverMessage: "Sincronizado con el servidor",
     );
   }
@@ -286,7 +298,7 @@ class GameController extends StateNotifier<GameState> {
       currentRound: state.currentRound,
       players: state.players,
       turnOrder: state.turnOrder,
-      activePlayerIndex: state.activePlayerIndex,
+      activePlayerName: state.activePlayerName,
       serverMessage: state.serverMessage,
       minigameName: name,
       minigameDescription: finalDesc,
@@ -328,7 +340,7 @@ class GameController extends StateNotifier<GameState> {
       currentRound: state.currentRound,
       players: state.players,
       turnOrder: state.turnOrder,
-      activePlayerIndex: state.activePlayerIndex,
+      activePlayerName: state.activePlayerName,
       serverMessage: state.serverMessage,
       isWaitingForMinigameChoice: state.isWaitingForMinigameChoice,
       minigameChoices: state.minigameChoices,
@@ -337,34 +349,15 @@ class GameController extends StateNotifier<GameState> {
       lastDice1: state.lastDice1,
       lastDice2: state.lastDice2,
       lastDiceRollId: state.lastDiceRollId,
-      blockingTurnPlayer: null, // Limpiamos el bloqueo al salir del minijuego
     );
   }
 
-  /// Avanza el turno al siguiente jugador. Se usa al terminar un minijuego
-  /// de casilla, ya que en ese caso el turno no se avanza durante la animación
-  /// de movimiento para no desincronizar el estado con el backend.
-  void advanceTurn() {
-    int nextPlayerIndex =
-        (state.activePlayerIndex + 1) % state.turnOrder.length;
-    int nextRound = state.currentRound;
-
-    if (nextPlayerIndex == 0) {
-      nextRound += 1;
-    }
-
+  /// Actualiza el jugador activo basándose en la orden explícita del servidor
+  void setActivePlayerName(String? name, {int? round}) {
     state = state.copyWith(
-      activePlayerIndex: nextPlayerIndex,
-      currentRound: nextRound,
+      activePlayerName: name,
+      currentRound: round ?? state.currentRound,
     );
-  }
-
-  void setBlockingTurnPlayer(String playerId) {
-    state = state.copyWith(blockingTurnPlayer: playerId);
-  }
-
-  void clearBlockingTurnPlayer() {
-    state = state.copyWith(blockingTurnPlayer: null);
   }
 
   // Método para actualizar monedas e inventario
@@ -409,7 +402,7 @@ class GameController extends StateNotifier<GameState> {
       currentRound: state.currentRound,
       players: state.players,
       turnOrder: state.turnOrder,
-      activePlayerIndex: state.activePlayerIndex,
+      activePlayerName: state.activePlayerName,
       serverMessage: state.serverMessage,
       isWaitingForMinigameChoice: state.isWaitingForMinigameChoice,
       winnerName: state.winnerName,
@@ -418,7 +411,6 @@ class GameController extends StateNotifier<GameState> {
       lastDice1: state.lastDice1,
       lastDice2: state.lastDice2,
       lastDiceRollId: state.lastDiceRollId,
-      blockingTurnPlayer: null, // Limpiamos el bloqueo de la ruleta
       obtainedItemName: null,
       obtainedItemDesc: null,
       obtainedItemPlayer: null,
@@ -452,7 +444,7 @@ class GameController extends StateNotifier<GameState> {
       currentRound: state.currentRound,
       players: state.players,
       turnOrder: state.turnOrder,
-      activePlayerIndex: state.activePlayerIndex,
+      activePlayerName: state.activePlayerName,
       serverMessage: state.serverMessage,
       lastDiceResult: state.lastDiceResult,
       lastDice1: state.lastDice1,

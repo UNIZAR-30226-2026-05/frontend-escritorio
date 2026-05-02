@@ -101,7 +101,6 @@ class WebSocketService {
         // Tipo de mensaje de movimiento de jugador (tras tirar dados)
         case 'player_moved':
           final String userId = decoded['user'];
-          _ref.read(gameProvider.notifier).clearBlockingTurnPlayer();
           final int newTile = decoded['nueva_casilla'];
           final int dado1 = decoded['dado1'] ?? 0;
           final int dado2 = decoded['dado2'] ?? 0;
@@ -187,20 +186,20 @@ class WebSocketService {
           final tipoCasilla = decoded['casilla'] as String? ?? '';
           debugPrint(
               "El jugador ha caído en una casilla de tipo: $tipoCasilla");
-          // Si es una casilla especial (extra, obj = ruleta, mini = minijuego individual),
-          // el jugador activo va a entrar en un evento bloqueante.
-          // Lo guardamos para que los demás clientes no muestren el botón de dados.
-          if (tipoCasilla == 'extra' || tipoCasilla == 'obj') {
-            final gameState = _ref.read(gameProvider);
-            final activePlayerIdx = gameState.activePlayerIndex;
-            if (activePlayerIdx >= 0 &&
-                activePlayerIdx < gameState.turnOrder.length) {
-              final blockingId = gameState.turnOrder[activePlayerIdx];
-              _ref
-                  .read(gameProvider.notifier)
-                  .setBlockingTurnPlayer(blockingId);
-            }
-          }
+          // NOTA: Ya no hace falta bloquear el turno preventivamente aquí
+          // porque el servidor no mandará el turno_de del siguiente hasta que 
+          // el jugador actual envíe su 'fin_turno'.
+          break;
+
+        case 'turno_de':
+          final String nextUser = decoded['nombre_jugador'] ?? '';
+          final int ronda = decoded['ronda'] ?? 1;
+          debugPrint("¡Es el turno de: $nextUser (Ronda $ronda)!");
+          _ref.read(gameProvider.notifier).setActivePlayerName(nextUser, round: ronda);
+          
+          // Al recibir un nuevo turno, reseteamos flags locales de fin de turno
+          _localPlayerSentEndRound = false;
+          _isActionLocked = false; // Liberamos para que el jugador pueda tirar
           break;
 
         case 'fin_partida':
@@ -307,36 +306,26 @@ class WebSocketService {
 
           // 1. Mostrar resultado de Doble o Nada a todos y desbloquear a los espectadores
           final gameState = _ref.read(gameProvider);
-          final blockingUser = gameState.blockingTurnPlayer;
+          final activeUser = gameState.activePlayerName;
 
           // LA CLAVE ESTÁ AQUÍ: Comprobamos estrictamente que estamos en el Doble o Nada
           // y que las monedas que han cambiado incluyen al jugador que está apostando.
-          if (blockingUser != null &&
+          if (activeUser != null &&
               gameState.minigameDetails?['minijuego'] == 'Doble o Nada' &&
-              balances.containsKey(blockingUser)) {
+              balances.containsKey(activeUser)) {
             final oldPlayer = gameState.players.firstWhere(
-                (p) => p.id == blockingUser || p.username == blockingUser,
+                (p) => p.id == activeUser || p.username == activeUser,
                 orElse: () => gameState.players.first);
-            final diff = (balances[blockingUser] as int) - oldPlayer.coins;
+            final diff = (balances[activeUser] as int) - oldPlayer.coins;
 
             // Mostramos a todos lo que ha pasado con la apuesta
             if (diff != 0) {
               final msg = diff > 0
-                  ? "¡$blockingUser ha GANADO $diff monedas en Doble o Nada! 🪙"
-                  : "¡$blockingUser ha PERDIDO ${diff.abs()} monedas en Doble o Nada! 💸";
+                  ? "¡$activeUser ha GANADO $diff monedas en Doble o Nada! 🪙"
+                  : "¡$activeUser ha PERDIDO ${diff.abs()} monedas en Doble o Nada! 💸";
               _eventController.add({'type': 'info_message', 'message': msg});
             }
 
-            // Los espectadores esperan 3.2s para sincronizarse
-            final myUsername = _ref.read(authProvider).username ?? '';
-            if (myUsername != blockingUser) {
-              Future.delayed(const Duration(milliseconds: 3200), () {
-                if (_isConnected) {
-                  _ref.read(gameProvider.notifier).clearBlockingTurnPlayer();
-                  checkAndFinalizeTurn();
-                }
-              });
-            }
           }
 
           // 2. Para cada jugador en el Map, actualizamos su balance
@@ -346,12 +335,11 @@ class WebSocketService {
                 .updateInventoryAndBalance(userId, newBalance: coins as int);
           });
 
-          // 3. Revisamos si es el final de la ronda de todos los jugadores
-          if (_localPlayerSentEndRound &&
-              _ref.read(gameProvider).activePlayerIndex == 0) {
-            _localPlayerSentEndRound = false;
-            _ref.read(gameProvider.notifier).setWaitingForMinigameChoice(true);
-          }
+          break;
+        
+        case 'round_ended':
+          debugPrint("Fin de ronda detectado. Esperando elección de minijuego...");
+          _ref.read(gameProvider.notifier).setWaitingForMinigameChoice(true);
           break;
 
         // Tipo de mensaje para elegir minijuego
@@ -372,9 +360,6 @@ class WebSocketService {
           final itemName = decoded['objeto'];
           final desc = decoded['descripcion'];
           final userRuleta = decoded['user'];
-
-          // Marcar al jugador de la ruleta como bloqueante (refuerza tipo_casilla)
-          _ref.read(gameProvider.notifier).setBlockingTurnPlayer(userRuleta);
 
           // ENCOLAMOS la ruleta para que se ejecute secuencialmente DESPUÉS del movimiento que la provocó
           _ref.read(gameProvider.notifier).enqueueTask(() async {
@@ -478,19 +463,16 @@ class WebSocketService {
     // Comprobamos previamente que el canal existe y está conectado antes de mandar la acción
     if (_channel != null && _isConnected) {
       // Creamos el payload como se especifica en la domuentacion de los WS
-      final payload = {'action': 'end_round', 'payload': {}};
+      final payload = {'action': 'fin_turno', 'payload': {}};
       // DEBUG: guarda que imprimmos para comprobar que se manda correctamente
-      debugPrint(' Enviando END_ROUND al backend');
+      debugPrint(' Enviando FIN_TURNO al backend');
       // Mandamos el paquete codificado al backend.
       _channel!.sink.add(jsonEncode(payload));
 
       _isActionLocked = false; // LIBERA EL DADO PARA EL PRÓXIMO TURNO
-      // Marcamos que este jugador terminó su turno. La pantalla de espera
-      // se activará en 'balances_changed', que llega cuando TODOS han terminado.
       _localPlayerSentEndRound = true;
-      // Si no hay conexion imrpimimos un msj de error
     } else {
-      debugPrint("No se pudo enviar 'end_round' porque no hay conexión.");
+      debugPrint("No se pudo enviar 'fin_turno' porque no hay conexión.");
     }
   }
 
@@ -581,21 +563,13 @@ class WebSocketService {
       final gameState = _ref.read(gameProvider);
 
       // Verificamos que no haya bloqueos de eventos
-      if (gameState.currentPhase == GamePhase.boardTurn &&
-          gameState.blockingTurnPlayer == null) {
+      if (gameState.currentPhase == GamePhase.boardTurn) {
         if (_pendingTurnAdvance) {
-          final activeId = gameState.turnOrder.isNotEmpty
-              ? gameState.turnOrder[gameState.activePlayerIndex]
-              : null;
-
           _pendingTurnAdvance = false; // Consumimos el ticket
 
-          // 1. Avanzamos el turno en la interfaz local
-          _ref.read(gameProvider.notifier).advanceTurn();
-
-          // 2. Si es nuestro turno local, le damos el aviso de fin al servidor
+          // Si es nuestro turno según el servidor, enviamos el aviso de fin de acciones
           final myUsername = _ref.read(authProvider).username;
-          if (activeId == myUsername) {
+          if (gameState.activePlayerName == myUsername) {
             sendEndRound();
           }
         }

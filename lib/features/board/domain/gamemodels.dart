@@ -161,8 +161,8 @@ class GameState {
   final List<Player> players;
   final List<String>
       turnOrder; // IDs de los jugadores ordenados tras el minijuego de orden (RF06)
-  final int
-      activePlayerIndex; // Índice sobre turnOrder para saber quién tira ahora
+  final String?
+      activePlayerName; // Nombre del jugador al que le toca actualmente (autoridad del backend)
 
   // UI / Feedback
   final String serverMessage;
@@ -194,7 +194,7 @@ class GameState {
   final String? winnerName;
 
   // Evento bloqueante individual (Doble o Nada, ruleta) — bloquea al siguiente jugador
-  final String? blockingTurnPlayer;
+
 
   //Constructor de la clase
   GameState({
@@ -202,7 +202,7 @@ class GameState {
     this.currentRound = 1,
     required this.players,
     this.turnOrder = const [],
-    this.activePlayerIndex = 0,
+    this.activePlayerName,
     this.serverMessage = "Esperando jugadores...",
     this.lastDiceResult,
     this.lastDice1 = 0,
@@ -220,7 +220,7 @@ class GameState {
     this.obtainedItemPlayer,
     this.videnteDiceResults,
     this.winnerName,
-    this.blockingTurnPlayer,
+
   });
 
   GameState copyWith({
@@ -228,7 +228,7 @@ class GameState {
     int? currentRound,
     List<Player>? players,
     List<String>? turnOrder,
-    int? activePlayerIndex,
+    String? activePlayerName,
     String? serverMessage,
     int? lastDiceResult,
     int? lastDice1,
@@ -246,14 +246,14 @@ class GameState {
     String? obtainedItemPlayer,
     List<int>? videnteDiceResults,
     String? winnerName,
-    Object? blockingTurnPlayer = _sentinel,
+
   }) {
     return GameState(
       currentPhase: currentPhase ?? this.currentPhase,
       currentRound: currentRound ?? this.currentRound,
       players: players ?? this.players,
       turnOrder: turnOrder ?? this.turnOrder,
-      activePlayerIndex: activePlayerIndex ?? this.activePlayerIndex,
+      activePlayerName: activePlayerName ?? this.activePlayerName,
       serverMessage: serverMessage ?? this.serverMessage,
       lastDiceResult: lastDiceResult ?? this.lastDiceResult,
       lastDice1: lastDice1 ?? this.lastDice1,
@@ -272,11 +272,11 @@ class GameState {
       obtainedItemPlayer: obtainedItemPlayer ?? this.obtainedItemPlayer,
       videnteDiceResults: videnteDiceResults ?? this.videnteDiceResults,
       winnerName: winnerName ?? this.winnerName,
-      blockingTurnPlayer: blockingTurnPlayer == _sentinel
-          ? this.blockingTurnPlayer
-          : blockingTurnPlayer as String?,
+
+
+
     );
   }
 }
 
-const Object _sentinel = Object();
+

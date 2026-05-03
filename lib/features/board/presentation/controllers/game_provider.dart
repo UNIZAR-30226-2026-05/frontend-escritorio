@@ -263,6 +263,8 @@ class GameController extends StateNotifier<GameState> {
       turnOrder: cleanTurnOrder.isNotEmpty ? cleanTurnOrder : state.turnOrder,
       activePlayerName: activeName,
       serverMessage: "Sincronizado con el servidor",
+      lastDiceResult: null, // Limpiar tiradas viejas al sincronizar
+      isMovementActive: false, // Asegurar tablero estático tras sincro
     );
   }
 
@@ -357,7 +359,17 @@ class GameController extends StateNotifier<GameState> {
     state = state.copyWith(
       activePlayerName: name,
       currentRound: round ?? state.currentRound,
+      hasImprovedDice: false, // Resetear mejora al cambiar de turno
+      lastDiceResult: null, // Resetear tirada para habilitar objetos de "antes de tirar"
+      isMovementActive: false, // Asegurar que el estado de movimiento está limpio
+      minigameName: null, // Limpiar minijuegos viejos
+      minigameDescription: null,
+      minigameDetails: null,
     );
+  }
+
+  void setImprovedDice(bool value) {
+    state = state.copyWith(hasImprovedDice: value);
   }
 
   // Método para actualizar monedas e inventario

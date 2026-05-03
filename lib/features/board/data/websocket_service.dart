@@ -203,11 +203,14 @@ class WebSocketService {
           _ref.read(gameProvider.notifier).setActivePlayerName(nextUser, round: ronda);
           
           // Al recibir un nuevo turno, reseteamos todos los flags del turno anterior.
-          // _pendingTileMinigame se resetea por si el minijuego de casilla
-          // anterior no llegó a limpiarla (ej. jugador no participante en Doble o Nada).
           _localPlayerSentEndRound = false;
           _isActionLocked = false;
           _pendingTileMinigame = false;
+          break;
+
+        case 'dados_mejorados':
+          debugPrint("¡Dados mejorados con éxito!");
+          _ref.read(gameProvider.notifier).setImprovedDice(true);
           break;
 
         case 'fin_partida':
@@ -395,17 +398,6 @@ class WebSocketService {
           final affectedUser = decoded['user'] as String;
           final turns = decoded['penalizacion'] ?? 0;
           _ref.read(gameProvider.notifier).updatePenalty(affectedUser, turns);
-
-          // Si el jugador penalizado es el usuario local y _isActionLocked es false,
-          // significa que el backend está saltando su turno por penalización sin haber
-          // enviado turno_de (el jugador no llegó a tirar).
-          // En ese caso auto-enviamos fin_turno para desbloquear la partida,
-          // igual que se hace al terminar las animaciones de movimiento.
-          final localUsername = _ref.read(authProvider).username ?? '';
-          if (affectedUser == localUsername && !_isActionLocked) {
-            await Future.delayed(const Duration(milliseconds: 800));
-            sendEndRound();
-          }
           break;
 
         case 'penalizacion_eliminada':
@@ -491,6 +483,8 @@ class WebSocketService {
 
   // Función privada para mandar la acción de fin de ronda al backend
   void sendEndRound() {
+    if (_localPlayerSentEndRound) return;
+    
     // Comprobamos previamente que el canal existe y está conectado antes de mandar la acción
     if (_channel != null && _isConnected) {
       // Creamos el payload como se especifica en la domuentacion de los WS

@@ -547,20 +547,6 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
                 ),
               ),
 
-              // Botón Tienda (Independiente, alineado con la web: bottom-6 left-6 -> 24px)
-              Positioned(
-                bottom: 24.0,
-                left: 24.0,
-                child: _buildPixelButton(
-                  text: 'TIENDA',
-                  width: 140,
-                  height: 48,
-                  fontSize: 14,
-                  onPressed: () {
-                    setState(() => _isShopOpen = true);
-                  },
-                ),
-              ),
 
               // El Modal de la tienda se movió más abajo para prioridad de z-index
 
@@ -633,6 +619,7 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
                           playerCoins: gameState.players
                               .firstWhere((p) => p.id == activePlayerId)
                               .coins,
+                          hasRolled: _hasRolledThisTurn,
                           onClose: () => setState(() => _isShopOpen = false),
                         ),
                       ),
@@ -734,16 +721,92 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
   // WIDGET: Overlay de dados en el centro de la pantalla
   // Solo se muestra cuando es el turno del jugador local
   Widget _buildCenterDiceOverlay(GameState gameState, String myUsername) {
+    // Buscar al jugador local para ver su penalización
+    final localPlayer = gameState.players.firstWhere(
+      (p) => p.username == myUsername,
+      orElse: () => gameState.players.first,
+    );
+    final isPenalized = localPlayer.penaltyTurns > 0;
+
+    if (isPenalized) {
+      return Center(
+        child: Container(
+          padding: const EdgeInsets.all(32),
+          decoration: BoxDecoration(
+            color: Colors.black.withValues(alpha: 0.6),
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(color: Colors.redAccent, width: 2),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.block, color: Colors.redAccent, size: 64),
+              const SizedBox(height: 20),
+              const Text(
+                'ESTÁS BLOQUEADO',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 2,
+                ),
+              ),
+              const SizedBox(height: 10),
+              Text(
+                'Te quedan ${localPlayer.penaltyTurns} turnos de penalización.\n¿Deseas pasar el turno o comprar un Salvavidas?',
+                textAlign: TextAlign.center,
+                style: const TextStyle(color: Colors.white70, fontSize: 14),
+              ),
+              const SizedBox(height: 30),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _buildPixelButton(
+                    text: 'TIENDA',
+                    width: 150,
+                    onPressed: () => setState(() => _isShopOpen = true),
+                  ),
+                  const SizedBox(width: 20),
+                  _buildPixelButton(
+                    text: 'PASAR TURNO',
+                    width: 180,
+                    onPressed: () {
+                      ref.read(webSocketProvider).sendEndRound();
+                    },
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     // Inferir el tipo de dado extra a partir de la posición en el ranking
     final myRankIndex = gameState.turnOrder.indexOf(myUsername);
     final myRank = myRankIndex + 1; // 1-indexed
 
-    // REGLA: En la primera ronda NO hay dados especiales, solo uno.
+    // Si ha mejorado los dados, visualmente mostramos el dado extra mejorado
+    // Regla: 4º (1 dado) -> +Bronce, 3º (Bronce) -> +Plata, 2º (Plata) -> +Oro
+    int effectiveRankForExtraDice = myRank;
+    if (gameState.hasImprovedDice && myRank > 1) {
+      effectiveRankForExtraDice = myRank - 1;
+    }
+
+    // REGLA: En la primera ronda NO hay dados especiales por defecto, 
+    // pero si compras la mejora, TE SALE el de bronce (effectiveRank 3).
     final bool isRoundOne = gameState.currentRound <= 1;
-    final hasTwoDice =
-        !isRoundOne && myRank != 4 && myRank != 0; // rank 1-3 tienen dado extra
+    final bool hasTwoDiceByDefault = !isRoundOne && myRank != 4 && myRank != 0;
+    
+    // Tienes dos dados si ya los tenías por ranking O si has comprado la mejora
+    final bool hasTwoDice = hasTwoDiceByDefault || gameState.hasImprovedDice;
 
     final gameId = ref.read(lobbyProvider).gameId ?? '1';
+
+    // El primer dado siempre es el normal (Blanco)
+    const dice1Color = Colors.white;
+    const dice1Border = Color(0xFF444466);
+    const Color? dice1Glow = null;
 
     return Center(
       child: Container(
@@ -771,31 +834,43 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 _buildDiceWidget(
-                  diceColor: Colors.white,
-                  borderColor: const Color(0xFF444466),
+                  diceColor: dice1Color,
+                  borderColor: dice1Border,
                   label: '1-6',
                   labelColor: Colors.black54,
+                  glowColor: dice1Glow,
                 ),
                 if (hasTwoDice) ...[
                   const SizedBox(width: 28),
                   _buildDiceWidget(
-                    diceColor: _extraDiceColor(myRank),
-                    borderColor: _extraDiceBorderColor(myRank),
-                    label: _extraDiceLabel(myRank),
-                    labelColor: _extraDiceLabelColor(myRank),
-                    glowColor: _extraDiceGlowColor(myRank),
+                    diceColor: _extraDiceColor(effectiveRankForExtraDice),
+                    borderColor: _extraDiceBorderColor(effectiveRankForExtraDice),
+                    label: _extraDiceLabel(effectiveRankForExtraDice),
+                    labelColor: _extraDiceLabelColor(effectiveRankForExtraDice),
+                    glowColor: _extraDiceGlowColor(effectiveRankForExtraDice),
                   ),
                 ],
               ],
             ),
             const SizedBox(height: 40),
-            // Botón específico para tirar
-            _buildPixelButton(
-              text: hasTwoDice ? 'TIRAR DADOS' : 'TIRAR DADO',
-              onPressed: () {
-                setState(() => _hasRolledThisTurn = true);
-                ref.read(webSocketProvider).rollDiceCommand(gameId, myUsername);
-              },
+            // Botones de acción del turno
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _buildPixelButton(
+                  text: 'TIENDA',
+                  width: 140,
+                  onPressed: () => setState(() => _isShopOpen = true),
+                ),
+                const SizedBox(width: 20),
+                _buildPixelButton(
+                  text: hasTwoDice ? 'TIRAR DADOS' : 'TIRAR DADO',
+                  onPressed: () {
+                    setState(() => _hasRolledThisTurn = true);
+                    ref.read(webSocketProvider).rollDiceCommand(gameId, myUsername);
+                  },
+                ),
+              ],
             ),
           ],
         ),

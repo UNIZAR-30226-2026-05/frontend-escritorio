@@ -74,7 +74,7 @@ class TargetSelectionModal extends ConsumerWidget {
                     width: 200,
                     height: 45,
                     fontSize: 12,
-                    onTap: () => onTargetSelected(p.username),
+                    onTap: () => onTargetSelected(p.id),
                   ),
                 )),
             const SizedBox(height: 16),

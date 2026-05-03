@@ -85,20 +85,24 @@ class LobbyWebSocketService {
           // Si aún no había confirmado el gameId, es un error de conexión inicial.
           if (_pendingGameId != null) {
             _pendingGameId = null;
-            _ref.read(lobbyProvider.notifier).onWsError('No se pudo conectar a la partida');
+            _ref
+                .read(lobbyProvider.notifier)
+                .onWsError('No se pudo conectar a la partida');
           } else {
             _scheduleReconnect();
           }
         },
       );
-    // Si hay un error al intentar conectar, se captura la excepción, se marca como no conectado y se imprime el error.
+      // Si hay un error al intentar conectar, se captura la excepción, se marca como no conectado y se imprime el error.
     } catch (e) {
       _isConnected = false;
       if (!_intentionalDisconnect && _pendingGameId == null) {
         _scheduleReconnect();
       } else {
         _pendingGameId = null;
-        _ref.read(lobbyProvider.notifier).onWsError('No se pudo conectar a la partida');
+        _ref
+            .read(lobbyProvider.notifier)
+            .onWsError('No se pudo conectar a la partida');
       }
     }
   }
@@ -107,14 +111,18 @@ class LobbyWebSocketService {
   // Máximo _maxReconnectAttempts intentos antes de notificar al usuario.
   void _scheduleReconnect() {
     if (_reconnectAttempts >= _maxReconnectAttempts) {
-      _ref.read(lobbyProvider.notifier).onWsError('Se perdió la conexión con la partida');
+      _ref
+          .read(lobbyProvider.notifier)
+          .onWsError('Se perdió la conexión con la partida');
       return;
     }
     // Retardo exponencial: 2s, 4s, 8s, 16s, 32s.
     final delay = Duration(seconds: 2 << _reconnectAttempts);
     _reconnectAttempts++;
     _reconnectTimer = Timer(delay, () {
-      if (!_intentionalDisconnect && _savedGameId != null && _savedToken != null) {
+      if (!_intentionalDisconnect &&
+          _savedGameId != null &&
+          _savedToken != null) {
         connect(_savedGameId!, _savedToken!);
       }
     });
@@ -138,7 +146,10 @@ class LobbyWebSocketService {
       switch (decoded['type'] as String?) {
         // El backend notifica cuántos jugadores están conectados a la partida.
         case 'lobby_update':
-          final List<String> players =(decoded['players_connected'] as List<dynamic>? ?? []).map((p) => p as String).toList();
+          final List<String> players =
+              (decoded['players_connected'] as List<dynamic>? ?? [])
+                  .map((p) => p as String)
+                  .toList();
           final String msg = decoded['message'] as String? ?? '';
           // Confirma el gameId en el estado solo cuando el backend responde correctamente.
           if (_pendingGameId != null) {
@@ -170,7 +181,10 @@ class LobbyWebSocketService {
 
         // Un jugador se desconectó antes de que empezara la partida.
         case 'player_disconnected':
-          final List<String> players =(decoded['players_connected'] as List<dynamic>? ?? []).map((p) => p as String).toList();
+          final List<String> players =
+              (decoded['players_connected'] as List<dynamic>? ?? [])
+                  .map((p) => p as String)
+                  .toList();
           final String msg = decoded['message'] as String? ?? '';
           _ref.read(lobbyProvider.notifier).onPlayerDisconnected(players, msg);
           break;
@@ -189,7 +203,9 @@ class LobbyWebSocketService {
           final String status = decoded['game_status'] as String? ?? 'WAITING';
           if (status == 'WAITING') {
             _reconnectAttempts = 0;
-            _ref.read(lobbyProvider.notifier).onReconnectSuccess(decoded['current_board']);
+            _ref
+                .read(lobbyProvider.notifier)
+                .onReconnectSuccess(decoded['current_board']);
           }
           break;
 
@@ -221,9 +237,7 @@ class LobbyWebSocketService {
     if (!_isConnected || _channel == null) return;
     final Map<String, dynamic> msg = {
       "action": "select_player",
-      "payload": {
-        "character": character
-      }
+      "payload": {"character": character}
     };
     _channel!.sink.add(jsonEncode(msg));
   }

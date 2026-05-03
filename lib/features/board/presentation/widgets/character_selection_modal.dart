@@ -203,7 +203,8 @@ class _CharacterSelectionModalState
   @override
   Widget build(BuildContext context) {
     final numPersonajes = widget.lobbyState.selectedCharacters.length;
-    final allChosen = numPersonajes >= widget.lobbyState.playersConnected.length;
+    final allChosen =
+        numPersonajes >= widget.lobbyState.playersConnected.length;
     String jugadorActual = '';
     if (numPersonajes < widget.lobbyState.playersConnected.length) {
       jugadorActual = widget.lobbyState.playersConnected[numPersonajes];
@@ -266,7 +267,9 @@ class _CharacterSelectionModalState
                       : const Color(0xFF382B1E), // Tono amarillento/marrón
               border: Border(
                 bottom: BorderSide(
-                  color: _isMyTurn ? const Color(0xFF3CD37D) : const Color(0xFFD3A03C),
+                  color: _isMyTurn
+                      ? const Color(0xFF3CD37D)
+                      : const Color(0xFFD3A03C),
                   width: 2,
                 ),
               ),
@@ -282,7 +285,9 @@ class _CharacterSelectionModalState
               style: TextStyle(
                 fontFamily: 'Retro Gaming',
                 fontSize: 16,
-                color: _isMyTurn ? const Color(0xFF6DE899) : const Color(0xFFE8D36D),
+                color: _isMyTurn
+                    ? const Color(0xFF6DE899)
+                    : const Color(0xFFE8D36D),
                 fontWeight: FontWeight.bold,
                 letterSpacing: 1.5,
               ),
@@ -418,10 +423,7 @@ class _CharacterSelectionModalState
           const SizedBox(height: 32),
 
           // ---------------- 4. FOOTER ----------------
-          Container(
-              height: 2,
-              width: double.infinity,
-              color: Colors.white24),
+          Container(height: 2, width: double.infinity, color: Colors.white24),
           const SizedBox(height: 16),
           TweenAnimationBuilder<double>(
             tween: Tween(begin: 0.7, end: 1.0),
@@ -434,7 +436,7 @@ class _CharacterSelectionModalState
               );
             },
             onEnd: () {
-              // No podemos forzar un rebuild aquí fácilmente sin setState, 
+              // No podemos forzar un rebuild aquí fácilmente sin setState,
               // pero TweenAnimationBuilder puede reiniciarse si cambiamos el tween o usamos un Controller.
               // Para simplificar, usaremos un loop infinito si es posible o simplemente lo dejamos como está.
             },

@@ -192,6 +192,7 @@ class GameState {
   // Habilidades
   final List<int>? videnteDiceResults;
   final String? winnerName;
+  final bool hasImprovedDice;
 
   // Evento bloqueante individual (Doble o Nada, ruleta) — bloquea al siguiente jugador
 
@@ -220,6 +221,7 @@ class GameState {
     this.obtainedItemPlayer,
     this.videnteDiceResults,
     this.winnerName,
+    this.hasImprovedDice = false,
 
   });
 
@@ -246,6 +248,7 @@ class GameState {
     String? obtainedItemPlayer,
     List<int>? videnteDiceResults,
     String? winnerName,
+    bool? hasImprovedDice,
 
   }) {
     return GameState(
@@ -272,6 +275,7 @@ class GameState {
       obtainedItemPlayer: obtainedItemPlayer ?? this.obtainedItemPlayer,
       videnteDiceResults: videnteDiceResults ?? this.videnteDiceResults,
       winnerName: winnerName ?? this.winnerName,
+      hasImprovedDice: hasImprovedDice ?? this.hasImprovedDice,
 
 
 

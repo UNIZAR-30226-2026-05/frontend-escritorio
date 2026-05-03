@@ -69,11 +69,13 @@ class ShopController {
 
 class ShopModal extends ConsumerStatefulWidget {
   final int playerCoins;
+  final bool hasRolled;
   final VoidCallback onClose;
 
   const ShopModal({
     super.key,
     required this.playerCoins,
+    required this.hasRolled,
     required this.onClose,
   });
 
@@ -93,12 +95,11 @@ class _ShopModalState extends ConsumerState<ShopModal> {
       orElse: () => gameState.players.first,
     );
 
-    // Ranking: determine if local player is in 1st place
-    final sortedPlayers = gameState.players.toList()
-      ..sort((a, b) => b.currentTileIndex.compareTo(a.currentTileIndex));
-    final myRank =
-        sortedPlayers.indexWhere((p) => p.username == myUsername) + 1;
-    final isFirstPlace = myRank == 1 && myUsername != null;
+    // Ranking: determine if local player is the FIRST to roll in this round (Turn 1)
+    // El backend bloquea al que tira primero porque ya tiene el dado de oro.
+    final bool isFirstInTurn = gameState.turnOrder.isNotEmpty && 
+                              (gameState.turnOrder[0] == myUsername || gameState.turnOrder[0] == player.id);
+    final bool isFirstPlace = isFirstInTurn && myUsername != null;
 
     return Container(
       width: 900,
@@ -181,21 +182,31 @@ class _ShopModalState extends ConsumerState<ShopModal> {
               final canAfford = widget.playerCoins >= item.price;
 
               final bool isAvanzar = item.name == 'Avanzar Casillas';
-              final int itemCount = (isAvanzar && _avanzarCount > 0) ? 1 : 0;
-              
-              // Lógica de deshabilitado alineada con la web
-              final bool isBlocked = player.penaltyTurns > 0;
-              final bool hasMoved = gameState.isMovementActive ||
-                  gameState.lastDiceResult != null;
+              final bool isMejora = item.name == 'Mejorar Dados';
+              final bool isSalvavidas =
+                  item.name.toLowerCase().contains('salvavidas');
+              final int itemCount = isAvanzar ? _avanzarCount : 0;
 
-              bool isDisabled = isBlocked;
+              // Lógica de deshabilitado alineada con la web y nuevas reglas
+              final bool isBlocked = player.penaltyTurns > 0;
+              final bool hasMoved =
+                  gameState.isMovementActive || widget.hasRolled;
+
+              // El Salvavidas es el único objeto que NO se deshabilita por estar bloqueado
+              bool isDisabled = isBlocked && !isSalvavidas;
               String disabledReason = '';
 
-              if (isBlocked) {
+              if (isBlocked && !isSalvavidas) {
                 disabledReason = 'BLOQUEADO';
               } else if (isAvanzar && hasMoved) {
                 isDisabled = true;
                 disabledReason = 'SOLO ANTES DE TIRAR';
+              } else if (isMejora && isFirstPlace) {
+                isDisabled = true;
+                disabledReason = 'PROHIBIDO';
+              } else if (isMejora && gameState.hasImprovedDice) {
+                isDisabled = true;
+                disabledReason = 'YA MEJORADO';
               } else if (!canAfford) {
                 isDisabled = true;
                 disabledReason = 'SIN MONEDAS';
@@ -368,6 +379,11 @@ class _ShopModalState extends ConsumerState<ShopModal> {
                                       setState(() {
                                         _avanzarCount++;
                                       });
+                                    }
+                                    if (isMejora && !isFirstPlace) {
+                                      ref
+                                          .read(gameProvider.notifier)
+                                          .setImprovedDice(true);
                                     }
                                     // Se ha quitado onClose() para paridad con web
                                   }

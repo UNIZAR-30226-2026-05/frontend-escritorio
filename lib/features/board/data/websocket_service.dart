@@ -249,7 +249,13 @@ class WebSocketService {
           }
 
           final String? desc = decoded['descripcion'];
-          // 'details' no se extrae de aquí para evitar sobreescribir datos recibidos durante la animación
+
+          // Para minijuegos de ronda (ej. Mayor o Menor), los detalles solo llegan
+          // en este mensaje. Para minijuegos de casilla, minijuego_casilla ya los
+          // guardó; usamos esos como fallback para no pisar datos del póker.
+          final Map<String, dynamic>? msgDetails = decoded['detalles'] != null
+              ? Map<String, dynamic>.from(decoded['detalles'] as Map)
+              : null;
 
           debugPrint(
               "Minijuego ${name?.toUpperCase() ?? "DESCONOCIDO"} encolado. Detalles: ${desc?.toUpperCase() ?? "DESCONOCIDO"}");
@@ -271,7 +277,7 @@ class WebSocketService {
               _ref.read(gameProvider.notifier).startMinigame(
                     name: name,
                     description: desc,
-                    details: _ref.read(gameProvider).minigameDetails,
+                    details: msgDetails ?? _ref.read(gameProvider).minigameDetails,
                   );
             });
           }

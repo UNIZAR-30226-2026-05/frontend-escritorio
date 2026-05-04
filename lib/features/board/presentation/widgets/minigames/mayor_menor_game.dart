@@ -1,9 +1,7 @@
 import 'dart:async';
 import 'dart:math';
 import 'package:flutter/material.dart';
-import 'minigame_base.dart';
 
-// Imports necesarios para conocer qué personaje se usa (Riverpod)
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../controllers/game_provider.dart';
 import '../../../../auth/presentation/controllers/auth_provider.dart';
@@ -53,7 +51,7 @@ class CartaInfo {
         break;
       case 1:
         icono = '♥️';
-        colorCarta = const Color(0xFFD32F2F); // Rojo oscuro
+        colorCarta = const Color(0xFFD32F2F);
         break;
       case 2:
         icono = '♣️';
@@ -61,7 +59,7 @@ class CartaInfo {
         break;
       case 3:
         icono = '♦️';
-        colorCarta = const Color(0xFFD32F2F); // Rojo oscuro
+        colorCarta = const Color(0xFFD32F2F);
         break;
       default:
         icono = '♠️';
@@ -78,40 +76,52 @@ class CartaInfo {
 }
 
 // Inicialización y recepción de datos
-class MayorMenorGame extends MinigameBase {
+class MayorMenorGame extends ConsumerStatefulWidget {
   const MayorMenorGame({
     super.key,
-    required super.onFinish,
-    required super.details,
+    required this.onFinish,
+    required this.details,
   });
 
+  final void Function(dynamic score) onFinish;
+  final Map<String, dynamic> details;
+
   @override
-  State<MayorMenorGame> createState() => _MayorMenorGameState();
+  ConsumerState<MayorMenorGame> createState() => _MayorMenorGameState();
 }
 
-class _MayorMenorGameState extends State<MayorMenorGame> {
+class _MayorMenorGameState extends ConsumerState<MayorMenorGame> {
   late List<int> _cartasRaw;
+
+  // Índice de la carta asignada a este jugador según su posición en el orden de turno.
+  // No importa qué carta pulse visualmente: siempre se revela y puntúa esta.
+  late int _assignedIndex;
 
   int? _indiceSeleccionado;
   bool _juegoTerminado = false;
+
   @override
   void initState() {
     super.initState();
 
-    // Extracción segura de la lista de cartas
     final listaCartas = widget.details['cartas'];
     if (listaCartas is List && listaCartas.length == 4) {
       _cartasRaw = List<int>.from(listaCartas);
     } else {
-      // Fallback de seguridad en caso de que el backend envíe datos malformados
       _cartasRaw = [0, 13, 26, 39];
     }
+
+    // Buscamos la posición del jugador local en el orden de turno.
+    // cartas[0] → 1er jugador en turnOrder, cartas[1] → 2º, etc.
+    final myUsername = ref.read(authProvider).username ?? '';
+    final turnOrder = ref.read(gameProvider).turnOrder;
+    final pos = turnOrder.indexOf(myUsername);
+    _assignedIndex = (pos >= 0 ? pos : 0).clamp(0, _cartasRaw.length - 1);
   }
 
   // Controlador de interacción, secuencia y cierre
   void _seleccionarCarta(int index) {
-    if (_indiceSeleccionado != null) return; // Bloqueo de concurrencia
-
+    if (_indiceSeleccionado != null) return;
     setState(() {
       _indiceSeleccionado = index;
     });
@@ -123,14 +133,11 @@ class _MayorMenorGameState extends State<MayorMenorGame> {
         _juegoTerminado = true;
       });
 
-      // Retraso de 2.5 segundos antes de notificar al backend
       Future.delayed(const Duration(milliseconds: 2500), () {
         if (mounted) {
-          int valorBruto = _cartasRaw[_indiceSeleccionado!];
-          // Calculamos el valor real de la carta (1 para A, 11 para J, 13 para K, etc.)
-          int valorRealCarta = (valorBruto % 13) + 1;
-
-          // Enviamos el valor real como score
+          // Siempre usamos la carta asignada al jugador, no la que tocó visualmente
+          final int valorBruto = _cartasRaw[_assignedIndex];
+          final int valorRealCarta = (valorBruto % 13) + 1;
           widget.onFinish(valorRealCarta);
         }
       });
@@ -139,75 +146,74 @@ class _MayorMenorGameState extends State<MayorMenorGame> {
 
   @override
   Widget build(BuildContext context) {
-    return Consumer(builder: (context, ref, child) {
-      // 1. Obtenemos el nombre de usuario local
-      final myUsername = ref.watch(authProvider).username;
-      // 2. Buscamos el jugador correspondiente en la partida
-      final player = ref
-          .watch(gameProvider)
-          .players
-          .firstWhere((p) => p.username == myUsername);
-      // 3. Extraemos su clase en minúsculas (ej: "videojugador", "escapista")
-      final personajeLocal = player.characterClass.name.toLowerCase();
+    final myUsername = ref.watch(authProvider).username;
+    final player = ref
+        .watch(gameProvider)
+        .players
+        .firstWhere((p) => p.username == myUsername);
+    final personajeLocal = player.characterClass.name.toLowerCase();
 
-      return Scaffold(
-        backgroundColor: Colors.black,
-        body: Stack(
-          fit: StackFit.expand,
-          children: [
-            // Renderizado de la capa base (el fondo)
-            Image.asset(
-              'assets/images/minigames/cartas/fondo_cartas_$personajeLocal.png',
-              fit: BoxFit.cover,
-              // Fallback a un color sólido si la imagen del personaje no existe
-              errorBuilder: (context, error, stackTrace) => Container(
-                color: const Color(0xFF1B2A3B),
-              ),
+    return Scaffold(
+      backgroundColor: Colors.black,
+      body: Stack(
+        fit: StackFit.expand,
+        children: [
+          // Renderizado de la capa base (el fondo)
+          Image.asset(
+            'assets/images/minigames/cartas/fondo_cartas_$personajeLocal.png',
+            fit: BoxFit.cover,
+            errorBuilder: (context, error, stackTrace) => Container(
+              color: const Color(0xFF1B2A3B),
             ),
+          ),
 
-            // Ensamblaje del Tablero (Layout de Cartas)
-            Center(
-              child: FittedBox(
-                fit: BoxFit.scaleDown,
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 40),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: List.generate(4, (index) {
-                      final bool haySeleccion = _indiceSeleccionado != null;
-                      final bool esNoSeleccionada =
-                          haySeleccion && _indiceSeleccionado != index;
+          // Ensamblaje del Tablero (Layout de Cartas)
+          Center(
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 40),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: List.generate(4, (index) {
+                    final bool haySeleccion = _indiceSeleccionado != null;
+                    final bool esNoSeleccionada =
+                        haySeleccion && _indiceSeleccionado != index;
+                    final bool esSeleccionada = _indiceSeleccionado == index;
 
-                      return Padding(
-                        padding: EdgeInsets.symmetric(
-                            horizontal: index == 0 || index == 3 ? 0 : 32),
-                        child: AnimatedOpacity(
+                    // La carta visual (dorso) es la del índice de posición.
+                    // La carta que se revela al girar es siempre la asignada.
+                    final CartaInfo cartaAMostrar = esSeleccionada
+                        ? CartaInfo.decodificar(_cartasRaw[_assignedIndex])
+                        : CartaInfo.decodificar(_cartasRaw[index]);
+
+                    return Padding(
+                      padding: EdgeInsets.symmetric(
+                          horizontal: index == 0 || index == 3 ? 0 : 32),
+                      child: AnimatedOpacity(
+                        duration: const Duration(milliseconds: 300),
+                        opacity: esNoSeleccionada ? 0.5 : 1.0,
+                        child: AnimatedScale(
                           duration: const Duration(milliseconds: 300),
-                          opacity: esNoSeleccionada ? 0.5 : 1.0,
-                          child: AnimatedScale(
-                            duration: const Duration(milliseconds: 300),
-                            scale: esNoSeleccionada ? 0.85 : 1.0,
-                            curve: Curves.easeOut,
-                            child: CartaWidget(
-                              cartaInfo:
-                                  CartaInfo.decodificar(_cartasRaw[index]),
-                              seleccionada: _indiceSeleccionado == index,
-                              onTap: () => _seleccionarCarta(index),
-                              onAnimationComplete: _onAnimacionGiroCompletada,
-                            ),
+                          scale: esNoSeleccionada ? 0.85 : 1.0,
+                          curve: Curves.easeOut,
+                          child: CartaWidget(
+                            cartaInfo: cartaAMostrar,
+                            seleccionada: esSeleccionada,
+                            onTap: () => _seleccionarCarta(index),
+                            onAnimationComplete: _onAnimacionGiroCompletada,
                           ),
                         ),
-                      );
-                    }),
-                  ),
+                      ),
+                    );
+                  }),
                 ),
               ),
             ),
-
-          ],
-        ),
-      );
-    });
+          ),
+        ],
+      ),
+    );
   }
 }
 
@@ -279,12 +285,11 @@ class _CartaWidgetState extends State<CartaWidget>
 
           return Transform(
             transform: Matrix4.identity()
-              ..setEntry(3, 2, 0.001) // Perspectiva 3D
+              ..setEntry(3, 2, 0.001)
               ..rotateY(_animacionGiro.value),
             alignment: Alignment.center,
             child: isFront
                 ? Transform(
-                    // Inversión horizontal para evitar el efecto espejo
                     transform: Matrix4.identity()..rotateY(pi),
                     alignment: Alignment.center,
                     child: _buildFront(),
@@ -319,16 +324,12 @@ class _CartaWidgetState extends State<CartaWidget>
   }
 
   Widget _buildFront() {
-    // Mapear palo a nombre de carpeta
     final int paloId = widget.cartaInfo.valorOriginal ~/ 13;
     final int rangoVal = widget.cartaInfo.valorOriginal % 13;
 
-    // paloId: 0=spades, 1=hearts, 2=clubs, 3=diamonds
     const List<String> palos = ['spades', 'hearts', 'clubs', 'diamonds'];
     final String palo = palos[paloId.clamp(0, 3)];
-
-    // rangoVal: 0=As(1), 1..9=2..10, 10=J(11), 11=Q(12), 12=K(13)
-    final int numero = rangoVal + 1; // 1..13
+    final int numero = rangoVal + 1;
 
     final String assetPath =
         'assets/images/minigames/cartas/cards/card_${palo}_$numero.png';
@@ -351,7 +352,7 @@ class _CartaWidgetState extends State<CartaWidget>
         child: Image.asset(
           assetPath,
           fit: BoxFit.fill,
-          filterQuality: FilterQuality.none, // Mantener nitidez del pixel art
+          filterQuality: FilterQuality.none,
         ),
       ),
     );

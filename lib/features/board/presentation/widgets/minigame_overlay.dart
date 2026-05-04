@@ -212,10 +212,7 @@ class _MinigameOverlayState extends ConsumerState<MinigameOverlay> {
 
       Future.delayed(Duration(milliseconds: delayMs), () {
         if (mounted) {
-          final currentGameState = ref.read(gameProvider);
-          final authUsername = ref.read(authProvider).username;
 
-          final activePlayerId = currentGameState.activePlayerName;
 
           // Cierra el overlay para todos los participantes
           ref.read(gameProvider.notifier).finishMinigame();

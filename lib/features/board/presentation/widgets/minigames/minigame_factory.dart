@@ -15,6 +15,7 @@ import 'pan_game.dart';
 import 'mayor_menor_game.dart';
 import 'doble_nada_game.dart';
 import 'poker_game.dart';
+import 'dilema_prisionero_game.dart';
 
 class MinigameFactory {
   /// Devuelve el widget del minijuego correspondiente al [minigameName].
@@ -43,7 +44,7 @@ class MinigameFactory {
       case 'Mano de Poker':
         return PokerGame(onFinish: onFinish, details: details);
       case 'Dilema del Prisionero':
-      //return PokerGame(onFinish: onFinish, details: details);
+        return DilemaPrisioneroGame(onFinish: onFinish, details: details);
 
       default:
         // Placeholder para minijuegos no implementados todavía

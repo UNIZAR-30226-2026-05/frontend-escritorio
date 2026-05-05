@@ -125,7 +125,8 @@ class WebSocketService {
 
           // Si el total es > 0 es que ha tirado dados de movimiento,
           // marcamos que tiene pendiente avanzar el turno.
-          if (diceTotal > 0) {
+          final myUsername = _ref.read(authProvider).username;
+          if (diceTotal > 0 && userId == myUsername) {
             _pendingTurnAdvance = true;
           }
           // El wait de la ruleta lo manejaremos directamente en la cola de animación
@@ -192,7 +193,7 @@ class WebSocketService {
           debugPrint(
               "El jugador ha caído en una casilla de tipo: $tipoCasilla");
           // NOTA: Ya no hace falta bloquear el turno preventivamente aquí
-          // porque el servidor no mandará el turno_de del siguiente hasta que 
+          // porque el servidor no mandará el turno_de del siguiente hasta que
           // el jugador actual envíe su 'fin_turno'.
           break;
 
@@ -200,12 +201,15 @@ class WebSocketService {
           final String nextUser = decoded['nombre_jugador'] ?? '';
           final int ronda = decoded['ronda'] ?? 1;
           debugPrint("¡Es el turno de: $nextUser (Ronda $ronda)!");
-          _ref.read(gameProvider.notifier).setActivePlayerName(nextUser, round: ronda);
-          
+          _ref
+              .read(gameProvider.notifier)
+              .setActivePlayerName(nextUser, round: ronda);
+
           // Al recibir un nuevo turno, reseteamos todos los flags del turno anterior.
           _localPlayerSentEndRound = false;
           _isActionLocked = false;
           _pendingTileMinigame = false;
+          _pendingTurnAdvance = false;
           break;
 
         case 'dados_mejorados':
@@ -277,7 +281,8 @@ class WebSocketService {
               _ref.read(gameProvider.notifier).startMinigame(
                     name: name,
                     description: desc,
-                    details: msgDetails ?? _ref.read(gameProvider).minigameDetails,
+                    details:
+                        msgDetails ?? _ref.read(gameProvider).minigameDetails,
                   );
             });
           }
@@ -351,7 +356,6 @@ class WebSocketService {
                   : "¡$activeUser ha PERDIDO ${diff.abs()} monedas en Doble o Nada! 💸";
               _eventController.add({'type': 'info_message', 'message': msg});
             }
-
           }
 
           // 2. Para cada jugador en el Map, actualizamos su balance
@@ -362,9 +366,10 @@ class WebSocketService {
           });
 
           break;
-        
+
         case 'round_ended':
-          debugPrint("Fin de ronda detectado. Esperando elección de minijuego...");
+          debugPrint(
+              "Fin de ronda detectado. Esperando elección de minijuego...");
           _ref.read(gameProvider.notifier).setWaitingForMinigameChoice(true);
           break;
 
@@ -490,7 +495,7 @@ class WebSocketService {
   // Función privada para mandar la acción de fin de ronda al backend
   void sendEndRound() {
     if (_localPlayerSentEndRound) return;
-    
+
     // Comprobamos previamente que el canal existe y está conectado antes de mandar la acción
     if (_channel != null && _isConnected) {
       // Creamos el payload como se especifica en la domuentacion de los WS

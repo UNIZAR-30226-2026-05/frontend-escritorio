@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../domain/gamemodels.dart';
 import '../../../shop/data/shop_repository.dart';
 
-
 class InventoryPanel extends ConsumerWidget {
   final List<ItemType> items;
 

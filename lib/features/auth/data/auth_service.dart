@@ -1,7 +1,8 @@
 import 'dart:convert'; // Proporciona el jsonDecode() y el jsonEncode() para la API.
 
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';   // Libreria que guarda los datos encriptados a nivel de SO.
-import 'package:http/http.dart' as http;  // Libreria para realizar las operaciones http.
+import 'package:flutter_secure_storage/flutter_secure_storage.dart'; // Libreria que guarda los datos encriptados a nivel de SO.
+import 'package:http/http.dart'
+    as http; // Libreria para realizar las operaciones http.
 
 // Rutas API y modelos que se usan para la autenticación.
 import '../../../core/constants/api_constants.dart';
@@ -22,22 +23,30 @@ class AuthService {
   Future<AuthResponse> login(String username, String password) async {
     // Realiza un post y espera repsuesta.
     final response = await http.post(
-      Uri.parse('${ApiConstants.baseUrl}${ApiConstants.loginEndpoint}'),    // Construye la URL con las constantes.
-      headers: {'Content-Type': 'application/x-www-form-urlencoded'},       // Especifica el formato del contenido.
-      body: {'username': username, 'password': password},                   // Cupero de la petición (http convierte
-                                                                            // lo que hay al formato especificado anteriormente).
+      Uri.parse(
+          '${ApiConstants.baseUrl}${ApiConstants.loginEndpoint}'), // Construye la URL con las constantes.
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded'
+      }, // Especifica el formato del contenido.
+      body: {
+        'username': username,
+        'password': password
+      }, // Cupero de la petición (http convierte
+      // lo que hay al formato especificado anteriormente).
     );
 
     // TRATAMIENTO DE RESPUESTAS:
     // Estatus 200 = OK.
     if (response.statusCode == 200) {
-      return AuthResponse.fromJson(                                         // Convierte el mapa a un objeto AuthResponse.
-          jsonDecode(response.body) as Map<String, dynamic>);               // Decodifica el JSON y especifica que es un mapa
-                                                                            // de claves string con valores cualquiera.
-    // Estatus 401 = Unauthorized.
+      return AuthResponse.fromJson(
+          // Convierte el mapa a un objeto AuthResponse.
+          jsonDecode(response.body) as Map<String,
+              dynamic>); // Decodifica el JSON y especifica que es un mapa
+      // de claves string con valores cualquiera.
+      // Estatus 401 = Unauthorized.
     } else if (response.statusCode == 401) {
       throw Exception('Credenciales incorrectas');
-    // Cualquier otro codigo de error.
+      // Cualquier otro codigo de error.
     } else {
       throw Exception('Error del servidor: ${response.statusCode}');
     }
@@ -50,19 +59,22 @@ class AuthService {
     final request = RegisterRequest(nombre: nombre, password: password);
     // Realiza un post y esper respuesta.
     final response = await http.post(
-      Uri.parse('${ApiConstants.baseUrl}${ApiConstants.registerEndpoint}'), // Construye la URL con las constantes.
-      headers: {'Content-Type': 'application/json'},                        // Especifica el formato del contenido.
-      body: jsonEncode(request.toJson()),                                   // Codifica el texto a JSON.
-    );                                                                      // Request.toJson() devuelve un mapa.
+      Uri.parse(
+          '${ApiConstants.baseUrl}${ApiConstants.registerEndpoint}'), // Construye la URL con las constantes.
+      headers: {
+        'Content-Type': 'application/json'
+      }, // Especifica el formato del contenido.
+      body: jsonEncode(request.toJson()), // Codifica el texto a JSON.
+    ); // Request.toJson() devuelve un mapa.
 
     // TRATAMIENTO DE RESPUESTAS:
     // Estatus 201 = Created.
     if (response.statusCode == 201) {
       return;
-    // Estatus 400 = Bad Request.
+      // Estatus 400 = Bad Request.
     } else if (response.statusCode == 400) {
       throw Exception('El nombre de usuario ya existe');
-    // Cualquier otro codigo de error.
+      // Cualquier otro codigo de error.
     } else {
       throw Exception('Error del servidor: ${response.statusCode}');
     }

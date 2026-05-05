@@ -247,15 +247,15 @@ class GameController extends StateNotifier<GameState> {
     debugPrint('═══════════════════════════════════════════');
 
     // Buscamos de quién es el turno
-    final int turnoActual = boardState['turn'] ?? boardState['turno_actual'] ?? 1;
+    final int turnoActual =
+        boardState['turn'] ?? boardState['turno_actual'] ?? 1;
     String? activeName;
     order.forEach((key, value) {
       if (value == turnoActual) activeName = key;
     });
-    
+
     debugPrint('  • Turno actual (backend): $turnoActual');
     debugPrint('  • Jugador activo identificado: $activeName');
-
 
     state = state.copyWith(
       currentPhase: newPhase,
@@ -360,8 +360,10 @@ class GameController extends StateNotifier<GameState> {
       activePlayerName: name,
       currentRound: round ?? state.currentRound,
       hasImprovedDice: false, // Resetear mejora al cambiar de turno
-      lastDiceResult: null, // Resetear tirada para habilitar objetos de "antes de tirar"
-      isMovementActive: false, // Asegurar que el estado de movimiento está limpio
+      lastDiceResult:
+          null, // Resetear tirada para habilitar objetos de "antes de tirar"
+      isMovementActive:
+          false, // Asegurar que el estado de movimiento está limpio
       minigameName: null, // Limpiar minijuegos viejos
       minigameDescription: null,
       minigameDetails: null,

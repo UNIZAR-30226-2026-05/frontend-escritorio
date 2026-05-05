@@ -6,15 +6,15 @@ import '../../data/auth_service.dart';
 // Define la clase que representa el estado de autenticación.
 class AuthState {
   // Variable que representa si la sesión está activa.
-  final bool isAuthenticated;         // True = Si.
+  final bool isAuthenticated; // True = Si.
   // JWT devuelto al hacer login o null.
   final String? token;
-  // Nombre del usuario logeado o null.                
+  // Nombre del usuario logeado o null.
   final String? username;
   // Variable que representa el estado de respuesta de la API.
-  final bool isLoading;               // True = esperando respuesta.
+  final bool isLoading; // True = esperando respuesta.
   // Mensjae de error a mostrar si falla el login o registro.
-  final String? error;                
+  final String? error;
   // Constructor con valores por defecto.
   const AuthState({
     this.isAuthenticated = false,
@@ -25,8 +25,8 @@ class AuthState {
   });
 }
 
-// El controlador que gestiona el estado. 
-// tiene un state de tipo AuthState y cada vez que se asigna un nuevo valor a state, 
+// El controlador que gestiona el estado.
+// tiene un state de tipo AuthState y cada vez que se asigna un nuevo valor a state,
 // Riverpod notifica a todos los widgets que lo escuchan.
 class AuthController extends StateNotifier<AuthState> {
   // Referencia al servicio de autenticación.
@@ -103,7 +103,7 @@ class AuthController extends StateNotifier<AuthState> {
   Future<void> logout() async {
     // Borra el token y username del Windows Credential Manager.
     await _authService.clearSession();
-    // Resetea el estado a vacío. 
+    // Resetea el estado a vacío.
     state = const AuthState();
   }
 }

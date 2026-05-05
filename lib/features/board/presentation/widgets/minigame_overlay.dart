@@ -212,8 +212,6 @@ class _MinigameOverlayState extends ConsumerState<MinigameOverlay> {
 
       Future.delayed(Duration(milliseconds: delayMs), () {
         if (mounted) {
-
-
           // Cierra el overlay para todos los participantes
           ref.read(gameProvider.notifier).finishMinigame();
 

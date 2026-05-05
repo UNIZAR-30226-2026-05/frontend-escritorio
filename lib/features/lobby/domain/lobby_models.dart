@@ -1,4 +1,3 @@
-
 // Respuesta del endpoint POST /partidas/crear_partida.
 // El backend devuelve el id de la partida recién creada.
 class CreatePartidaResponse {

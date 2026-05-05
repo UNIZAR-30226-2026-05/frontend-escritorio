@@ -114,7 +114,8 @@ class SessionWebSocketService {
         return;
       }
 
-      debugPrint('Mensaje WS recibido: $decoded'); // Debug: log de mensajes entrantes
+      debugPrint(
+          'Mensaje WS recibido: $decoded'); // Debug: log de mensajes entrantes
       switch (decoded['type'] as String?) {
         // Amigo cambia entre online/offline.
         case 'friend_status_update':
@@ -127,7 +128,8 @@ class SessionWebSocketService {
 
         // Lista de solicitudes pendientes al iniciar sesión.
         case 'friend_requests_list':
-          debugPrint('Lista de solicitudes de amistad recibida: ${decoded['lista']}'); // Debug: log de la lista recibida
+          debugPrint(
+              'Lista de solicitudes de amistad recibida: ${decoded['lista']}'); // Debug: log de la lista recibida
           final list = (decoded['lista'] as List<dynamic>? ?? [])
               .map((e) => e.toString())
               .toList();

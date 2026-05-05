@@ -2,7 +2,6 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-
 class RuletaModal extends ConsumerStatefulWidget {
   final String itemName;
   final String playerName;
@@ -39,7 +38,7 @@ class _RuletaModalState extends ConsumerState<RuletaModal>
       duration: const Duration(milliseconds: 3500),
     );
     _animation = Tween<double>(begin: 0, end: 0).animate(_controller);
-    
+
     // Girar automáticamente al abrirse
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _spin();
@@ -97,9 +96,9 @@ class _RuletaModalState extends ConsumerState<RuletaModal>
           setState(() {
             _showResult = true;
           });
-          
+
           // REVELADO: Ya sabemos el premio, permitimos el movimiento si lo hubiera
-          
+
           // Cerramos el modal automáticamente tras mostrar el resultado 3 segundos
           Future.delayed(const Duration(milliseconds: 3000), () {
             if (mounted) {
@@ -147,8 +146,8 @@ class _RuletaModalState extends ConsumerState<RuletaModal>
         ),
         const SizedBox(height: 10),
         Text(
-          widget.isLocalPlayer 
-              ? 'GIRANDO LA RULETA DE OBJETOS' 
+          widget.isLocalPlayer
+              ? 'GIRANDO LA RULETA DE OBJETOS'
               : '${widget.playerName} ESTÁ GIRANDO LA RULETA',
           style: const TextStyle(
             fontFamily: 'Retro Gaming',
@@ -181,10 +180,20 @@ class _RuletaModalState extends ConsumerState<RuletaModal>
                       size: const Size(260, 260),
                       painter: _WheelPainter(),
                     ),
-                    _buildSliceContent('+3\nCASILLAS', 'assets/images/items/item_avanzar.png', -pi / 4),
-                    _buildSliceContent('+3\nMONEDAS', 'assets/images/items/item_dados.png', pi / 4), // Placeholder icon
-                    _buildSliceContent('-3\nCASILLAS', 'assets/images/items/item_barrera.png', 3 * pi / 4), // Placeholder icon
-                    _buildSliceContent('-3\nMONEDAS', 'assets/images/items/item_salvavidas.png', 5 * pi / 4), // Placeholder icon
+                    _buildSliceContent('+3\nCASILLAS',
+                        'assets/images/items/item_avanzar.png', -pi / 4),
+                    _buildSliceContent(
+                        '+3\nMONEDAS',
+                        'assets/images/items/item_dados.png',
+                        pi / 4), // Placeholder icon
+                    _buildSliceContent(
+                        '-3\nCASILLAS',
+                        'assets/images/items/item_barrera.png',
+                        3 * pi / 4), // Placeholder icon
+                    _buildSliceContent(
+                        '-3\nMONEDAS',
+                        'assets/images/items/item_salvavidas.png',
+                        5 * pi / 4), // Placeholder icon
                   ],
                 ),
               ),
@@ -221,14 +230,16 @@ class _RuletaModalState extends ConsumerState<RuletaModal>
 
   Widget _buildResultContent() {
     final isPositive = _isPositivePrize;
-    final accentColor = isPositive ? const Color(0xFF4CAF50) : const Color(0xFFE53935);
+    final accentColor =
+        isPositive ? const Color(0xFF4CAF50) : const Color(0xFFE53935);
 
     String headline;
     if (widget.isLocalPlayer) {
       headline = isPositive ? '¡ENHORABUENA!' : '¡MALA SUERTE!';
     } else {
       final who = widget.playerName;
-      headline = isPositive ? '¡$who está de suerte!' : '¡$who tiene mala suerte!';
+      headline =
+          isPositive ? '¡$who está de suerte!' : '¡$who tiene mala suerte!';
     }
 
     return Column(

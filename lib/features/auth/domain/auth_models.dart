@@ -1,4 +1,3 @@
-
 // Clase que estructura los datos que envías al servidor cuando te registras
 // (datos que se envían al endpoint de registro).
 class RegisterRequest {
@@ -25,7 +24,7 @@ class AuthResponse {
   // Constructor alternativo que crea el objeto desde JSON.
   // Factory es una palabra clave que indica constructor especial.
   // Recibe un mapa y crea el objeto con los datos del mapa.
-  factory AuthResponse.fromJson(Map<String, dynamic> json) => AuthResponse( 
+  factory AuthResponse.fromJson(Map<String, dynamic> json) => AuthResponse(
         accessToken: json['access_token'] as String,
         tokenType: json['token_type'] as String,
       );

@@ -219,7 +219,8 @@ class _FriendSearchModalState extends ConsumerState<FriendSearchModal> {
                         fit: BoxFit.fill,
                       ),
                     ),
-                    child: const Icon(Icons.search, color: Colors.white, size: 22),
+                    child:
+                        const Icon(Icons.search, color: Colors.white, size: 22),
                   ),
                 ),
               ],

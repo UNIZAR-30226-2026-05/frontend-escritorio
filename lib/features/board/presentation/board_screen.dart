@@ -521,32 +521,7 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
               _buildDebugMenu(),
 
               // UI OVERLAY: Botones Interactivos (bottom-left)
-              Positioned(
-                bottom: 16,
-                left: 16,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Botón de Habilidad (Aparece solo si eres Banquero y es tu turno)
-                    if (isMyTurn &&
-                        gameState.currentPhase == GamePhase.boardTurn &&
-                        !_hasRolledThisTurn &&
-                        !_hasUsedBanqueroSkill &&
-                        gameState.players
-                                .firstWhere((p) => p.username == myUsername)
-                                .characterClass ==
-                            CharacterClass.banquero)
-                      _buildPixelButton(
-                        text: 'HABILIDAD',
-                        onPressed: () {
-                          setState(() => _isBanqueroOpen = true);
-                        },
-                      ),
-                  ],
-                ),
-              ),
-
+              // (Eliminado el botón de habilidad de aquí para moverlo al overlay de dados)
 
               // El Modal de la tienda se movió más abajo para prioridad de z-index
 
@@ -793,11 +768,11 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
       effectiveRankForExtraDice = myRank - 1;
     }
 
-    // REGLA: En la primera ronda NO hay dados especiales por defecto, 
+    // REGLA: En la primera ronda NO hay dados especiales por defecto,
     // pero si compras la mejora, TE SALE el de bronce (effectiveRank 3).
     final bool isRoundOne = gameState.currentRound <= 1;
     final bool hasTwoDiceByDefault = !isRoundOne && myRank != 4 && myRank != 0;
-    
+
     // Tienes dos dados si ya los tenías por ranking O si has comprado la mejora
     final bool hasTwoDice = hasTwoDiceByDefault || gameState.hasImprovedDice;
 
@@ -844,7 +819,8 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
                   const SizedBox(width: 28),
                   _buildDiceWidget(
                     diceColor: _extraDiceColor(effectiveRankForExtraDice),
-                    borderColor: _extraDiceBorderColor(effectiveRankForExtraDice),
+                    borderColor:
+                        _extraDiceBorderColor(effectiveRankForExtraDice),
                     label: _extraDiceLabel(effectiveRankForExtraDice),
                     labelColor: _extraDiceLabelColor(effectiveRankForExtraDice),
                     glowColor: _extraDiceGlowColor(effectiveRankForExtraDice),
@@ -857,6 +833,23 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
             Row(
               mainAxisSize: MainAxisSize.min,
               children: [
+                // Habilidad del Banquero integrada
+                if (!_hasUsedBanqueroSkill &&
+                    gameState.players
+                            .firstWhere((p) => p.username == myUsername,
+                                orElse: () => gameState.players.first)
+                            .characterClass ==
+                        CharacterClass.banquero) ...[
+                  _buildPixelButton(
+                    text: 'ROBAR',
+                    width: 140,
+                    asset: 'assets/images/ui/btn_verde.png',
+                    onPressed: () {
+                      setState(() => _isBanqueroOpen = true);
+                    },
+                  ),
+                  const SizedBox(width: 20),
+                ],
                 _buildPixelButton(
                   text: 'TIENDA',
                   width: 140,
@@ -867,7 +860,9 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
                   text: hasTwoDice ? 'TIRAR DADOS' : 'TIRAR DADO',
                   onPressed: () {
                     setState(() => _hasRolledThisTurn = true);
-                    ref.read(webSocketProvider).rollDiceCommand(gameId, myUsername);
+                    ref
+                        .read(webSocketProvider)
+                        .rollDiceCommand(gameId, myUsername);
                   },
                 ),
               ],
@@ -952,6 +947,8 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
     final activePlayerId = gameState.activePlayerName ?? '';
     final myRankIndex = gameState.turnOrder.indexOf(activePlayerId);
     final rank = myRankIndex + 1;
+    final effectiveRank =
+        (gameState.hasImprovedDice && rank > 1) ? rank - 1 : rank;
 
     return Positioned.fill(
       child: Container(
@@ -1001,15 +998,19 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
                       _buildDiceFace(d1, Colors.white, Colors.black87),
                       if (gameState.lastDice2 > 0 ||
                           (_isRolling &&
-                              gameState.players.firstWhere(
-                                  (p) => p.username == gameState.activePlayerName,
-                                  orElse: () => gameState.players[0])
-                                  .diceInventory.isNotEmpty)) ...[
+                              gameState.players
+                                  .firstWhere(
+                                      (p) =>
+                                          p.username ==
+                                          gameState.activePlayerName,
+                                      orElse: () => gameState.players[0])
+                                  .diceInventory
+                                  .isNotEmpty)) ...[
                         const SizedBox(width: 20),
                         _buildDiceFace(
                           d2,
-                          _extraDiceColor(rank),
-                          _extraDiceLabelColor(rank),
+                          _extraDiceColor(effectiveRank),
+                          _extraDiceLabelColor(effectiveRank),
                         ),
                       ],
                     ],
@@ -1518,6 +1519,7 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
     double width = 160,
     double height = 52,
     double fontSize = 16,
+    String asset = 'assets/images/ui/btn_morado.png',
   }) {
     return GestureDetector(
       onTap: onPressed,
@@ -1525,8 +1527,8 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
         width: width,
         height: height,
         decoration: BoxDecoration(
-          image: const DecorationImage(
-            image: AssetImage('assets/images/ui/btn_morado.png'),
+          image: DecorationImage(
+            image: AssetImage(asset),
             fit: BoxFit.fill,
           ),
           boxShadow: [

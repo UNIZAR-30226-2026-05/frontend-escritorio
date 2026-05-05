@@ -93,8 +93,7 @@ class _PanGameState extends State<PanGame> with SingleTickerProviderStateMixin {
               left: 0,
               right: 0,
               child: Container(
-                padding: EdgeInsets.only(
-                    top: h * 0.03, bottom: h * 0.03),
+                padding: EdgeInsets.only(top: h * 0.03, bottom: h * 0.03),
                 decoration: BoxDecoration(
                   color: Colors.black.withValues(alpha: 0.45),
                   border: const Border(

@@ -60,10 +60,9 @@ class _LobbyScreenState extends ConsumerState<LobbyScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final auth = ref.read(authProvider);
       if (auth.isAuthenticated && auth.username != null && auth.token != null) {
-        ref
-            .read(sessionWebSocketProvider)
-            .connect(auth.username!, auth.token!);
-            debugPrint('Conectado al WebSocket de sesión como ${auth.username}'); // Debug: log de conexión
+        ref.read(sessionWebSocketProvider).connect(auth.username!, auth.token!);
+        debugPrint(
+            'Conectado al WebSocket de sesión como ${auth.username}'); // Debug: log de conexión
       }
     });
   }

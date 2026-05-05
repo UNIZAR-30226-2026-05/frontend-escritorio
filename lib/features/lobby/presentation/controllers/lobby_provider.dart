@@ -39,7 +39,7 @@ class LobbyState {
   // Último mensaje informativo recibido del backend.
   final String serverMessage;
   // Variable que representa el estado de espera de una respuesta de la API.
-  final bool isLoading;       // True = esperando respuesta.
+  final bool isLoading; // True = esperando respuesta.
   // Estado de los personajes elegidos: username -> personaje
   final Map<String, String> selectedCharacters;
   // Indica si la fase de selección de personajes ha concluido.
@@ -106,7 +106,8 @@ class LobbyState {
             : (friendRequestError ?? this.friendRequestError),
         gameStarted: gameStarted ?? this.gameStarted,
         selectedCharacters: selectedCharacters ?? this.selectedCharacters,
-        allCharactersSelected: allCharactersSelected ?? this.allCharactersSelected,
+        allCharactersSelected:
+            allCharactersSelected ?? this.allCharactersSelected,
         forceDisconnected: forceDisconnected ?? this.forceDisconnected,
         serverMessage: serverMessage ?? this.serverMessage,
         isLoading: isLoading ?? this.isLoading,
@@ -120,18 +121,17 @@ class LobbyState {
 }
 
 // El controlador que gestiona el estado del lobby.
-// StateNotifier es una clase de Riverpod que permite emitir nuevos estados de forma inmutable y notificar 
-// a los widgets que estén escuchando para que se reconstruyan con el nuevo estado.     
+// StateNotifier es una clase de Riverpod que permite emitir nuevos estados de forma inmutable y notificar
+// a los widgets que estén escuchando para que se reconstruyan con el nuevo estado.
 class LobbyController extends StateNotifier<LobbyState> {
   // Referencia al servicio de comunicacion http del lobby.
   final LobbyService _lobbyService;
   // Constructor, inicializa el estado vacío.
   LobbyController(this._lobbyService) : super(const LobbyState());
 
-
   // Operaciones de comunicacion http.
   // -------------------------------------------------------------------------
-  // Metodo publico que se llama desde el controlador para crear una partida. 
+  // Metodo publico que se llama desde el controlador para crear una partida.
   // Crea una nueva partida y guarda el game_id para conectar el WebSocket.
   Future<bool> crearPartida(String token) async {
     // Actualiza el estado para indicar que se está esperando la respuesta y limpiar errores previos.
@@ -139,10 +139,14 @@ class LobbyController extends StateNotifier<LobbyState> {
     // Llama al servicio para crear la partida. Si tiene éxito, guarda el game_id en el estado. Si falla, guarda el error.
     try {
       final response = await _lobbyService.crearPartida(token);
-      state = state.copyWith(gameId: response.gameId, playersConnected: [], isLoading: false);
+      state = state.copyWith(
+          gameId: response.gameId, playersConnected: [], isLoading: false);
       return true;
     } catch (e) {
-      state = state.copyWith(isLoading: false, error: e.toString().replaceFirst('Exception: ', ''),);
+      state = state.copyWith(
+        isLoading: false,
+        error: e.toString().replaceFirst('Exception: ', ''),
+      );
       return false;
     }
   }
@@ -157,7 +161,9 @@ class LobbyController extends StateNotifier<LobbyState> {
       state = state.copyWith(isLoading: false);
       return true;
     } catch (e) {
-      state = state.copyWith(isLoading: false, error: e.toString().replaceFirst('Exception: ', ''));
+      state = state.copyWith(
+          isLoading: false,
+          error: e.toString().replaceFirst('Exception: ', ''));
       return false;
     }
   }
@@ -166,7 +172,6 @@ class LobbyController extends StateNotifier<LobbyState> {
   void unirseAPartida(String gameId) {
     state = state.copyWith(gameId: gameId);
   }
-
 
   // Callbacks del WebSocket de sesión.
   // -------------------------------------------------------------------------
@@ -188,7 +193,9 @@ class LobbyController extends StateNotifier<LobbyState> {
 
   // Elimina una invitación de la lista (al aceptarla o rechazarla).
   void removeInvite(String gameId) {
-    state = state.copyWith(invites: state.invites.where((i) => i.gameId != gameId).toList(),);
+    state = state.copyWith(
+      invites: state.invites.where((i) => i.gameId != gameId).toList(),
+    );
   }
 
   // Llamado por el WS de sesión cuando llega 'friend_status_update'.
@@ -234,8 +241,7 @@ class LobbyController extends StateNotifier<LobbyState> {
   // sin esperar confirmación del servidor (optimistic update).
   void removeFriendRequest(String fromUser) {
     state = state.copyWith(
-      friendRequests:
-          state.friendRequests.where((u) => u != fromUser).toList(),
+      friendRequests: state.friendRequests.where((u) => u != fromUser).toList(),
     );
   }
 
@@ -276,13 +282,15 @@ class LobbyController extends StateNotifier<LobbyState> {
     state = state.copyWith(clearFriendRequestError: true);
   }
 
-
   // Callbacks del WebSocket del lobby.
   // -------------------------------------------------------------------------
   // Llamado por el WebSocket cuando llega 'lobby_update'.
   // Actualiza la lista de jugadores conectados a la partida y el mensaje del servidor.
   void onLobbyUpdate(List<String> players, String message) {
-    state = state.copyWith(playersConnected: players, serverMessage: message,);
+    state = state.copyWith(
+      playersConnected: players,
+      serverMessage: message,
+    );
   }
 
   // Llamado por el WebSocket cuando llega 'game_start'.
@@ -307,7 +315,10 @@ class LobbyController extends StateNotifier<LobbyState> {
   // Llamado por el WebSocket cuando llega 'player_disconnected'.
   // Actualiza la lista de jugadores conectados a la partida y el mensaje del servidor para informar al usuario.
   void onPlayerDisconnected(List<String> players, String message) {
-    state = state.copyWith(playersConnected: players, serverMessage: message,);
+    state = state.copyWith(
+      playersConnected: players,
+      serverMessage: message,
+    );
   }
 
   // Llamado por el WebSocket cuando llega 'force_disconnect'.
@@ -365,14 +376,14 @@ class LobbyController extends StateNotifier<LobbyState> {
 
   // Utilidades.
   // -------------------------------------------------------------------------
-  // Metodo para limpiar el error del estado, usado antes de iniciar 
+  // Metodo para limpiar el error del estado, usado antes de iniciar
   // operaciones que pueden fallar para eliminar errores anteriores.
   // Limpia el error actual del estado.
   void clearError() {
     state = state.copyWith(clearError: true);
   }
 
-  // Metodo para resetear el estado del lobby, usado al salir de la pantalla de lobby 
+  // Metodo para resetear el estado del lobby, usado al salir de la pantalla de lobby
   // para limpiar toda la información.
   // Resetea el estado del lobby por completo.
   void reset() {

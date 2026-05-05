@@ -37,8 +37,10 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
 
   Future<void> _submit() async {
     setState(() {
-      _usernameError = _usernameController.text.trim().isEmpty ? 'Campo requerido' : null;
-      _passwordError = _passwordController.text.isEmpty ? 'Campo requerido' : null;
+      _usernameError =
+          _usernameController.text.trim().isEmpty ? 'Campo requerido' : null;
+      _passwordError =
+          _passwordController.text.isEmpty ? 'Campo requerido' : null;
       if (_confirmPasswordController.text.isEmpty) {
         _confirmPasswordError = 'Campo requerido';
       } else if (_confirmPasswordController.text != _passwordController.text) {
@@ -47,7 +49,9 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
         _confirmPasswordError = null;
       }
     });
-    if (_usernameError != null || _passwordError != null || _confirmPasswordError != null) return;
+    if (_usernameError != null ||
+        _passwordError != null ||
+        _confirmPasswordError != null) return;
     await ref.read(authProvider.notifier).register(
           _usernameController.text.trim(),
           _passwordController.text,

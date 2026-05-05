@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart'; // Acceso al ChangeNotifier.
-import 'package:flutter_riverpod/flutter_riverpod.dart';  // Proprociona el tipo Provider y Ref.
-import 'package:go_router/go_router.dart';  // Proporciona el router principal de la app.
+import 'package:flutter_riverpod/flutter_riverpod.dart'; // Proprociona el tipo Provider y Ref.
+import 'package:go_router/go_router.dart'; // Proporciona el router principal de la app.
 
 // Pantallas y Providers de la autenticacion y el lobby.
 import '../../features/auth/presentation/controllers/auth_provider.dart';
@@ -15,7 +15,7 @@ import '../../features/lobby/presentation/controllers/lobby_provider.dart';
 // El guión bajo denota que la clase es privada (Propiedad de Flutter).
 class _RouterNotifier extends ChangeNotifier {
   // Referencia privada a Riverpod que nos permite leer, observar y escuchar
-  // providers. Un provider es un objeto que mantiene un estado, lo distribuye 
+  // providers. Un provider es un objeto que mantiene un estado, lo distribuye
   // a toda la app y notifica los cambios a los widgets que lo esuchan u observan.
   // Final significa que no puede reasignar la variable.
   final Ref _ref;
@@ -67,12 +67,14 @@ final routerProvider = Provider<GoRouter>((ref) {
 
   // Router devuelto:
   return GoRouter(
-    initialLocation: '/login',                      // Cuando se abre la app empieza en login.
-    refreshListenable: notifier,                    // Escucha los cambios desde notifier.
-                                                    // Cuando notifier.notifyListeners() se ejecuta (porque cambió authProvider), 
-                                                    // GoRouter vuelve a ejecutar la función redirect.
-    redirect: notifier.redirect,                    // Funcion que se ejecuta para decidir si redireccionar.
-    routes: [                                       // Se definen las rutas en funcion del path devuelto por la función.
+    initialLocation: '/login', // Cuando se abre la app empieza en login.
+    refreshListenable: notifier, // Escucha los cambios desde notifier.
+    // Cuando notifier.notifyListeners() se ejecuta (porque cambió authProvider),
+    // GoRouter vuelve a ejecutar la función redirect.
+    redirect: notifier
+        .redirect, // Funcion que se ejecuta para decidir si redireccionar.
+    routes: [
+      // Se definen las rutas en funcion del path devuelto por la función.
       GoRoute(
         path: '/login',
         builder: (_, __) => const LoginScreen(),

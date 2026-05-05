@@ -70,7 +70,6 @@ class _PasswordChangeModalState extends State<PasswordChangeModal> {
               ),
             ),
             const SizedBox(height: 30),
-
             RetroField(
               label: 'Contraseña actual',
               controller: _currentPassController,
@@ -82,10 +81,10 @@ class _PasswordChangeModalState extends State<PasswordChangeModal> {
               obscureText: true,
               color: Colors.white,
               textInputAction: TextInputAction.next,
-              onSubmitted: () => FocusScope.of(context).requestFocus(_newPassFocus),
+              onSubmitted: () =>
+                  FocusScope.of(context).requestFocus(_newPassFocus),
             ),
             const SizedBox(height: 15),
-
             RetroField(
               label: 'Nueva contraseña',
               controller: _newPassController,
@@ -97,10 +96,10 @@ class _PasswordChangeModalState extends State<PasswordChangeModal> {
               obscureText: true,
               color: Colors.white,
               textInputAction: TextInputAction.next,
-              onSubmitted: () => FocusScope.of(context).requestFocus(_confirmPassFocus),
+              onSubmitted: () =>
+                  FocusScope.of(context).requestFocus(_confirmPassFocus),
             ),
             const SizedBox(height: 15),
-
             RetroField(
               label: 'Confirmar nueva',
               controller: _confirmPassController,
@@ -118,7 +117,6 @@ class _PasswordChangeModalState extends State<PasswordChangeModal> {
               },
             ),
             const SizedBox(height: 40),
-
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [

@@ -72,7 +72,7 @@ class BanqueroModal extends ConsumerWidget {
               ],
             ),
           ),
-          
+
           Container(height: 2, color: Colors.white),
 
           // ---------------- CONTENIDO ----------------
@@ -85,10 +85,10 @@ class BanqueroModal extends ConsumerWidget {
                     player.characterClass == CharacterClass.escapista;
                 final amountToRob = isEscapista ? 1 : 2;
                 final canRob = player.coins >= amountToRob;
-                
+
                 // Color de botón según el mockup (david/escapista es purpura, otros verde)
-                final buttonAsset = isEscapista 
-                    ? 'assets/images/ui/btn_morado.png' 
+                final buttonAsset = isEscapista
+                    ? 'assets/images/ui/btn_morado.png'
                     : 'assets/images/ui/btn_verde.png';
 
                 return Container(
@@ -105,7 +105,7 @@ class BanqueroModal extends ConsumerWidget {
                       Positioned(top: -2, right: -2, child: _buildCorner()),
                       Positioned(bottom: -2, left: -2, child: _buildCorner()),
                       Positioned(bottom: -2, right: -2, child: _buildCorner()),
-                      
+
                       Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
@@ -115,10 +115,12 @@ class BanqueroModal extends ConsumerWidget {
                             height: 100,
                             decoration: BoxDecoration(
                               color: const Color(0xFF1E1435),
-                              border: Border.all(color: const Color(0xFF4A3E66), width: 2),
+                              border: Border.all(
+                                  color: const Color(0xFF4A3E66), width: 2),
                             ),
                             child: Image.asset(
-                              getCharacterImagePath(player.characterClass, true),
+                              getCharacterImagePath(
+                                  player.characterClass, true),
                               fit: BoxFit.contain,
                             ),
                           ),
@@ -143,7 +145,9 @@ class BanqueroModal extends ConsumerWidget {
                             fontSize: 12,
                             onTap: canRob
                                 ? () {
-                                    ref.read(webSocketProvider).sendGenericAction({
+                                    ref
+                                        .read(webSocketProvider)
+                                        .sendGenericAction({
                                       'action': 'banquero',
                                       'payload': {'robar_a': player.username}
                                     });

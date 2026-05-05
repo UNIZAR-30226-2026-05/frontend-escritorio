@@ -6,7 +6,7 @@ class ShopRepository {
     ShopItem(
       id: 'item_advance',
       name: 'Avanzar Casillas',
-      price: 1, 
+      price: 1,
       description: 'Suma casillas extra a tu próxima tirada.',
       icon: 'assets/images/items/item_avanzar.png',
       effectType: ItemType.avanzarRetroceder, // TU ENUM
@@ -49,12 +49,18 @@ class ShopRepository {
   // Helper para traducir el backend (String) a tu Enum (ItemType)
   static ItemType parseItemType(String backendName) {
     switch (backendName) {
-      case 'Avanzar Casillas': return ItemType.avanzarRetroceder;
-      case 'Mejorar Dados': return ItemType.modificadorDado;
-      case 'Barrera': return ItemType.barrera;
-      case 'Salvavidas movimiento': return ItemType.salvavidas;
-      case 'Salvavidas bloqueo': return ItemType.salvavidas;
-      default: return ItemType.ruleta; // Fallback
+      case 'Avanzar Casillas':
+        return ItemType.avanzarRetroceder;
+      case 'Mejorar Dados':
+        return ItemType.modificadorDado;
+      case 'Barrera':
+        return ItemType.barrera;
+      case 'Salvavidas movimiento':
+        return ItemType.salvavidas;
+      case 'Salvavidas bloqueo':
+        return ItemType.salvavidas;
+      default:
+        return ItemType.ruleta; // Fallback
     }
   }
 }

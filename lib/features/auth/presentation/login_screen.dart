@@ -32,8 +32,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
 
   Future<void> _submit() async {
     setState(() {
-      _usernameError = _usernameController.text.trim().isEmpty ? 'Campo requerido' : null;
-      _passwordError = _passwordController.text.isEmpty ? 'Campo requerido' : null;
+      _usernameError =
+          _usernameController.text.trim().isEmpty ? 'Campo requerido' : null;
+      _passwordError =
+          _passwordController.text.isEmpty ? 'Campo requerido' : null;
     });
     if (_usernameError != null || _passwordError != null) return;
     await ref.read(authProvider.notifier).login(

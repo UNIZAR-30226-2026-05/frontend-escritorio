@@ -1539,21 +1539,27 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
             ),
           ],
         ),
-        child: Center(
-          child: Text(
-            text,
-            style: TextStyle(
-              color: Colors.white,
-              fontWeight: FontWeight.bold,
-              fontSize: fontSize,
-              letterSpacing: 2,
-              shadows: const [
-                Shadow(
-                  color: Color(0xFF000000),
-                  offset: Offset(1, 1),
-                  blurRadius: 2,
+        child: Padding(
+          padding: EdgeInsets.symmetric(horizontal: width * 0.08),
+          child: Center(
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(
+                text,
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: fontSize,
+                  letterSpacing: 2,
+                  shadows: const [
+                    Shadow(
+                      color: Color(0xFF000000),
+                      offset: Offset(1, 1),
+                      blurRadius: 2,
+                    ),
+                  ],
                 ),
-              ],
+              ),
             ),
           ),
         ),

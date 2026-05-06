@@ -50,10 +50,15 @@ class _WinScreenModalState extends ConsumerState<WinScreenModal>
     return Material(
       color: Colors.transparent,
       child: Center(
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            return FittedBox(
+              fit: BoxFit.scaleDown,
+              child: SizedBox(
+                width: constraints.maxWidth,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
               // ---------------- TÍTULO ----------------
               Text(
                 '¡FIN DE LA PARTIDA!',
@@ -200,8 +205,11 @@ class _WinScreenModalState extends ConsumerState<WinScreenModal>
                 },
               ),
               const SizedBox(height: 40),
-            ],
-          ),
+                  ],
+                ),
+              ),
+            );
+          },
         ),
       ),
     );

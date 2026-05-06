@@ -1315,7 +1315,6 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
     const Color activeBorderColor = Color(0xFF3CD37D);
     const Color inactiveBorderColor = Colors.white;
     final Color badgeColor = _getBadgeColor(player.characterClass);
-
     Widget avatarWidget = Image.asset(
       getCharacterPerfilPath(player.characterClass),
       fit: BoxFit.contain,
@@ -1381,60 +1380,44 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
       ),
       child: Row(
         children: [
-          // Avatar con Badge de rol
-          Stack(
-            children: [
-              Container(
-                width: 44,
-                height: 44,
-                decoration: BoxDecoration(
-                  color: badgeColor.withValues(alpha: 0.2),
-                  border: Border.all(color: Colors.white24),
+          // Avatar
+          Container(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              color: badgeColor,
+              border: Border.all(color: Colors.white24),
+            ),
+            child: Stack(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.all(2.0),
+                  child: avatarWidget,
                 ),
-                child: Stack(
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.all(2.0),
-                      child: avatarWidget,
+                if (player.penaltyTurns > 0)
+                  Positioned(
+                    bottom: -2,
+                    right: -2,
+                    child: Container(
+                      decoration: const BoxDecoration(
+                          color: Colors.black54, shape: BoxShape.circle),
+                      child: const Icon(Icons.lock,
+                          color: Colors.redAccent, size: 16),
                     ),
-                    if (player.penaltyTurns > 0)
-                      Positioned(
-                        bottom: -2,
-                        right: -2,
-                        child: Container(
-                          decoration: const BoxDecoration(
-                              color: Colors.black54, shape: BoxShape.circle),
-                          child: const Icon(Icons.lock,
-                              color: Colors.redAccent, size: 16),
-                        ),
-                      ),
-                    if (!player.isConnected)
-                      Positioned(
-                        top: -2,
-                        right: -2,
-                        child: Container(
-                          decoration: const BoxDecoration(
-                              color: Colors.black54, shape: BoxShape.circle),
-                          child: const Icon(Icons.wifi_off,
-                              color: Colors.redAccent, size: 16),
-                        ),
-                      ),
-                  ],
-                ),
-              ),
-              Positioned(
-                bottom: 0,
-                right: 0,
-                child: Container(
-                  width: 12,
-                  height: 12,
-                  decoration: BoxDecoration(
-                    color: badgeColor,
-                    border: Border.all(color: Colors.white, width: 1),
                   ),
-                ),
-              ),
-            ],
+                if (!player.isConnected)
+                  Positioned(
+                    top: -2,
+                    right: -2,
+                    child: Container(
+                      decoration: const BoxDecoration(
+                          color: Colors.black54, shape: BoxShape.circle),
+                      child: const Icon(Icons.wifi_off,
+                          color: Colors.redAccent, size: 16),
+                    ),
+                  ),
+              ],
+            ),
           ),
           const SizedBox(width: 10),
           // Info

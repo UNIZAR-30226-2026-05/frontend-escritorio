@@ -432,6 +432,30 @@ class WebSocketService {
           _ref.read(gameProvider.notifier).updateMinigameDetails(decoded);
           break;
 
+        case 'dilema_resultados':
+          // El backend de Dilema del Prisionero nunca envía minijuego_resultados,
+          // así que construimos el equivalente aquí para que _resultsSubscription
+          // del overlay se dispare y cierre el minijuego correctamente.
+          final decisiones = Map<String, dynamic>.from(
+              decoded['decisiones'] as Map? ?? {});
+          final recompensas = Map<String, dynamic>.from(
+              decoded['recompensas'] as Map? ?? {});
+          final sortedEntries = recompensas.entries.toList()
+            ..sort((a, b) => (b.value as num).compareTo(a.value as num));
+          int pos = 1;
+          final dilemaResults = <String, dynamic>{};
+          for (final entry in sortedEntries) {
+            dilemaResults[entry.key] = {
+              'posicion': pos++,
+              'score': decisiones[entry.key] ?? '',
+            };
+          }
+          final dilemaTurnOrder = sortedEntries.map((e) => e.key).toList();
+          _ref
+              .read(gameProvider.notifier)
+              .setMinigameResults(dilemaResults, dilemaTurnOrder);
+          break;
+
         case 'minijuego_casilla':
           // Solo guardamos los detalles del minijuego. El flag _pendingTileMinigame
           // se activa en ini_minijuego (cuando sabemos que somos participantes),

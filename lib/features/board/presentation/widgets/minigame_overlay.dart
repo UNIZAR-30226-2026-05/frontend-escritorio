@@ -187,8 +187,9 @@ class _MinigameOverlayState extends ConsumerState<MinigameOverlay> {
           (gameState.minigameDetails?['objetivo'] as num?)?.toDouble();
       ref.read(webSocketProvider).sendMinigameScore(score, objetivo: objetivo);
     } else if (gameState.minigameName != 'Mano de Poker' &&
-        gameState.minigameName != 'Poker' &&
-        gameState.minigameName != 'Dilema del Prisionero') {
+        gameState.minigameName != 'Poker') {
+      // Dilema del Prisionero también envía aquí su voto ('cooperar'/'traicionar').
+      // El overlay NO se cierra hasta recibir minijuego_resultados (ver _resultsSubscription).
       ref.read(webSocketProvider).sendMinigameScore(score);
     }
 
@@ -199,9 +200,10 @@ class _MinigameOverlayState extends ConsumerState<MinigameOverlay> {
       return; // El listener _balancesSubscription se encarga del cierre
     }
 
+    // Dilema del Prisionero espera minijuego_resultados igual que los minijuegos
+    // de orden; _resultsSubscription ya maneja el cierre automático.
     final isMinijuegoCasilla = gameState.minigameName == 'Mano de Poker' ||
-        gameState.minigameName == 'Poker' ||
-        gameState.minigameName == 'Dilema del Prisionero';
+        gameState.minigameName == 'Poker';
 
     if (isMinijuegoCasilla) {
       // Reducimos el delay drásticamente para Póker porque el usuario ya ha pulsado el botón "VOLVER" manualmente

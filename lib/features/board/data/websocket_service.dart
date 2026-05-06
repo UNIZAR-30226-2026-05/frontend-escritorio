@@ -424,6 +424,9 @@ class WebSocketService {
         case 'poker_turno':
         case 'poker_bote':
         case 'poker_cartas':
+        case 'turno_poker':
+        case 'poker_apuesta_actualizada':
+        case 'poker_apuesta':
           debugPrint(" [WS] Poker message: ${decoded['type']}");
           // Actualizar los detalles del minijuego en el estado global para que PokerGame reaccione
           _ref.read(gameProvider.notifier).updateMinigameDetails(decoded);

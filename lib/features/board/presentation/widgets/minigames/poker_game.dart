@@ -19,7 +19,7 @@ class PokerCard {
       final rankRaw =
           (card['rank'] ?? card['valor'] ?? '').toString().toLowerCase();
 
-      String suit = 'spades'; // fallback
+      String suit = 'spades';
       if (suitRaw == 'corazones' || suitRaw == 'hearts') {
         suit = 'hearts';
       } else if (suitRaw == 'diamantes' || suitRaw == 'diamonds') {
@@ -30,7 +30,7 @@ class PokerCard {
         suit = 'spades';
       }
 
-      int rank = 1; // fallback (As)
+      int rank = 1;
       if (rankRaw == 'as' || rankRaw == '1' || rankRaw == '14') {
         rank = 1;
       } else if (rankRaw == 'jota' || rankRaw == 'j' || rankRaw == '11') {
@@ -45,7 +45,6 @@ class PokerCard {
 
       return PokerCard(suit, rank);
     }
-    // Si viene como entero (0-51)
     final suits = ['hearts', 'diamonds', 'spades', 'clubs'];
     final s = suits[card ~/ 13];
     final r = (card % 13) + 1;
@@ -88,7 +87,13 @@ class PokerGame extends ConsumerStatefulWidget {
 class _PokerGameState extends ConsumerState<PokerGame> {
   bool _showCards = false;
   String _currentPhase = 'preFlop';
-  bool _hasActedThisPhase = false;
+
+  // El backend envía 'turno_poker' con el nombre del jugador que debe actuar.
+  // Solo mostramos los botones de acción cuando es nuestro turno.
+  bool _isMyTurn = false;
+
+  int _currentMaxBet = 0; // updated from poker_apuesta_actualizada
+
   bool _gameFinished = false;
   String _resultMessage = '';
   List<PokerCard> _myCards = [];
@@ -102,7 +107,6 @@ class _PokerGameState extends ConsumerState<PokerGame> {
   @override
   void initState() {
     super.initState();
-    // Leer los detalles más recientes del provider por si ya llegaron antes del mount
     final currentDetails = ref.read(gameProvider).minigameDetails;
     _parseBackendDetails(currentDetails ?? widget.details);
   }
@@ -110,47 +114,77 @@ class _PokerGameState extends ConsumerState<PokerGame> {
   void _parseBackendDetails(Map<String, dynamic> details) {
     final type = details['type'] as String? ?? '';
     debugPrint(
-        "DEBUG POKER: Procesando detalles. Fase actual: ${details['fase']}, Tipo: $type");
+        "DEBUG POKER: Procesando detalles. Fase: ${details['fase']}, Tipo: $type");
     setState(() {
-      // Bote
+      // ── Bote ──
       if (details.containsKey('bote')) {
         _pot = details['bote'];
-      } else if (details.containsKey('poker_bote')) {
-        _pot = details['poker_bote'];
       } else if (details.containsKey('bote_actual')) {
         _pot = details['bote_actual'];
       }
 
-      // Fase: cuando llega una nueva fase, reseteamos el flag de "ya he actuado"
+      // ── Fase ──
       if (details.containsKey('fase')) {
         final newPhase = details['fase'] as String;
         if (newPhase != _currentPhase) {
           _currentPhase = newPhase;
-          _hasActedThisPhase = false;
-          _raiseAmount = 1; // resetear slider
+          _raiseAmount = 1;
         }
       }
 
-      // poker_inicio_ronda = nueva mano, resetear todo
+      // ── poker_apuesta_actualizada: alguien apostó, actualizamos el máximo ──
+      if (type == 'poker_apuesta_actualizada') {
+        _currentMaxBet =
+            (details['nueva_apuesta_maxima'] as num?)?.toInt() ?? _currentMaxBet;
+      }
+
+      // ── turno_poker: el backend nos dice quién juega ahora ──
+      if (type == 'turno_poker') {
+        final myUsername = ref.read(authProvider).username ?? '';
+        _isMyTurn = (details['nombre_jugador'] == myUsername);
+        debugPrint(
+            "DEBUG POKER: turno_poker → ${details['nombre_jugador']} | ¿soy yo? $_isMyTurn");
+      }
+
+      // ── poker_inicio_ronda: nueva mano, resetear todo ──
       if (type == 'poker_inicio_ronda') {
         _gameFinished = false;
-        _hasActedThisPhase = false;
+        _isMyTurn = false; // esperamos turno_poker
         _resultMessage = '';
         _communityCards = [];
         _myCurrentBet = 0;
+        _currentMaxBet = 0;
       }
 
-      // backend_error = el backend rechazó nuestra acción (ej. saldo insuficiente)
-      // Reseteamos el flag para que el jugador pueda reintentar
+      // ── poker_nueva_fase: nueva fase de apuestas ──
+      // Reseteamos las apuestas de la ronda y marcamos quién se ha retirado.
+      if (type == 'poker_nueva_fase') {
+        _isMyTurn = false; // esperamos el siguiente turno_poker
+        _myCurrentBet = 0;
+        _currentMaxBet = 0;
+        for (final r in _rivals) {
+          r.currentBet = 0;
+        }
+        if (details.containsKey('jugadores_activos')) {
+          final activos =
+              List<String>.from(details['jugadores_activos'] as List);
+          for (final r in _rivals) {
+            r.folded = !activos.contains(r.id) && !activos.contains(r.name);
+          }
+        }
+      }
+
+      // ── backend_error: el back rechazó nuestra acción → devolvemos el turno ──
       if (type == 'backend_error') {
         debugPrint(
-            ' [POKER] Error del backend: ${details['error']}. Reactivando botones.');
-        _hasActedThisPhase = false;
+            ' [POKER] Error del backend: ${details['error']}. Reactivando turno.');
+        _isMyTurn = true;
       }
 
-      // poker_resultados o poker_victoria_abandono = fin de la mano
+      // ── poker_resultados / poker_victoria_abandono: fin de la mano ──
       if (type == 'poker_resultados' || type == 'poker_victoria_abandono') {
         _gameFinished = true;
+        _isMyTurn = false;
         _showCards = true;
         if (details.containsKey('mensaje')) {
           _resultMessage = details['mensaje'];
@@ -158,13 +192,15 @@ class _PokerGameState extends ConsumerState<PokerGame> {
           _resultMessage =
               '${details['ganador']} gana ${details['bote_ganado'] ?? 0}¢';
         }
-        // Mostrar cartas de rivales si están en los resultados
         if (details.containsKey('resultados_ordenados')) {
           final resultados = details['resultados_ordenados'] as List;
           for (final r in resultados) {
             final rivalMatch = _rivals
                 .where((rv) =>
-                    rv.id == r['usuario_id'] || rv.name == r['usuario_id'])
+                    rv.id == r['user'] ||
+                    rv.name == r['user'] ||
+                    rv.id == r['usuario_id'] ||
+                    rv.name == r['usuario_id'])
                 .firstOrNull;
             if (rivalMatch != null && r.containsKey('cartas')) {
               rivalMatch.cards = (r['cartas'] as List)
@@ -180,7 +216,7 @@ class _PokerGameState extends ConsumerState<PokerGame> {
         }
       }
 
-      // Cartas propias
+      // ── Cartas propias ──
       if (details.containsKey('cartas_propias')) {
         _myCards = (details['cartas_propias'] as List)
             .map((c) => PokerCard.fromBackend(c))
@@ -191,16 +227,20 @@ class _PokerGameState extends ConsumerState<PokerGame> {
             .toList();
       }
 
-      // Cartas comunitarias (solo si no es resultado final, para no sobreescribir mesa_completa)
+      // ── Cartas comunitarias (no sobreescribir en resultados) ──
       if (type != 'poker_resultados') {
         if (details.containsKey('comunitarias')) {
           _communityCards = (details['comunitarias'] as List)
               .map((c) => PokerCard.fromBackend(c))
               .toList();
-        } else if (details.containsKey('poker_flop')) {
-          _communityCards = (details['poker_flop'] as List)
-              .map((c) => PokerCard.fromBackend(c))
-              .toList();
+        } else if (details.containsKey('cartas_reveladas')) {
+          // poker_flop envía 'cartas_reveladas'
+          _communityCards.addAll((details['cartas_reveladas'] as List)
+              .map((c) => PokerCard.fromBackend(c)));
+        } else if (details.containsKey('carta_revelada')) {
+          // poker_turn / poker_river envía 'carta_revelada' (una sola)
+          _communityCards
+              .add(PokerCard.fromBackend(details['carta_revelada']));
         } else if (details.containsKey('mesa_visible')) {
           _communityCards = (details['mesa_visible'] as List)
               .map((c) => PokerCard.fromBackend(c))
@@ -208,7 +248,7 @@ class _PokerGameState extends ConsumerState<PokerGame> {
         }
       }
 
-      // Jugadores y balances
+      // ── Jugadores y balances ──
       final gameState = ref.read(gameProvider);
       final myUsername = ref.read(authProvider).username ?? '';
 
@@ -216,7 +256,6 @@ class _PokerGameState extends ConsumerState<PokerGame> {
           gameState.players.where((p) => p.username == myUsername).firstOrNull;
       _myBalance = myPlayer?.coins ?? 0;
 
-      // Reconstruir rivales (excluyendo al local)
       _rivals = gameState.players
           .where((p) => p.username != myUsername)
           .toList()
@@ -225,58 +264,58 @@ class _PokerGameState extends ConsumerState<PokerGame> {
           .map((e) {
         final p = e.value;
         final pos = ['left', 'top', 'right'][e.key % 3];
+        // Preservar estado fold de rival existente si ya lo teníamos
+        final existing = _rivals.where((r) => r.id == p.id).firstOrNull;
         return Rival(
           id: p.id,
           name: p.username,
           role: p.characterClass.name,
           balance: p.coins,
+          currentBet: existing?.currentBet ?? 0,
+          folded: existing?.folded ?? false,
           position: pos,
+          cards: existing?.cards ?? [],
         );
       }).toList();
 
-      // Actualizar estados de apuestas desde detalles si existen
+      // ── Apuestas de los rivales si el backend las envía ──
       if (details.containsKey('apuestas')) {
         final apuestas = details['apuestas'] as Map<String, dynamic>;
         apuestas.forEach((user, bet) {
           if (user == myUsername) {
-            _myCurrentBet = bet;
+            _myCurrentBet = bet as int;
           } else {
             final rival = _rivals.where((r) => r.name == user).firstOrNull;
-            if (rival != null) rival.currentBet = bet;
+            if (rival != null) rival.currentBet = bet as int;
           }
         });
       }
-
-      if (details.containsKey('retirados')) {
-        final retirados = List<String>.from(details['retirados']);
-        for (var user in retirados) {
-          final rival = _rivals.where((r) => r.name == user).firstOrNull;
-          if (rival != null) rival.folded = true;
-        }
-      }
     });
     debugPrint(
-        "DEBUG POKER: Estado final del widget - Fase: $_currentPhase, Actuado: $_hasActedThisPhase");
+        "DEBUG POKER: Estado final — Fase: $_currentPhase, ¿MiTurno? $_isMyTurn");
   }
 
-  int get _highestBet {
-    int h = _myCurrentBet;
-    for (final r in _rivals) {
-      if (r.currentBet > h) h = r.currentBet;
-    }
-    return h;
-  }
+  int get _highestBet => _currentMaxBet;
 
   void _handleAction(String type) {
+    // Bloqueamos inmediatamente para evitar dobles clics
+    setState(() => _isMyTurn = false);
+
+    String decision;
     int amount = 0;
-    String decision = 'apostar'; // Por defecto para call y raise
 
     if (type == 'fold') {
       decision = 'retirarse';
     } else if (type == 'call') {
-      decision = 'apostar';
-      amount = (_highestBet - _myCurrentBet).clamp(0, _myBalance);
-    } else if (type == 'raise') {
+      if (_highestBet <= _myCurrentBet) {
+        // No hay apuesta que igualar → pasar (check)
+        decision = 'pasar';
+      } else {
+        decision = 'apostar';
+        amount = (_highestBet - _myCurrentBet).clamp(0, _myBalance);
+      }
+    } else {
+      // raise
       decision = 'apostar';
       amount = ((_highestBet - _myCurrentBet) + _raiseAmount.toInt())
           .clamp(0, _myBalance);
@@ -285,26 +324,17 @@ class _PokerGameState extends ConsumerState<PokerGame> {
     debugPrint(
         ' [POKER] Acción enviada: $decision ($amount) [balance: $_myBalance]');
     ref.read(webSocketProvider).sendPokerAction(decision, amount);
-    setState(() {
-      _hasActedThisPhase = true;
-    });
   }
 
   @override
   Widget build(BuildContext context) {
-    // Escuchar actualizaciones del backend que llegan via details
     ref.listen<Map<String, dynamic>?>(
         gameProvider.select((s) => s.minigameDetails), (prev, next) {
-      if (next != null) {
-        _parseBackendDetails(next);
-      }
+      if (next != null) _parseBackendDetails(next);
     });
 
     ref.watch(authProvider).username;
-    // El backend usa fases simultáneas: todos actúan a la vez.
-    // Mostramos botones si hay fase activa, no hemos actuado aún, y la partida no ha terminado.
-    final canAct =
-        _currentPhase.isNotEmpty && !_hasActedThisPhase && !_gameFinished;
+    final canAct = _isMyTurn && !_gameFinished;
     final size = MediaQuery.of(context).size;
 
     return Scaffold(
@@ -398,9 +428,7 @@ class _PokerGameState extends ConsumerState<PokerGame> {
                       child: Container(
                           width: 96,
                           height: 132,
-                          margin: EdgeInsets.only(
-                              right: e.key == 0 ? 0 : 0,
-                              left: e.key == 1 ? 0 : 0),
+                          margin: const EdgeInsets.only(),
                           child: ClipRRect(
                               borderRadius: BorderRadius.circular(8),
                               child: Image.asset(
@@ -426,14 +454,14 @@ class _PokerGameState extends ConsumerState<PokerGame> {
                                       fontSize: 8,
                                       color: Colors.black,
                                       fontWeight: FontWeight.bold))),
-                        if (_hasActedThisPhase && !_gameFinished)
+                        if (!_isMyTurn && !_gameFinished)
                           Container(
                               padding: const EdgeInsets.symmetric(
                                   horizontal: 8, vertical: 4),
                               decoration: BoxDecoration(
                                   color: Colors.blue.withValues(alpha: 0.3),
                                   borderRadius: BorderRadius.circular(4)),
-                              child: const Text('ESPERANDO...',
+                              child: const Text('ESPERANDO TU TURNO...',
                                   style: TextStyle(
                                       fontFamily: 'Retro Gaming',
                                       fontSize: 8,
@@ -492,7 +520,7 @@ class _PokerGameState extends ConsumerState<PokerGame> {
                       ]),
                 ]),
                 const Spacer(),
-                // Betting Actions
+                // Betting Actions — solo cuando es nuestro turno
                 if (canAct)
                   Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
                     if (_myCurrentBet > 0)
@@ -608,14 +636,12 @@ class _PokerGameState extends ConsumerState<PokerGame> {
                   height: 48,
                   fontSize: 11,
                   onTap: () => widget.onFinish(0))),
-
-        // Debug Panel (Deshabilitado en producción)
       ]),
     );
   }
 
   Widget _buildRival(Rival r, Size size) {
-    double? left, right, top, bottom;
+    double? left, right, top;
     if (r.position == 'left') {
       left = 40;
       top = size.height * 0.35;
@@ -631,12 +657,10 @@ class _PokerGameState extends ConsumerState<PokerGame> {
       left: left,
       right: right,
       top: top,
-      bottom: bottom,
       child: AnimatedOpacity(
         duration: const Duration(milliseconds: 300),
         opacity: r.folded ? 0.3 : 1.0,
         child: Column(mainAxisSize: MainAxisSize.min, children: [
-          // Cards (Dorso o reales si se desea mostrar al final)
           Row(
               mainAxisSize: MainAxisSize.min,
               children: List.generate(
@@ -651,7 +675,7 @@ class _PokerGameState extends ConsumerState<PokerGame> {
                                 borderRadius: BorderRadius.circular(6),
                                 child: _showCards &&
                                         !r.folded &&
-                                        r.cards.isNotEmpty
+                                        r.cards.length > i
                                     ? Image.asset(
                                         'assets/images/minigames/cartas/cards/card_${r.cards[i].suit}_${r.cards[i].rank}.png',
                                         fit: BoxFit.contain,
@@ -662,7 +686,6 @@ class _PokerGameState extends ConsumerState<PokerGame> {
                                         filterQuality: FilterQuality.none))),
                       )).toList()),
           const SizedBox(height: 8),
-          // Avatar
           Stack(
               clipBehavior: Clip.none,
               alignment: Alignment.center,

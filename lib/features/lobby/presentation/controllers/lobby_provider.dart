@@ -228,6 +228,24 @@ class LobbyController extends StateNotifier<LobbyState> {
     state = state.copyWith(friendRequests: requests);
   }
 
+  // Llamado por el WS de sesión con la lista de amigos online al conectarse
+  // (respuesta a 'get_online_friends', tipo 'online_friends_list').
+  void onOnlineFriendsList(List<String> friends) {
+    final updatedFriends = friends.toSet();
+    final updatedPending = {...state.sentFriendRequests};
+    
+    // Si alguno de los amigos online estaba en pendientes, significa que aceptó la solicitud.
+    // Lo eliminamos de pendientes para que desaparezca el chip "Pendiente".
+    for (final f in updatedFriends) {
+      updatedPending.remove(f);
+    }
+    
+    state = state.copyWith(
+      onlineFriends: updatedFriends,
+      sentFriendRequests: updatedPending,
+    );
+  }
+
   // Añade una solicitud de amistad entrante recibida en tiempo real.
   // Se usa si el backend notifica nuevas solicitudes después del login.
   void addFriendRequest(String fromUser) {

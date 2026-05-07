@@ -132,10 +132,34 @@ class _PokerGameState extends ConsumerState<PokerGame> {
         }
       }
 
-      // ── poker_apuesta_actualizada: alguien apostó, actualizamos el máximo ──
+      // ── poker_apuesta_actualizada: alguien subió, actualizamos el máximo ──
       if (type == 'poker_apuesta_actualizada') {
         _currentMaxBet =
             (details['nueva_apuesta_maxima'] as num?)?.toInt() ?? _currentMaxBet;
+        // Actualizar el bet del rival que subió
+        final betUser = details['nombre_usuario'] as String? ?? '';
+        final myUsername = ref.read(authProvider).username ?? '';
+        if (betUser == myUsername) {
+          _myCurrentBet = _currentMaxBet;
+        } else {
+          final rival =
+              _rivals.where((r) => r.name == betUser).firstOrNull;
+          if (rival != null) rival.currentBet = _currentMaxBet;
+        }
+      }
+
+      // ── poker_apuesta: alguien igualó (call) sin subir ──
+      if (type == 'poker_apuesta') {
+        final betUser = details['nombre_usuario'] as String? ?? '';
+        final betAmount = (details['apuesta'] as num?)?.toInt() ?? 0;
+        final myUsername = ref.read(authProvider).username ?? '';
+        if (betUser == myUsername) {
+          _myCurrentBet = betAmount;
+        } else {
+          final rival =
+              _rivals.where((r) => r.name == betUser).firstOrNull;
+          if (rival != null) rival.currentBet = betAmount;
+        }
       }
 
       // ── turno_poker: el backend nos dice quién juega ahora ──
@@ -249,12 +273,17 @@ class _PokerGameState extends ConsumerState<PokerGame> {
       }
 
       // ── Jugadores y balances ──
+      // Preferimos el balance del gameProvider (actualizado por balances_changed)
+      // pero si el mensaje de poker incluye bote_actual, lo usamos para el bote.
       final gameState = ref.read(gameProvider);
       final myUsername = ref.read(authProvider).username ?? '';
 
       final myPlayer =
           gameState.players.where((p) => p.username == myUsername).firstOrNull;
       _myBalance = myPlayer?.coins ?? 0;
+
+      // Si el mensaje poker_nueva_fase o poker_inicio_ronda trae bote_actual,
+      // lo capturamos (ya se hizo arriba con la key 'bote'/'bote_actual').
 
       _rivals = gameState.players
           .where((p) => p.username != myUsername)
@@ -297,6 +326,16 @@ class _PokerGameState extends ConsumerState<PokerGame> {
 
   int get _highestBet => _currentMaxBet;
 
+  // Bote visual = bote base (del último poker_nueva_fase/inicio_ronda)
+  // + todas las apuestas de la ronda en curso de todos los jugadores.
+  int get _displayPot {
+    int runningBets = _myCurrentBet;
+    for (final r in _rivals) {
+      runningBets += r.currentBet;
+    }
+    return _pot + runningBets;
+  }
+
   void _handleAction(String type) {
     // Bloqueamos inmediatamente para evitar dobles clics
     setState(() => _isMyTurn = false);
@@ -311,13 +350,14 @@ class _PokerGameState extends ConsumerState<PokerGame> {
         // No hay apuesta que igualar → pasar (check)
         decision = 'pasar';
       } else {
+        // El backend espera la apuesta TOTAL de la ronda, no el incremento.
         decision = 'apostar';
-        amount = (_highestBet - _myCurrentBet).clamp(0, _myBalance);
+        amount = _highestBet.clamp(0, _myBalance);
       }
     } else {
-      // raise
+      // raise — total = igualar la apuesta máxima + la subida extra
       decision = 'apostar';
-      amount = ((_highestBet - _myCurrentBet) + _raiseAmount.toInt())
+      amount = (_highestBet + _raiseAmount.toInt())
           .clamp(0, _myBalance);
     }
 
@@ -365,7 +405,7 @@ class _PokerGameState extends ConsumerState<PokerGame> {
                       color: Color(0xFFF59E0B),
                       letterSpacing: 3)),
               const SizedBox(height: 4),
-              Text('$_pot¢',
+              Text('$_displayPot¢',
                   style: const TextStyle(
                       fontFamily: 'Retro Gaming',
                       fontSize: 32,
@@ -494,12 +534,26 @@ class _PokerGameState extends ConsumerState<PokerGame> {
                                           : Colors.white24,
                                       width: 3)),
                               child: ClipOval(
-                                  child: Image.asset(
-                                      'assets/images/characters/general/videojugador_perfil.png',
-                                      fit: BoxFit.cover,
-                                      errorBuilder: (_, __, ___) => const Icon(
-                                          Icons.person,
-                                          color: Colors.white)))),
+                                  child: Builder(builder: (_) {
+                                    final myUsername =
+                                        ref.read(authProvider).username ?? '';
+                                    final myPlayer = ref
+                                        .read(gameProvider)
+                                        .players
+                                        .where(
+                                            (p) => p.username == myUsername)
+                                        .firstOrNull;
+                                    final charName = myPlayer?.characterClass
+                                            .name
+                                            .toLowerCase() ??
+                                        'videojugador';
+                                    return Image.asset(
+                                        'assets/images/characters/general/${charName}_perfil.png',
+                                        fit: BoxFit.cover,
+                                        errorBuilder: (_, __, ___) =>
+                                            const Icon(Icons.person,
+                                                color: Colors.white));
+                                  }))),
                           const SizedBox(width: 12),
                           Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
@@ -555,71 +609,93 @@ class _PokerGameState extends ConsumerState<PokerGame> {
                         height: 56,
                         fontSize: 12,
                         onTap: () => _handleAction('fold')),
-                    const SizedBox(width: 12),
-                    RetroImgButton(
-                        label: _highestBet > _myCurrentBet
-                            ? 'IGUALAR ${_highestBet - _myCurrentBet}¢'
-                            : 'PASAR',
-                        asset: 'assets/images/ui/btn_verde.png',
-                        width: 180,
-                        height: 56,
-                        fontSize: 11,
-                        onTap: () => _handleAction('call')),
-                    const SizedBox(width: 12),
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                          color: Colors.black.withValues(alpha: 0.6),
-                          border: Border.all(
-                              color: Colors.purple.withValues(alpha: 0.3)),
-                          borderRadius: BorderRadius.circular(8)),
-                      child: Column(mainAxisSize: MainAxisSize.min, children: [
-                        Row(mainAxisSize: MainAxisSize.min, children: [
-                          const Text('SUBIR ',
-                              style: TextStyle(
-                                  fontFamily: 'Retro Gaming',
-                                  fontSize: 8,
-                                  color: Colors.purple,
-                                  letterSpacing: 2)),
-                          Text('+${_raiseAmount.toInt()}¢',
-                              style: const TextStyle(
-                                  fontFamily: 'Retro Gaming',
-                                  fontSize: 12,
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.bold)),
-                        ]),
-                        SizedBox(
-                            width: 140,
-                            child: SliderTheme(
-                                data: SliderTheme.of(context).copyWith(
-                                    activeTrackColor: Colors.purple,
-                                    thumbColor: Colors.purple,
-                                    inactiveTrackColor: Colors.white12,
-                                    thumbShape: const RoundSliderThumbShape(
-                                        enabledThumbRadius: 8)),
-                                child: Slider(
-                                    min: 1,
-                                    max: (_myBalance -
-                                            (_highestBet - _myCurrentBet))
-                                        .clamp(1, 999)
-                                        .toDouble(),
-                                    value: _raiseAmount.clamp(
-                                        1,
-                                        (_myBalance -
-                                                (_highestBet - _myCurrentBet))
-                                            .clamp(1, 999)
-                                            .toDouble()),
-                                    onChanged: (v) =>
-                                        setState(() => _raiseAmount = v)))),
-                        RetroImgButton(
-                            label: 'SUBIR',
-                            asset: 'assets/images/ui/btn_morado.png',
-                            width: 140,
-                            height: 44,
-                            fontSize: 11,
-                            onTap: () => _handleAction('raise')),
-                      ]),
-                    ),
+                    if (_myBalance >= _highestBet) ...[
+                      const SizedBox(width: 12),
+                      RetroImgButton(
+                          label: _highestBet > _myCurrentBet
+                              ? 'IGUALAR ${_highestBet - _myCurrentBet}¢'
+                              : 'PASAR',
+                          asset: 'assets/images/ui/btn_verde.png',
+                          width: 180,
+                          height: 56,
+                          fontSize: 11,
+                          onTap: () => _handleAction('call')),
+                      if (_myBalance > _highestBet) ...[
+                        const SizedBox(width: 12),
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                              color: Colors.black.withValues(alpha: 0.6),
+                              border: Border.all(
+                                  color: Colors.purple.withValues(alpha: 0.3)),
+                              borderRadius: BorderRadius.circular(8)),
+                          child: Column(mainAxisSize: MainAxisSize.min, children: [
+                            Row(mainAxisSize: MainAxisSize.min, children: [
+                              const Text('SUBIR ',
+                                  style: TextStyle(
+                                      fontFamily: 'Retro Gaming',
+                                      fontSize: 8,
+                                      color: Colors.purple,
+                                      letterSpacing: 2)),
+                              Text('+${_raiseAmount.toInt()}¢',
+                                  style: const TextStyle(
+                                      fontFamily: 'Retro Gaming',
+                                      fontSize: 12,
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold)),
+                            ]),
+                            SizedBox(
+                                width: 140,
+                                child: SliderTheme(
+                                    data: SliderTheme.of(context).copyWith(
+                                        activeTrackColor: Colors.purple,
+                                        thumbColor: Colors.purple,
+                                        inactiveTrackColor: Colors.white12,
+                                        thumbShape: const RoundSliderThumbShape(
+                                            enabledThumbRadius: 8)),
+                                    child: Slider(
+                                        min: 1,
+                                        max: (_myBalance - _highestBet)
+                                            .clamp(1, 9999)
+                                            .toDouble(),
+                                        value: _raiseAmount.clamp(
+                                            1,
+                                            (_myBalance - _highestBet)
+                                                .clamp(1, 9999)
+                                                .toDouble()),
+                                        onChanged: (v) =>
+                                            setState(() => _raiseAmount = v)))),
+                            RetroImgButton(
+                                label: 'SUBIR',
+                                asset: 'assets/images/ui/btn_morado.png',
+                                width: 140,
+                                height: 44,
+                                fontSize: 11,
+                                onTap: () => _handleAction('raise')),
+                          ]),
+                        ),
+                      ],
+                    ] else ...[
+                      const SizedBox(width: 12),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: Colors.red.withValues(alpha: 0.2),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: Colors.redAccent.withValues(alpha: 0.5)),
+                        ),
+                        child: const Text(
+                          'SALDO INSUFICIENTE\nPARA IGUALAR',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontFamily: 'Retro Gaming',
+                            fontSize: 10,
+                            color: Colors.redAccent,
+                            height: 1.5,
+                          ),
+                        ),
+                      ),
+                    ],
                   ]),
               ]),
             )),

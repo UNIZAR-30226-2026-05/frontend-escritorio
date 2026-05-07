@@ -432,6 +432,20 @@ class WebSocketService {
           _ref.read(gameProvider.notifier).updateMinigameDetails(decoded);
           break;
 
+        // El backend envía {"type": "error", "message": "..."} cuando rechaza
+        // una acción de poker (apuesta insuficiente, no puede pasar, etc.).
+        // Lo reenviamos como backend_error al minijuego activo para que
+        // reactive el turno del jugador y evite un deadlock.
+        case 'error':
+          final errorMsg = decoded['message']?.toString() ?? 'Error desconocido';
+          debugPrint(' [WS] Error del backend: $errorMsg');
+          _isActionLocked = false;
+          _ref.read(gameProvider.notifier).updateMinigameDetails({
+            'type': 'backend_error',
+            'error': errorMsg,
+          });
+          break;
+
         case 'dilema_resultados':
           // El backend de Dilema del Prisionero nunca envía minijuego_resultados,
           // así que construimos el equivalente aquí para que _resultsSubscription
@@ -605,6 +619,26 @@ class WebSocketService {
       debugPrint(" [POKER] Acción enviada: $decision ($cantidad)");
     } else {
       debugPrint("No se pudo enviar 'poker_accion' porque no hay conexión.");
+    }
+  }
+
+  /// Pide al servidor 50 monedas extra para todos los jugadores (Debug)
+  void sendDebugAddCoins() {
+    if (_channel != null && _isConnected) {
+      _channel!.sink.add(jsonEncode({'action': 'debug_add_coins'}));
+      debugPrint("🪙 Cheat activado: Comando '+50 monedas' enviado al servidor.");
+    } else {
+      debugPrint("No se pudo enviar el cheat porque no hay conexión.");
+    }
+  }
+
+  /// Fuerza el inicio del Poker saltándose las casillas (Debug)
+  void sendDebugForcePoker() {
+    if (_channel != null && _isConnected) {
+      _channel!.sink.add(jsonEncode({'action': 'debug_force_poker'}));
+      debugPrint("🃏 Cheat activado: Comando 'Forzar Poker' enviado al servidor.");
+    } else {
+      debugPrint("No se pudo enviar el cheat porque no hay conexión.");
     }
   }
 

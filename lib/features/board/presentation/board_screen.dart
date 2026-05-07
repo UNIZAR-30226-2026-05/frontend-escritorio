@@ -64,7 +64,8 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
     'Dilema del Prisionero',
     'Test: Fin de Partida',
     'Ruleta',
-    'Poker',
+    'Cheat: Forzar Poker',
+    'Cheat: +50 Monedas',
   ];
 
   // Coordenadas de los centros de las casillas en el tablero
@@ -232,6 +233,10 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
               _debugRuletaItem = randomItem;
               _debugShowRuleta = true;
             });
+          } else if (minigame == 'Cheat: Forzar Poker') {
+            ref.read(webSocketProvider).sendDebugForcePoker();
+          } else if (minigame == 'Cheat: +50 Monedas') {
+            ref.read(webSocketProvider).sendDebugAddCoins();
           } else {
             // Llamamos a nuestro nuevo método local
             ref.read(gameProvider.notifier).startDebugMinigameLocal(minigame);

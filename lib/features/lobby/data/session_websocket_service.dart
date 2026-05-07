@@ -37,6 +37,7 @@ class SessionWebSocketService {
   int _reconnectAttempts = 0;
   static const int _maxReconnectAttempts = 5;
   Timer? _reconnectTimer;
+  Timer? _syncTimer;
 
   SessionWebSocketService(this._ref);
 
@@ -70,6 +71,16 @@ class SessionWebSocketService {
       // Pide la lista de amigos online nada más conectar para rellenar la UI
       // sin esperar a los cambios de estado en tiempo real.
       _sendRaw({'action': 'get_online_friends'});
+
+      // WORKAROUND FRONTEND-ONLY: Sincroniza la lista de amigos cada 15 segundos
+      // para saber si alguien ha aceptado nuestra petición o se ha conectado, 
+      // ya que el backend no emite confirmaciones de accept_request.
+      _syncTimer?.cancel();
+      _syncTimer = Timer.periodic(const Duration(seconds: 15), (_) {
+        if (_isConnected) {
+          _sendRaw({'action': 'get_online_friends'});
+        }
+      });
     } catch (_) {
       _isConnected = false;
       if (!_intentionalDisconnect) _scheduleReconnect();
@@ -129,11 +140,55 @@ class SessionWebSocketService {
         // Lista de solicitudes pendientes al iniciar sesión.
         case 'friend_requests_list':
           debugPrint(
-              'Lista de solicitudes de amistad recibida: ${decoded['lista']}'); // Debug: log de la lista recibida
+              'Lista de solicitudes de amistad recibida: ${decoded['lista']}');
           final list = (decoded['lista'] as List<dynamic>? ?? [])
               .map((e) => e.toString())
               .toList();
           notifier.onFriendRequestsList(list);
+          break;
+
+        // Respuesta a get_online_friends: lista de amigos conectados.
+        case 'online_friends_list':
+          final friends = (decoded['friends'] as List<dynamic>? ?? [])
+              .map((e) => e.toString())
+              .toList();
+          notifier.onOnlineFriendsList(friends);
+          break;
+
+        // Un amigo nos ha invitado a su partida.
+        case 'receive_invite':
+          final fromUser = decoded['from_user']?.toString() ?? '';
+          final gameId = decoded['game_id']?.toString() ?? '';
+          if (fromUser.isNotEmpty && gameId.isNotEmpty) {
+            notifier.onInviteReceived(
+              GameInvite(fromUser: fromUser, gameId: gameId),
+            );
+          }
+          break;
+
+        // Un usuario nos envía una nueva solicitud de amistad en tiempo real.
+        case 'new_friend_request':
+          final fromUser = decoded['from_user']?.toString() ?? '';
+          if (fromUser.isNotEmpty) notifier.addFriendRequest(fromUser);
+          break;
+
+        // El backend confirma que nuestra solicitud de amistad se envió.
+        case 'request_sended':
+          if (_pendingFriendRequestTargets.isNotEmpty) {
+            _pendingFriendRequestTargets.removeAt(0);
+          }
+          break;
+
+        // El backend rechaza nuestra solicitud (ya amigos o solicitud duplicada).
+        case 'failed_request':
+          final target = _pendingFriendRequestTargets.isNotEmpty
+              ? _pendingFriendRequestTargets.removeAt(0)
+              : decoded['username']?.toString() ?? 'Usuario desconocido';
+          notifier.clearFriendRequestSent(target);
+          final cause = decoded['cause']?.toString() ?? 'Error desconocido';
+          notifier.setFriendRequestError(
+            'Solicitud a "$target" fallida: $cause',
+          );
           break;
 
         case 'user_not_exists':
@@ -146,28 +201,8 @@ class SessionWebSocketService {
           break;
 
         default:
-          // El campo 'action' lo usa el backend para ciertos eventos como
-          // 'receive_invite' o nuevas solicitudes de amistad entrantes.
-          final action = decoded['action'] as String?;
-          switch (action) {
-            // Un amigo nos ha invitado a su partida.
-            case 'receive_invite':
-              final fromUser = decoded['from_user']?.toString() ?? '';
-              final gameId = decoded['game_id']?.toString() ?? '';
-              if (fromUser.isNotEmpty && gameId.isNotEmpty) {
-                notifier.onInviteReceived(
-                  GameInvite(fromUser: fromUser, gameId: gameId),
-                );
-              }
-              break;
-            // Un usuario nos envía una nueva solicitud de amistad.
-            case 'send_request':
-              final fromUser = decoded['player_id']?.toString() ?? '';
-              if (fromUser.isNotEmpty) notifier.addFriendRequest(fromUser);
-              break;
-            default:
-              break;
-          }
+          debugPrint('Mensaje WS de sesión no manejado: $decoded');
+          break;
       }
     } catch (_) {
       // Mensaje mal formado: se ignora.
@@ -180,20 +215,23 @@ class SessionWebSocketService {
     _channel!.sink.add(jsonEncode(payload));
   }
 
-  // Invita a un amigo a la partida actual. El backend asocia la invitación
-  // al game_id en el que estemos; lo mandamos igualmente para ser explícitos.
   void inviteFriend(String friendId, String gameId) {
     _sendRaw({
       'action': 'invite_friend',
-      'player_id': friendId,
-      'game_id': gameId,
+      'payload': {
+        'friend_id': friendId,
+        'game_id': gameId,
+      }
     });
     _ref.read(lobbyProvider.notifier).markInviteSent(friendId);
   }
 
   // Envía una solicitud de amistad a otro usuario.
   void sendFriendRequest(String playerId) {
-    _sendRaw({'action': 'send_request', 'player_id': playerId});
+    _sendRaw({
+      'action': 'send_request',
+      'payload': {'player_id': playerId}
+    });
     // Marca localmente la solicitud como pendiente para que la UI muestre
     // "Pendiente" sin esperar un eco del servidor. Si el back responde con
     // error (p. ej. usuario inexistente), el listener revertirá esta marca.
@@ -203,13 +241,22 @@ class SessionWebSocketService {
 
   // Acepta una solicitud de amistad pendiente.
   void acceptFriendRequest(String playerId) {
-    _sendRaw({'action': 'accept_request', 'player_id': playerId});
+    _sendRaw({
+      'action': 'accept_request',
+      'payload': {'player_id': playerId}
+    });
     _ref.read(lobbyProvider.notifier).removeFriendRequest(playerId);
+    
+    // WORKAROUND FRONTEND: Forzamos refresco inmediato para ver a nuestro nuevo amigo online
+    _sendRaw({'action': 'get_online_friends'});
   }
 
   // Rechaza una solicitud de amistad pendiente.
   void rejectFriendRequest(String playerId) {
-    _sendRaw({'action': 'reject_request', 'player_id': playerId});
+    _sendRaw({
+      'action': 'reject_request',
+      'payload': {'player_id': playerId}
+    });
     _ref.read(lobbyProvider.notifier).removeFriendRequest(playerId);
   }
 
@@ -218,7 +265,8 @@ class SessionWebSocketService {
     _intentionalDisconnect = true;
     _reconnectTimer?.cancel();
     _reconnectTimer = null;
-    _reconnectAttempts = 0;
+    _syncTimer?.cancel();
+    _syncTimer = null;
     _channel?.sink.close();
     _channel = null;
     _isConnected = false;

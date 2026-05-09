@@ -1001,8 +1001,8 @@ class _RightPanel extends ConsumerWidget {
                         chipHeight: h * 0.045,
                         fontSize: textSize * 0.85,
                         chipFontSize: textSize * 0.75,
-                        onInvite: status == _FriendChipStatus.invitar
-                            ? () => session.inviteFriend(username, gameId!)
+                        onInvite: (status == _FriendChipStatus.invitar && gameId != null)
+                            ? () => session.inviteFriend(username, gameId)
                             : null,
                       );
                     },

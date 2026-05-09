@@ -795,7 +795,8 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
 
     final gameId = ref.read(lobbyProvider).gameId ?? '1';
 
-    final String labelText = hasTwoDice ? _extraDiceLabel(effectiveRankForExtraDice) : '1-6 NORMAL';
+    final String labelText =
+        hasTwoDice ? _extraDiceLabel(effectiveRankForExtraDice) : '1-6 NORMAL';
 
     return Center(
       child: ClipRRect(
@@ -803,13 +804,14 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
         child: BackdropFilter(
           filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
           child: Container(
-            width: 560,
-            height: 360,
+            width: 650,
+            height: 450,
             padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 32),
             decoration: BoxDecoration(
               color: Colors.black.withValues(alpha: 0.3),
               borderRadius: BorderRadius.circular(24),
-              border: Border.all(color: Colors.amber.withValues(alpha: 0.6), width: 2),
+              border: Border.all(
+                  color: Colors.amber.withValues(alpha: 0.6), width: 2),
             ),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -934,13 +936,15 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
             child: BackdropFilter(
               filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
               child: Container(
-                width: 560,
-                height: 360,
-                padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 32),
+                width: 650,
+                height: 450,
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 48, vertical: 32),
                 decoration: BoxDecoration(
                   color: Colors.black.withValues(alpha: 0.3),
                   borderRadius: BorderRadius.circular(24),
-                  border: Border.all(color: Colors.amber.withValues(alpha: 0.6), width: 2),
+                  border: Border.all(
+                      color: Colors.amber.withValues(alpha: 0.6), width: 2),
                 ),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -1019,8 +1023,8 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
     }
 
     return SizedBox(
-      width: 150,
-      height: 150,
+      width: 250,
+      height: 250,
       child: Image.asset(
         'assets/images/board/dados/$displayValue$suffix.png',
         fit: BoxFit.contain,

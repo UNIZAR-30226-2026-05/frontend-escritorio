@@ -63,13 +63,13 @@ class _RuletaModalState extends ConsumerState<RuletaModal>
       case '+3 Casillas':
         targetAngle = -pi / 4;
         break;
-      case '+3 Monedas':
+      case '-3 Monedas':
         targetAngle = -3 * pi / 4;
         break;
-      case '-3 Casillas':
+      case '+3 Monedas':
         targetAngle = -5 * pi / 4;
         break;
-      case '-3 Monedas':
+      case '-3 Casillas':
         targetAngle = -7 * pi / 4;
         break;
       default:
@@ -134,7 +134,7 @@ class _RuletaModalState extends ConsumerState<RuletaModal>
       children: [
         const SizedBox(height: 30),
         const Text(
-          'RUTA DE\nOBJETOS',
+          'RULETA DE\nLA SUERTE',
           textAlign: TextAlign.center,
           style: TextStyle(
             fontFamily: 'Retro Gaming',
@@ -180,20 +180,10 @@ class _RuletaModalState extends ConsumerState<RuletaModal>
                       size: const Size(260, 260),
                       painter: _WheelPainter(),
                     ),
-                    _buildSliceContent('+3\nCASILLAS',
-                        'assets/images/items/item_avanzar.png', -pi / 4),
-                    _buildSliceContent(
-                        '+3\nMONEDAS',
-                        'assets/images/items/item_dados.png',
-                        pi / 4), // Placeholder icon
-                    _buildSliceContent(
-                        '-3\nCASILLAS',
-                        'assets/images/items/item_barrera.png',
-                        3 * pi / 4), // Placeholder icon
-                    _buildSliceContent(
-                        '-3\nMONEDAS',
-                        'assets/images/items/item_salvavidas.png',
-                        5 * pi / 4), // Placeholder icon
+                    _buildSliceContent('+3\nCASILLAS', -pi / 4),
+                    _buildSliceContent('-3\nMONEDAS', pi / 4),
+                    _buildSliceContent('+3\nMONEDAS', 3 * pi / 4),
+                    _buildSliceContent('-3\nCASILLAS', 5 * pi / 4),
                   ],
                 ),
               ),
@@ -290,8 +280,8 @@ class _RuletaModalState extends ConsumerState<RuletaModal>
     );
   }
 
-  // Pinta el texto e iconos rotados mirando hacia el centro
-  Widget _buildSliceContent(String text, String icon, double angle) {
+  // Pinta el texto rotado mirando hacia el centro
+  Widget _buildSliceContent(String text, double angle) {
     const double radius = 80;
     final double x = 130 + radius * cos(angle);
     final double y = 130 + radius * sin(angle);
@@ -307,14 +297,12 @@ class _RuletaModalState extends ConsumerState<RuletaModal>
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Image.asset(icon, height: 24, filterQuality: FilterQuality.none),
-              const SizedBox(height: 4),
               Text(
                 text,
                 textAlign: TextAlign.center,
                 style: const TextStyle(
                   fontFamily: 'Retro Gaming',
-                  fontSize: 8,
+                  fontSize: 10,
                   fontWeight: FontWeight.bold,
                   color: Colors.black87,
                 ),
@@ -334,17 +322,17 @@ class _WheelPainter extends CustomPainter {
     final rect = Rect.fromLTWH(0, 0, size.width, size.height);
     final paint = Paint()..style = PaintingStyle.fill;
 
-    // Amarillo (Arriba Izquierda)
-    paint.color = const Color(0xFFFFF241);
-    canvas.drawArc(rect, pi, pi / 2, true, paint);
-    // Rojo (Arriba Derecha)
+    // Rojo (Arriba Izquierda: -3 CASILLAS)
     paint.color = const Color(0xFFFF5252);
-    canvas.drawArc(rect, -pi / 2, pi / 2, true, paint);
-    // Verde (Abajo Derecha)
+    canvas.drawArc(rect, pi, pi / 2, true, paint);
+    // Verde (Arriba Derecha: +3 CASILLAS)
     paint.color = const Color(0xFF51FF52);
+    canvas.drawArc(rect, -pi / 2, pi / 2, true, paint);
+    // Rojo (Abajo Derecha: -3 MONEDAS)
+    paint.color = const Color(0xFFFF5252);
     canvas.drawArc(rect, 0, pi / 2, true, paint);
-    // Azul (Abajo Izquierda)
-    paint.color = const Color(0xFF5252FF);
+    // Verde (Abajo Izquierda: +3 MONEDAS)
+    paint.color = const Color(0xFF51FF52);
     canvas.drawArc(rect, pi / 2, pi / 2, true, paint);
 
     // Círculo central oscuro

@@ -157,70 +157,45 @@ class _FriendSearchModalState extends ConsumerState<FriendSearchModal> {
             const SizedBox(height: 14),
 
             // Barra de búsqueda
-            Row(
-              children: [
-                Expanded(
-                  child: Container(
-                    height: 44,
-                    decoration: const BoxDecoration(
-                      image: DecorationImage(
-                        image: AssetImage('assets/images/ui/rellenable.png'),
-                        fit: BoxFit.fill,
-                      ),
+            Container(
+              height: 44,
+              decoration: const BoxDecoration(
+                image: DecorationImage(
+                  image: AssetImage('assets/images/ui/rellenable.png'),
+                  fit: BoxFit.fill,
+                ),
+              ),
+              child: Center(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: TextField(
+                    controller: _queryCtrl,
+                    focusNode: _queryFocus,
+                    onChanged: _onQueryChanged,
+                    textInputAction: TextInputAction.search,
+                    onSubmitted: (value) {
+                      final q = value.trim();
+                      if (q.length >= 3) _doSearch(q);
+                    },
+                    style: const TextStyle(
+                      fontFamily: 'Retro Gaming',
+                      fontSize: 14,
+                      color: Colors.white,
                     ),
-                    child: Center(
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 20),
-                        child: TextField(
-                          controller: _queryCtrl,
-                          focusNode: _queryFocus,
-                          onChanged: _onQueryChanged,
-                          textInputAction: TextInputAction.search,
-                          onSubmitted: (value) {
-                            final q = value.trim();
-                            if (q.length >= 3) _doSearch(q);
-                          },
-                          style: const TextStyle(
-                            fontFamily: 'Retro Gaming',
-                            fontSize: 14,
-                            color: Colors.white,
-                          ),
-                          cursorColor: const Color(0xFF6B21A8),
-                          decoration: const InputDecoration(
-                            hintText: 'Nombre de usuario',
-                            hintStyle: TextStyle(
-                              fontFamily: 'Retro Gaming',
-                              fontSize: 13,
-                              color: Colors.white54,
-                            ),
-                            border: InputBorder.none,
-                            isCollapsed: true,
-                          ),
-                        ),
+                    cursorColor: const Color(0xFF6B21A8),
+                    decoration: const InputDecoration(
+                      hintText: 'Nombre de usuario',
+                      hintStyle: TextStyle(
+                        fontFamily: 'Retro Gaming',
+                        fontSize: 13,
+                        color: Colors.white54,
                       ),
+                      border: InputBorder.none,
+                      isCollapsed: true,
                     ),
                   ),
                 ),
-                const SizedBox(width: 8),
-                GestureDetector(
-                  onTap: () {
-                    final q = _queryCtrl.text.trim();
-                    if (q.length >= 3) _doSearch(q);
-                  },
-                  child: Container(
-                    width: 52,
-                    height: 44,
-                    alignment: Alignment.center,
-                    decoration: const BoxDecoration(
-                      image: DecorationImage(
-                        image: AssetImage('assets/images/ui/btn_verde.png'),
-                        fit: BoxFit.fill,
-                      ),
-                    ),
-                    child: const Icon(Icons.search, color: Colors.white, size: 22),
-                  ),
-                ),
-              ],
+              ),
             ),
 
             const SizedBox(height: 14),

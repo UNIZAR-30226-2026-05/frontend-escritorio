@@ -34,7 +34,24 @@ class LobbyService {
     }
   }
 
-  // Busca usuarios cuyo nombre contenga [query] (mínimo 4 caracteres).
+  // Obtiene la lista completa de amigos del usuario (online y offline).
+  Future<List<String>> getFriends(String username, String token) async {
+    final response = await http.get(
+      Uri.parse(
+        '${ApiConstants.baseUrl}/usuarios/${Uri.encodeComponent(username)}/amigos',
+      ),
+      headers: _authHeaders(token),
+    );
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body) as List<dynamic>;
+      return data
+          .map((e) => (e as Map<String, dynamic>)['nombre'].toString())
+          .toList();
+    }
+    return [];
+  }
+
+  // Busca usuarios cuyo nombre contenga [query] (mínimo 3 caracteres).
   // Devuelve la lista de nombres coincidentes o lista vacía si no hay resultados.
   Future<List<String>> searchUsers(String query) async {
     final response = await http.get(

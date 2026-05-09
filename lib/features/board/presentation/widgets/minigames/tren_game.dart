@@ -24,14 +24,13 @@ class _TrenGameState extends State<TrenGame>
   late Animation<double> _trainPos;
 
   late int _objetivo;
-  late List<List<bool>> _wagonWindows;
+  late List<int> _wagonCapacities;
 
   int _count = 0;
   int _adjustTime = 3;
   Timer? _adjustTimer;
 
-  static const int _numWagons = 4;
-  static const int _windowsPerWagon = 4;
+  bool _initialized = false;
 
   @override
   void initState() {
@@ -39,31 +38,60 @@ class _TrenGameState extends State<TrenGame>
     final rng = Random();
     _objetivo =
         (widget.details['objetivo'] as num?)?.toInt() ?? (4 + rng.nextInt(8));
-    _wagonWindows = _distributePassengers(_objetivo, rng);
+        
+    if (widget.details['vagones'] != null) {
+      _wagonCapacities = (widget.details['vagones'] as List)
+          .map((e) => (e as num).toInt())
+          .toList();
+    } else {
+      _wagonCapacities = [13, 11, 14, 8];
+    }
+  }
 
-    _trainCtrl = AnimationController(
-      vsync: this,
-      duration: const Duration(seconds: 6),
-    );
-    _trainPos = Tween<double>(begin: -1.6, end: 1.6).animate(
-      CurvedAnimation(parent: _trainCtrl, curve: Curves.linear),
-    );
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_initialized) {
+      _initialized = true;
+      final size = MediaQuery.of(context).size;
+      final w = size.width;
+      final h = size.height;
 
-    Future.delayed(const Duration(milliseconds: 1200), () {
-      if (!mounted) return;
-      setState(() => _state = _TrenState.passing);
-      _trainCtrl.forward();
-    });
+      final wagonH = h * 0.38;
+      final wagonW = wagonH * 2.2;
+      final totalW = wagonW * _wagonCapacities.length;
 
-    _trainCtrl.addStatusListener((status) {
-      if (status == AnimationStatus.completed && mounted) {
-        setState(() {
-          _state = _TrenState.adjusting;
-          _adjustTime = 3;
-        });
-        _startAdjustTimer();
-      }
-    });
+      // Distance a single wagon travels while visible is (w + wagonW).
+      // Speed = (w + wagonW) / 8 pixels per second.
+      // Total distance for the train is (w + totalW).
+      // Total duration = distance / speed
+      final durationSecs = 8.0 * (w + totalW) / (w + wagonW);
+
+      _trainCtrl = AnimationController(
+        vsync: this,
+        duration: Duration(milliseconds: (durationSecs * 1000).toInt()),
+      );
+
+      _trainPos = Tween<double>(begin: 0.0, end: 1.0).animate(
+        CurvedAnimation(parent: _trainCtrl, curve: Curves.linear),
+      );
+
+      _trainCtrl.addStatusListener((status) {
+        if (status == AnimationStatus.completed && mounted) {
+          setState(() {
+            _state = _TrenState.adjusting;
+            _adjustTime = 3;
+          });
+          _startAdjustTimer();
+        }
+      });
+
+      Future.delayed(const Duration(milliseconds: 1200), () {
+        if (!mounted) return;
+        setState(() => _state = _TrenState.passing);
+        _trainCtrl.forward();
+      });
+    }
   }
 
   @override
@@ -71,23 +99,6 @@ class _TrenGameState extends State<TrenGame>
     _trainCtrl.dispose();
     _adjustTimer?.cancel();
     super.dispose();
-  }
-
-  List<List<bool>> _distributePassengers(int total, Random rng) {
-    const capacity = _numWagons * _windowsPerWagon;
-    int remaining = total.clamp(0, capacity);
-    final counts = List.filled(_numWagons, 0);
-    for (int i = 0; i < _numWagons - 1 && remaining > 0; i++) {
-      final maxVal = min(remaining, _windowsPerWagon);
-      counts[i] = rng.nextInt(maxVal + 1);
-      remaining -= counts[i];
-    }
-    counts[_numWagons - 1] = remaining;
-    return counts.map((n) {
-      final windows = List.generate(_windowsPerWagon, (i) => i < n);
-      windows.shuffle(rng);
-      return windows;
-    }).toList();
   }
 
   void _startAdjustTimer() {
@@ -141,12 +152,16 @@ class _TrenGameState extends State<TrenGame>
   Widget _buildAnimatedTrain(double w, double h) {
     final wagonH = h * 0.38;
     final wagonW = wagonH * 2.2;
-    final totalW = wagonW * _numWagons;
+    final totalW = wagonW * _wagonCapacities.length;
+    
+    // Animación de izquierda a derecha
+    final startLeft = -totalW;
+    final endLeft = w;
 
     return AnimatedBuilder(
       animation: _trainPos,
       builder: (_, __) {
-        final left = _trainPos.value * w - totalW / 2;
+        final left = startLeft + (endLeft - startLeft) * _trainPos.value;
         return Positioned(
           left: left,
           top: h * 0.30,
@@ -156,8 +171,8 @@ class _TrenGameState extends State<TrenGame>
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: List.generate(
-                _numWagons,
-                (i) => _buildWagon(wagonW, wagonH, _wagonWindows[i]),
+                _wagonCapacities.length,
+                (i) => _buildWagon(wagonW, wagonH, _wagonCapacities[i]),
               ),
             ),
           ),
@@ -166,41 +181,24 @@ class _TrenGameState extends State<TrenGame>
     );
   }
 
-  Widget _buildWagon(double w, double h, List<bool> windows) {
+  Widget _buildWagon(double w, double h, int capacity) {
+    String imageAsset;
+    switch (capacity) {
+      case 13: imageAsset = 'vagon1_13pj.png'; break;
+      case 11: imageAsset = 'vagon2_11pj.png'; break;
+      case 6:  imageAsset = 'vagon3_6pj.png'; break;
+      case 16: imageAsset = 'vagon4_16pj.png'; break;
+      case 14: imageAsset = 'vagon5_14pj.png'; break;
+      case 8:  imageAsset = 'vagon6_8pj.png'; break;
+      default: imageAsset = 'vagon.png'; break; // Fallback
+    }
+
     return SizedBox(
       width: w,
       height: h,
-      child: Stack(
-        children: [
-          Positioned.fill(
-            child: Image.asset(
-              'assets/images/minigames/tren/vagon.png',
-              fit: BoxFit.fill,
-            ),
-          ),
-          ...List.generate(windows.length, (i) {
-            if (!windows[i]) return const SizedBox.shrink();
-            const slotWidth = 1.0 / (_windowsPerWagon + 1);
-            final cx = slotWidth * (i + 1);
-            final ballSize = h * 0.13;
-            return Positioned(
-              left: w * cx - ballSize / 2,
-              top: h * 0.32,
-              child: Container(
-                width: ballSize,
-                height: ballSize,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: const Color(0xFFFFCC02),
-                  border: Border.all(color: Colors.black87, width: 1.5),
-                  boxShadow: const [
-                    BoxShadow(color: Colors.black38, blurRadius: 3)
-                  ],
-                ),
-              ),
-            );
-          }),
-        ],
+      child: Image.asset(
+        'assets/images/minigames/tren/$imageAsset',
+        fit: BoxFit.fill,
       ),
     );
   }

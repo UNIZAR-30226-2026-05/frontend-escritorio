@@ -231,10 +231,13 @@ class LobbyController extends StateNotifier<LobbyState> {
     }
   }
 
-  // Llamado con la lista completa de amigos (online y offline) al conectar
-  // o en la sincronización periódica (mensaje 'all_friends_list').
-  void onAllFriendsList(List<String> friends) {
-    state = state.copyWith(allFriends: friends.toSet());
+  // Llama al endpoint REST para obtener la lista completa de amigos y actualiza
+  // allFriends. Se invoca al conectar el WS de sesión y al aceptar solicitudes.
+  Future<void> fetchAllFriends(String username, String token) async {
+    try {
+      final friends = await _lobbyService.getFriends(username, token);
+      state = state.copyWith(allFriends: friends.toSet());
+    } catch (_) {}
   }
 
   // Llamado por el WS de sesión con la lista de solicitudes de amistad

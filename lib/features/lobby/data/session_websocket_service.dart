@@ -37,7 +37,6 @@ class SessionWebSocketService {
   int _reconnectAttempts = 0;
   static const int _maxReconnectAttempts = 5;
   Timer? _reconnectTimer;
-  Timer? _syncTimer;
 
   SessionWebSocketService(this._ref);
 
@@ -68,19 +67,12 @@ class SessionWebSocketService {
         },
       );
 
-      // Pide la lista de amigos nada más conectar para rellenar la UI.
+      // Pide la lista de amigos online nada más conectar.
       _sendRaw({'action': 'get_online_friends'});
-      _sendRaw({'action': 'get_all_friends'});
 
-      // Sincroniza la lista de amigos cada 15 segundos para detectar nuevas
-      // amistades aceptadas o cambios de estado online/offline.
-      _syncTimer?.cancel();
-      _syncTimer = Timer.periodic(const Duration(seconds: 15), (_) {
-        if (_isConnected) {
-          _sendRaw({'action': 'get_online_friends'});
-          _sendRaw({'action': 'get_all_friends'});
-        }
-      });
+      // Obtiene la lista completa de amigos (online + offline) vía HTTP.
+      _ref.read(lobbyProvider.notifier).fetchAllFriends(username, token);
+
     } catch (_) {
       _isConnected = false;
       if (!_intentionalDisconnect) _scheduleReconnect();
@@ -155,13 +147,6 @@ class SessionWebSocketService {
           notifier.onOnlineFriendsList(friends);
           break;
 
-        // Respuesta a get_all_friends: lista completa de amigos (online y offline).
-        case 'all_friends_list':
-          final friends = (decoded['friends'] as List<dynamic>? ?? [])
-              .map((e) => e.toString())
-              .toList();
-          notifier.onAllFriendsList(friends);
-          break;
 
         // Un amigo nos ha invitado a su partida.
         case 'receive_invite':
@@ -255,7 +240,10 @@ class SessionWebSocketService {
     });
     _ref.read(lobbyProvider.notifier).removeFriendRequest(playerId);
     _sendRaw({'action': 'get_online_friends'});
-    _sendRaw({'action': 'get_all_friends'});
+    // Refresca la lista completa de amigos para incluir al recién aceptado.
+    if (_savedUsername != null && _savedToken != null) {
+      _ref.read(lobbyProvider.notifier).fetchAllFriends(_savedUsername!, _savedToken!);
+    }
   }
 
   // Rechaza una solicitud de amistad pendiente.
@@ -272,8 +260,6 @@ class SessionWebSocketService {
     _intentionalDisconnect = true;
     _reconnectTimer?.cancel();
     _reconnectTimer = null;
-    _syncTimer?.cancel();
-    _syncTimer = null;
     _channel?.sink.close();
     _channel = null;
     _isConnected = false;

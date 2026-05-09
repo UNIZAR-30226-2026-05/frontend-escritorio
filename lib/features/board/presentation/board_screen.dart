@@ -185,6 +185,7 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
     _choiceTimer?.cancel();
     _rollTimer?.cancel();
     _wsEventSubscription?.cancel();
+    ref.read(webSocketProvider).disconnect();
     super.dispose();
   }
 

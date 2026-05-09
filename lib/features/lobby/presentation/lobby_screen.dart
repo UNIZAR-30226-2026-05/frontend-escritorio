@@ -902,12 +902,9 @@ class _PasswordChangePanel extends StatelessWidget {
 }
 
 // COLUMNA DERECHA
-// Muestra la lista de amigos actualmente ONLINE con un chip de estado por cada uno:
-//   - Contigo (verde): el amigo ya está en la partida local.
-//   - Invitado (rojo): se le ha enviado una invitación desde esta partida.
-//   - Invitar (morado): clickable, envía invite_friend por el WS de sesión.
-// Si no hay partida activa, todos los amigos se muestran con el chip "Invitar"
-// deshabilitado, porque no hay gameId al que invitar.
+// Muestra la lista de TODOS los amigos (online y offline):
+//   - Online: chip Contigo/Invitado/Invitar según el estado de la partida.
+//   - Offline: chip "Offline" gris sin acción.
 class _RightPanel extends ConsumerWidget {
   final double w, h;
   const _RightPanel({required this.w, required this.h});
@@ -917,15 +914,17 @@ class _RightPanel extends ConsumerWidget {
     final titleSize = h * 0.042;
     final textSize = h * 0.020;
 
-    // select evita reconstrucciones del panel ante cambios irrelevantes del estado.
+    final allFriends = ref.watch(lobbyProvider.select((s) => s.allFriends));
     final online = ref.watch(lobbyProvider.select((s) => s.onlineFriends));
     final inGame = ref.watch(lobbyProvider.select((s) => s.playersConnected));
     final sent = ref.watch(lobbyProvider.select((s) => s.sentInvites));
     final gameId = ref.watch(lobbyProvider.select((s) => s.gameId));
     final session = ref.read(sessionWebSocketProvider);
 
-    // Orden alfabético estable para que la lista no baile entre updates.
-    final friends = online.toList()..sort();
+    // Online primero (alfabético), luego offline (alfabético).
+    final onlineList = allFriends.where((f) => online.contains(f)).toList()..sort();
+    final offlineList = allFriends.where((f) => !online.contains(f)).toList()..sort();
+    final friends = [...onlineList, ...offlineList];
 
     return Padding(
       padding: EdgeInsets.all(w * 0.018),
@@ -934,8 +933,6 @@ class _RightPanel extends ConsumerWidget {
         children: [
           SizedBox(height: h * 0.07),
 
-          // Botón para abrir el modal de búsqueda de jugadores, encima de la
-          // sección de amigos. Envía solicitudes de amistad por el WS de sesión.
           Align(
             alignment: Alignment.centerLeft,
             child: RetroImgButton(
@@ -954,7 +951,6 @@ class _RightPanel extends ConsumerWidget {
 
           SizedBox(height: h * 0.025),
 
-          // Título retro con doble sombra blanca.
           Text(
             'Amigos',
             style: TextStyle(
@@ -973,7 +969,7 @@ class _RightPanel extends ConsumerWidget {
           Expanded(
             child: friends.isEmpty
                 ? Text(
-                    'Ninguno de tus\namigos está online',
+                    'No tienes amigos\naún',
                     style: TextStyle(
                       fontFamily: 'Retro Gaming',
                       fontSize: textSize * 0.85,
@@ -987,8 +983,10 @@ class _RightPanel extends ConsumerWidget {
                     separatorBuilder: (_, __) => SizedBox(height: h * 0.015),
                     itemBuilder: (context, i) {
                       final username = friends[i];
+                      final isOnline = online.contains(username);
                       final status = _resolveStatus(
                         username: username,
+                        isOnline: isOnline,
                         inGame: inGame,
                         sent: sent,
                         hasActiveGame: gameId != null,
@@ -1013,28 +1011,22 @@ class _RightPanel extends ConsumerWidget {
     );
   }
 
-  // Decide qué chip mostrar junto al nombre del amigo según:
-  //  1. Si ya está en la partida local => Contigo.
-  //  2. Si le hemos invitado desde esta partida => Invitado.
-  //  3. En otro caso => Invitar (solo habilitado si hay partida activa).
   _FriendChipStatus _resolveStatus({
     required String username,
+    required bool isOnline,
     required List<String> inGame,
     required Set<String> sent,
     required bool hasActiveGame,
   }) {
-    if (hasActiveGame && inGame.contains(username)) {
-      return _FriendChipStatus.contigo;
-    }
-    if (hasActiveGame && sent.contains(username)) {
-      return _FriendChipStatus.invitado;
-    }
+    if (!isOnline) return _FriendChipStatus.offline;
+    if (hasActiveGame && inGame.contains(username)) return _FriendChipStatus.contigo;
+    if (hasActiveGame && sent.contains(username)) return _FriendChipStatus.invitado;
     return _FriendChipStatus.invitar;
   }
 }
 
 // Estados visuales del chip junto al nombre de un amigo en la lista.
-enum _FriendChipStatus { contigo, invitado, invitar }
+enum _FriendChipStatus { contigo, invitado, invitar, offline }
 
 // WIDGETS AUXILIARES
 // Slot individual de jugador con fondo btn_morado.png.
@@ -1196,19 +1188,26 @@ class _FriendChip extends StatelessWidget {
         asset = 'assets/images/ui/btn_morado.png';
         label = 'Invitar';
         break;
+      case _FriendChipStatus.offline:
+        asset = 'assets/images/ui/btn_morado.png';
+        label = 'Offline';
+        break;
     }
 
-    // RetroImgButton ya se encarga de bajar la opacidad cuando onTap es null,
-    // así que el mismo botón sirve tanto para el estado clickable ("Invitar"
-    // con partida activa) como para los informativos ("Contigo" / "Invitado")
-    // y también para "Invitar" desactivado si no hay partida en curso.
+    // Contigo e Invitado son informativos: no hacen nada al pulsar pero deben
+    // mostrarse con opacidad completa. Se pasa un no-op para que RetroImgButton
+    // no los oscurezca. Solo Offline usa onTap null (opacidad 45 %).
+    final effectiveOnTap =
+        (status == _FriendChipStatus.contigo || status == _FriendChipStatus.invitado)
+            ? () {}
+            : onTap;
     return RetroImgButton(
       label: label,
       asset: asset,
       width: width,
       height: height,
       fontSize: fontSize,
-      onTap: onTap,
+      onTap: effectiveOnTap,
     );
   }
 }

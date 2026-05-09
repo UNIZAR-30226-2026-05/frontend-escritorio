@@ -68,17 +68,17 @@ class SessionWebSocketService {
         },
       );
 
-      // Pide la lista de amigos online nada más conectar para rellenar la UI
-      // sin esperar a los cambios de estado en tiempo real.
+      // Pide la lista de amigos nada más conectar para rellenar la UI.
       _sendRaw({'action': 'get_online_friends'});
+      _sendRaw({'action': 'get_all_friends'});
 
-      // WORKAROUND FRONTEND-ONLY: Sincroniza la lista de amigos cada 15 segundos
-      // para saber si alguien ha aceptado nuestra petición o se ha conectado, 
-      // ya que el backend no emite confirmaciones de accept_request.
+      // Sincroniza la lista de amigos cada 15 segundos para detectar nuevas
+      // amistades aceptadas o cambios de estado online/offline.
       _syncTimer?.cancel();
       _syncTimer = Timer.periodic(const Duration(seconds: 15), (_) {
         if (_isConnected) {
           _sendRaw({'action': 'get_online_friends'});
+          _sendRaw({'action': 'get_all_friends'});
         }
       });
     } catch (_) {
@@ -153,6 +153,14 @@ class SessionWebSocketService {
               .map((e) => e.toString())
               .toList();
           notifier.onOnlineFriendsList(friends);
+          break;
+
+        // Respuesta a get_all_friends: lista completa de amigos (online y offline).
+        case 'all_friends_list':
+          final friends = (decoded['friends'] as List<dynamic>? ?? [])
+              .map((e) => e.toString())
+              .toList();
+          notifier.onAllFriendsList(friends);
           break;
 
         // Un amigo nos ha invitado a su partida.
@@ -246,9 +254,8 @@ class SessionWebSocketService {
       'payload': {'player_id': playerId}
     });
     _ref.read(lobbyProvider.notifier).removeFriendRequest(playerId);
-    
-    // WORKAROUND FRONTEND: Forzamos refresco inmediato para ver a nuestro nuevo amigo online
     _sendRaw({'action': 'get_online_friends'});
+    _sendRaw({'action': 'get_all_friends'});
   }
 
   // Rechaza una solicitud de amistad pendiente.

@@ -1,19 +1,14 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/widgets/retro_widgets.dart';
+import '../../data/lobby_service.dart';
 import '../../data/session_websocket_service.dart';
 import '../controllers/lobby_provider.dart';
+import '../../../auth/presentation/controllers/auth_provider.dart';
 
-// Modal "BUSCAR JUGADORES" para localizar usuarios y mandarles solicitud de
-// amistad. Usa el WS de sesión (send_request) para crear la petición y se
-// apoya en el estado del lobby para saber qué usuarios ya son amigos y a
-// quiénes tenemos una solicitud pendiente (para pintar "Pendiente").
-//
-// El WS documentado no expone un endpoint para buscar usuarios por nombre,
-// así que el modal trabaja con los usernames que ya conocemos (amigos online
-// + solicitudes enviadas) y con el texto que teclea el usuario, que se añade
-// como candidato "Añadir" si no encaja con ninguno de los anteriores.
 class FriendSearchModal extends ConsumerStatefulWidget {
   const FriendSearchModal({super.key});
 
@@ -24,12 +19,58 @@ class FriendSearchModal extends ConsumerStatefulWidget {
 class _FriendSearchModalState extends ConsumerState<FriendSearchModal> {
   final TextEditingController _queryCtrl = TextEditingController();
   final FocusNode _queryFocus = FocusNode();
+  final LobbyService _service = LobbyService();
+
+  List<String>? _results; // null = aún no se ha buscado
+  bool _isLoading = false;
+  String? _searchError;
+  Timer? _debounce;
 
   @override
   void dispose() {
+    _debounce?.cancel();
     _queryCtrl.dispose();
     _queryFocus.dispose();
     super.dispose();
+  }
+
+  void _onQueryChanged(String value) {
+    _debounce?.cancel();
+    final q = value.trim();
+    if (q.length < 3) {
+      setState(() {
+        _results = null;
+        _isLoading = false;
+        _searchError = null;
+      });
+      return;
+    }
+    setState(() {
+      _isLoading = true;
+      _searchError = null;
+    });
+    _debounce = Timer(
+      const Duration(milliseconds: 400),
+      () => _doSearch(q),
+    );
+  }
+
+  Future<void> _doSearch(String query) async {
+    try {
+      final results = await _service.searchUsers(query);
+      if (!mounted) return;
+      setState(() {
+        _results = results;
+        _isLoading = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _results = [];
+        _isLoading = false;
+        _searchError = 'Error al buscar usuarios';
+      });
+    }
   }
 
   void _sendRequest(String playerId) {
@@ -40,71 +81,31 @@ class _FriendSearchModalState extends ConsumerState<FriendSearchModal> {
         duration: const Duration(seconds: 2),
       ),
     );
+    // Forzamos rebuild para que el chip cambie a "Pendiente" inmediatamente.
+    setState(() {});
   }
 
-  // Construye la lista de filas a mostrar según el query actual.
-  // Orden: candidato "Añadir" (el query si no coincide con amigos/pendientes),
-  // después pendientes, después amigos online (como "Amigo" deshabilitado).
-  List<_FriendSearchEntry> _buildEntries({
-    required String query,
-    required Set<String> onlineFriends,
-    required Set<String> sentFriendRequests,
+  _SearchRowStatus _resolveStatus(
+    String username, {
+    required Set<String> allFriends,
+    required Set<String> sentRequests,
   }) {
-    final q = query.trim();
-    final qLower = q.toLowerCase();
-
-    // Candidato directo: solo si hay texto y no coincide con un amigo o pendiente.
-    final bool isNewCandidate = q.isNotEmpty &&
-        !onlineFriends.any((u) => u.toLowerCase() == qLower) &&
-        !sentFriendRequests.any((u) => u.toLowerCase() == qLower);
-
-    final entries = <_FriendSearchEntry>[];
-    if (isNewCandidate) {
-      entries.add(_FriendSearchEntry(
-        username: q,
-        status: _SearchRowStatus.anyadir,
-      ));
-    }
-
-    // Pendientes que casan con el query (o todos si el query está vacío).
-    final pendingMatches = sentFriendRequests
-        .where((u) => qLower.isEmpty || u.toLowerCase().contains(qLower))
-        .toList()
-      ..sort();
-    for (final u in pendingMatches) {
-      entries.add(_FriendSearchEntry(
-        username: u,
-        status: _SearchRowStatus.pendiente,
-      ));
-    }
-
-    // Amigos online que casan con el query.
-    final friendMatches = onlineFriends
-        .where((u) => qLower.isEmpty || u.toLowerCase().contains(qLower))
-        .toList()
-      ..sort();
-    for (final u in friendMatches) {
-      entries.add(_FriendSearchEntry(
-        username: u,
-        status: _SearchRowStatus.amigo,
-      ));
-    }
-
-    return entries;
+    if (allFriends.contains(username)) return _SearchRowStatus.amigo;
+    if (sentRequests.contains(username)) return _SearchRowStatus.pendiente;
+    return _SearchRowStatus.anyadir;
   }
 
   @override
   Widget build(BuildContext context) {
-    final onlineFriends =
-        ref.watch(lobbyProvider.select((s) => s.onlineFriends));
-    final sentFriendRequests =
+    final allFriends = ref.watch(lobbyProvider.select((s) => s.allFriends));
+    final sentRequests =
         ref.watch(lobbyProvider.select((s) => s.sentFriendRequests));
+    final currentUser = ref.read(authProvider).username ?? '';
 
-    final entries = _buildEntries(
-      query: _queryCtrl.text,
-      onlineFriends: onlineFriends,
-      sentFriendRequests: sentFriendRequests,
-    );
+    // Filtra el usuario actual de los resultados.
+    final visibleResults = _results
+        ?.where((u) => u != currentUser)
+        .toList();
 
     return Dialog(
       backgroundColor: Colors.transparent,
@@ -127,7 +128,7 @@ class _FriendSearchModalState extends ConsumerState<FriendSearchModal> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // Cabecera: título a la izquierda + X a la derecha.
+            // Cabecera
             Row(
               children: [
                 const Expanded(
@@ -155,7 +156,7 @@ class _FriendSearchModalState extends ConsumerState<FriendSearchModal> {
             ),
             const SizedBox(height: 14),
 
-            // Barra de búsqueda: input con fondo "rellenable" + botón verde con lupa.
+            // Barra de búsqueda
             Row(
               children: [
                 Expanded(
@@ -167,35 +168,35 @@ class _FriendSearchModalState extends ConsumerState<FriendSearchModal> {
                         fit: BoxFit.fill,
                       ),
                     ),
-                    alignment: Alignment.center,
-                    padding: const EdgeInsets.symmetric(horizontal: 14),
-                    child: TextField(
-                      controller: _queryCtrl,
-                      focusNode: _queryFocus,
-                      onChanged: (_) => setState(() {}),
-                      textInputAction: TextInputAction.search,
-                      onSubmitted: (value) {
-                        final target = value.trim();
-                        if (target.isEmpty) return;
-                        _sendRequest(target);
-                        _queryCtrl.clear();
-                        setState(() {});
-                      },
-                      style: const TextStyle(
-                        fontFamily: 'Retro Gaming',
-                        fontSize: 14,
-                        color: Colors.black,
-                      ),
-                      cursorColor: const Color(0xFF6B21A8),
-                      decoration: const InputDecoration(
-                        hintText: 'Nombre del jugador...',
-                        hintStyle: TextStyle(
-                          fontFamily: 'Retro Gaming',
-                          fontSize: 13,
-                          color: Colors.black45,
+                    child: Center(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 20),
+                        child: TextField(
+                          controller: _queryCtrl,
+                          focusNode: _queryFocus,
+                          onChanged: _onQueryChanged,
+                          textInputAction: TextInputAction.search,
+                          onSubmitted: (value) {
+                            final q = value.trim();
+                            if (q.length >= 3) _doSearch(q);
+                          },
+                          style: const TextStyle(
+                            fontFamily: 'Retro Gaming',
+                            fontSize: 14,
+                            color: Colors.white,
+                          ),
+                          cursorColor: const Color(0xFF6B21A8),
+                          decoration: const InputDecoration(
+                            hintText: 'Nombre de usuario',
+                            hintStyle: TextStyle(
+                              fontFamily: 'Retro Gaming',
+                              fontSize: 13,
+                              color: Colors.white54,
+                            ),
+                            border: InputBorder.none,
+                            isCollapsed: true,
+                          ),
                         ),
-                        border: InputBorder.none,
-                        isCollapsed: true,
                       ),
                     ),
                   ),
@@ -203,11 +204,8 @@ class _FriendSearchModalState extends ConsumerState<FriendSearchModal> {
                 const SizedBox(width: 8),
                 GestureDetector(
                   onTap: () {
-                    final target = _queryCtrl.text.trim();
-                    if (target.isEmpty) return;
-                    _sendRequest(target);
-                    _queryCtrl.clear();
-                    setState(() {});
+                    final q = _queryCtrl.text.trim();
+                    if (q.length >= 3) _doSearch(q);
                   },
                   child: Container(
                     width: 52,
@@ -219,8 +217,7 @@ class _FriendSearchModalState extends ConsumerState<FriendSearchModal> {
                         fit: BoxFit.fill,
                       ),
                     ),
-                    child:
-                        const Icon(Icons.search, color: Colors.white, size: 22),
+                    child: const Icon(Icons.search, color: Colors.white, size: 22),
                   ),
                 ),
               ],
@@ -228,61 +225,101 @@ class _FriendSearchModalState extends ConsumerState<FriendSearchModal> {
 
             const SizedBox(height: 14),
 
-            // Lista de resultados. Si no hay entradas (sin query y sin amigos
-            // online ni pendientes) mostramos un texto guía.
+            // Resultados
             SizedBox(
               height: 320,
-              child: entries.isEmpty
-                  ? const Center(
-                      child: Text(
-                        'Escribe el nombre de un\njugador para enviarle una solicitud',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          fontFamily: 'Retro Gaming',
-                          fontSize: 12,
-                          color: Colors.white54,
-                          height: 1.5,
-                        ),
-                      ),
-                    )
-                  : ListView.separated(
-                      padding: EdgeInsets.zero,
-                      itemCount: entries.length,
-                      separatorBuilder: (_, __) => const SizedBox(height: 8),
-                      itemBuilder: (context, i) {
-                        final entry = entries[i];
-                        return _SearchRow(
-                          username: entry.username,
-                          status: entry.status,
-                          onAnyadir: entry.status == _SearchRowStatus.anyadir
-                              ? () {
-                                  _sendRequest(entry.username);
-                                  _queryCtrl.clear();
-                                  setState(() {});
-                                }
-                              : null,
-                        );
-                      },
-                    ),
+              child: _buildBody(
+                visibleResults: visibleResults,
+                allFriends: allFriends,
+                sentRequests: sentRequests,
+              ),
             ),
           ],
         ),
       ),
     );
   }
+
+  Widget _buildBody({
+    required List<String>? visibleResults,
+    required Set<String> allFriends,
+    required Set<String> sentRequests,
+  }) {
+    if (_isLoading) {
+      return const Center(
+        child: CircularProgressIndicator(color: Colors.white54),
+      );
+    }
+
+    if (_searchError != null) {
+      return Center(
+        child: Text(
+          _searchError!,
+          textAlign: TextAlign.center,
+          style: const TextStyle(
+            fontFamily: 'Retro Gaming',
+            fontSize: 12,
+            color: Colors.redAccent,
+          ),
+        ),
+      );
+    }
+
+    // Estado inicial: sin búsqueda.
+    if (visibleResults == null) {
+      return const Center(
+        child: Text(
+          'Escribe al menos 4 caracteres\npara buscar jugadores',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            fontFamily: 'Retro Gaming',
+            fontSize: 12,
+            color: Colors.white54,
+            height: 1.5,
+          ),
+        ),
+      );
+    }
+
+    if (visibleResults.isEmpty) {
+      return const Center(
+        child: Text(
+          'No se encontraron jugadores',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            fontFamily: 'Retro Gaming',
+            fontSize: 12,
+            color: Colors.white54,
+          ),
+        ),
+      );
+    }
+
+    return ListView.separated(
+      padding: EdgeInsets.zero,
+      itemCount: visibleResults.length,
+      separatorBuilder: (_, __) => const SizedBox(height: 8),
+      itemBuilder: (context, i) {
+        final username = visibleResults[i];
+        final status = _resolveStatus(
+          username,
+          allFriends: allFriends,
+          sentRequests: sentRequests,
+        );
+        return _SearchRow(
+          username: username,
+          status: status,
+          onAnyadir: status == _SearchRowStatus.anyadir
+              ? () => _sendRequest(username)
+              : null,
+        );
+      },
+    );
+  }
 }
 
-// Estados posibles de cada fila del buscador.
 enum _SearchRowStatus { anyadir, pendiente, amigo }
 
-class _FriendSearchEntry {
-  final String username;
-  final _SearchRowStatus status;
-  const _FriendSearchEntry({required this.username, required this.status});
-}
-
-// Fila de la lista: nombre a la izquierda + chip de estado a la derecha.
-// Solo el chip "Añadir" es interactivo (dispara send_request vía el WS de sesión).
 class _SearchRow extends StatelessWidget {
   final String username;
   final _SearchRowStatus status;

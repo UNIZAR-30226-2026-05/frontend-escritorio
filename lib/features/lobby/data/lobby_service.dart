@@ -34,6 +34,24 @@ class LobbyService {
     }
   }
 
+  // Busca usuarios cuyo nombre contenga [query] (mínimo 4 caracteres).
+  // Devuelve la lista de nombres coincidentes o lista vacía si no hay resultados.
+  Future<List<String>> searchUsers(String query) async {
+    final response = await http.get(
+      Uri.parse(
+        '${ApiConstants.baseUrl}/usuarios/filtrar_usuarios?cadena=${Uri.encodeComponent(query)}',
+      ),
+    );
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body) as List<dynamic>;
+      return data
+          .map((e) => (e as Map<String, dynamic>)['nombre'].toString())
+          .toList();
+    }
+    if (response.statusCode == 400) return [];
+    throw Exception('Error al buscar usuarios: ${response.statusCode}');
+  }
+
   // Llama al endpoint para unirse a una partida existente antes de conectar el WS.
   // Devuelve void si el servidor acepta al jugador; lanza excepción si no.
   Future<void> unirsePartida(String gameId, String token) async {

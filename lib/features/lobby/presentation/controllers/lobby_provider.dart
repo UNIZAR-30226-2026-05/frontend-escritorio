@@ -17,6 +17,9 @@ class LobbyState {
   // Conjunto de usernames de amigos actualmente online.
   // Se actualiza con cada mensaje 'friend_status_update' del WS de sesión.
   final Set<String> onlineFriends;
+  // Conjunto de TODOS los amigos (online y offline).
+  // Se inicializa con 'all_friends_list' al conectar y se sincroniza periódicamente.
+  final Set<String> allFriends;
   // Usernames a los que el jugador local ha enviado una invitacion de partida
   // desde el lobby actual. Sirve para pintar el chip "Invitado".
   // Se limpia al abandonar la partida o al terminarla.
@@ -54,6 +57,7 @@ class LobbyState {
     this.invites = const [],
     this.lastInvite,
     this.onlineFriends = const {},
+    this.allFriends = const {},
     this.sentInvites = const {},
     this.sentFriendRequests = const {},
     this.friendRequests = const [],
@@ -76,6 +80,7 @@ class LobbyState {
     List<GameInvite>? invites,
     GameInvite? lastInvite,
     Set<String>? onlineFriends,
+    Set<String>? allFriends,
     Set<String>? sentInvites,
     Set<String>? sentFriendRequests,
     List<String>? friendRequests,
@@ -98,6 +103,7 @@ class LobbyState {
         playersConnected: playersConnected ?? this.playersConnected,
         invites: invites ?? this.invites,
         onlineFriends: onlineFriends ?? this.onlineFriends,
+        allFriends: allFriends ?? this.allFriends,
         sentInvites: sentInvites ?? this.sentInvites,
         sentFriendRequests: sentFriendRequests ?? this.sentFriendRequests,
         friendRequests: friendRequests ?? this.friendRequests,
@@ -207,8 +213,11 @@ class LobbyController extends StateNotifier<LobbyState> {
       // Si estaba en "pendiente" significa que ya nos ha aceptado: lo limpiamos
       // para que el buscador deje de mostrar el chip "Pendiente".
       final pending = {...state.sentFriendRequests}..remove(friendId);
+      // También lo añadimos a allFriends por si era nuevo (aceptó nuestra solicitud).
+      final all = {...state.allFriends, friendId};
       state = state.copyWith(
         onlineFriends: updated,
+        allFriends: all,
         sentFriendRequests: pending,
       );
       return;
@@ -222,6 +231,12 @@ class LobbyController extends StateNotifier<LobbyState> {
     }
   }
 
+  // Llamado con la lista completa de amigos (online y offline) al conectar
+  // o en la sincronización periódica (mensaje 'all_friends_list').
+  void onAllFriendsList(List<String> friends) {
+    state = state.copyWith(allFriends: friends.toSet());
+  }
+
   // Llamado por el WS de sesión con la lista de solicitudes de amistad
   // pendientes al conectarse (mensaje 'friend_requests_list').
   void onFriendRequestsList(List<String> requests) {
@@ -233,15 +248,18 @@ class LobbyController extends StateNotifier<LobbyState> {
   void onOnlineFriendsList(List<String> friends) {
     final updatedFriends = friends.toSet();
     final updatedPending = {...state.sentFriendRequests};
-    
-    // Si alguno de los amigos online estaba en pendientes, significa que aceptó la solicitud.
-    // Lo eliminamos de pendientes para que desaparezca el chip "Pendiente".
+
     for (final f in updatedFriends) {
       updatedPending.remove(f);
     }
-    
+
+    // Los amigos online son amigos confirmados: los añadimos a allFriends como
+    // fallback por si all_friends_list llega tarde o falla en el backend.
+    final updatedAll = {...state.allFriends, ...updatedFriends};
+
     state = state.copyWith(
       onlineFriends: updatedFriends,
+      allFriends: updatedAll,
       sentFriendRequests: updatedPending,
     );
   }

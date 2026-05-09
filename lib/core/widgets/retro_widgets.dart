@@ -53,7 +53,7 @@ class RetroField extends StatelessWidget {
     this.focusNode,
     this.textInputAction = TextInputAction.next,
     this.onSubmitted,
-    this.color = const Color.fromARGB(255, 2, 2, 2),
+    this.color = Colors.white,
   });
 
   @override
@@ -70,10 +70,10 @@ class RetroField extends StatelessWidget {
           style: TextStyle(
             fontFamily: 'Retro Gaming',
             fontSize: labelFontSize,
-            color: const Color(0xFF1a1a2e),
+            color: Colors.white,
             shadows: const [
-              Shadow(color: Colors.white, blurRadius: 10), // halo exterior
-              Shadow(color: Colors.white70, blurRadius: 4), // halo interior
+              Shadow(color: Colors.white, blurRadius: 12),
+              Shadow(color: Colors.white, blurRadius: 4),
             ],
           ),
         ),

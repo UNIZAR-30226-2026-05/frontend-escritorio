@@ -23,7 +23,7 @@ class _TrenGameState extends State<TrenGame>
   late AnimationController _trainCtrl;
   late Animation<double> _trainPos;
 
-  late int _objetivo;
+  //late int _objetivo;
   late List<int> _wagonCapacities;
 
   int _count = 0;
@@ -35,9 +35,8 @@ class _TrenGameState extends State<TrenGame>
   @override
   void initState() {
     super.initState();
-    final rng = Random();
-    _objetivo =
-        (widget.details['objetivo'] as num?)?.toInt() ?? (4 + rng.nextInt(8));
+    // final rng = Random();
+    // _objetivo = (widget.details['objetivo'] as num?)?.toInt() ?? (4 + rng.nextInt(8));
         
     if (widget.details['vagones'] != null) {
       _wagonCapacities = (widget.details['vagones'] as List)

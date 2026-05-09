@@ -57,8 +57,11 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     final linkSize = size.height * 0.018;
 
     return Scaffold(
-      backgroundColor: Colors.white,
-      body: Center(
+      body: Stack(
+        fit: StackFit.expand,
+        children: [
+          Image.asset('assets/images/ui/fondo_menu.png', fit: BoxFit.cover),
+          Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -68,7 +71,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               style: TextStyle(
                 fontFamily: 'Retro Gaming',
                 fontSize: titleSize,
-                color: const Color(0xFF1a1a2e),
+                color: Colors.white,
                 height: 1.4,
                 shadows: const [
                   Shadow(color: Colors.white, blurRadius: 16),
@@ -122,15 +125,19 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 style: TextStyle(
                   fontFamily: 'Retro Gaming',
                   fontSize: linkSize,
-                  color: const Color(0xFF1a1a2e),
+                  color: Colors.white,
+                  shadows: const [
+                    Shadow(color: Colors.white, blurRadius: 8),
+                  ],
                 ),
                 children: [
                   const TextSpan(text: 'Si no tienes cuenta,\nregístrate '),
                   TextSpan(
                     text: 'AQUI',
                     style: const TextStyle(
-                      color: Color(0xFF6B21A8),
+                      color: Colors.white,
                       decoration: TextDecoration.underline,
+                      shadows: [Shadow(color: Colors.white, blurRadius: 10)],
                     ),
                     recognizer: TapGestureRecognizer()
                       ..onTap = () => context.go('/register'),
@@ -140,6 +147,8 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             ),
           ],
         ),
+          ),
+        ],
       ),
     );
   }

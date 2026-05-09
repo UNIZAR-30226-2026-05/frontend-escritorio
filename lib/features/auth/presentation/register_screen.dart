@@ -71,8 +71,11 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     final linkSize = size.height * 0.018;
 
     return Scaffold(
-      backgroundColor: Colors.white,
-      body: Center(
+      body: Stack(
+        fit: StackFit.expand,
+        children: [
+          Image.asset('assets/images/ui/fondo_menu.png', fit: BoxFit.cover),
+          Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -82,7 +85,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
               style: TextStyle(
                 fontFamily: 'Retro Gaming',
                 fontSize: titleSize,
-                color: const Color(0xFF1a1a2e),
+                color: Colors.white,
                 shadows: const [
                   Shadow(color: Colors.white, blurRadius: 16),
                   Shadow(color: Colors.white, blurRadius: 8),
@@ -149,15 +152,19 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                 style: TextStyle(
                   fontFamily: 'Retro Gaming',
                   fontSize: linkSize,
-                  color: const Color(0xFF1a1a2e),
+                  color: Colors.white,
+                  shadows: const [
+                    Shadow(color: Colors.white, blurRadius: 8),
+                  ],
                 ),
                 children: [
                   const TextSpan(text: 'Si ya tienes cuenta,\n'),
                   TextSpan(
                     text: 'INICIA SESION',
                     style: const TextStyle(
-                      color: Color(0xFF6B21A8),
+                      color: Colors.white,
                       decoration: TextDecoration.underline,
+                      shadows: [Shadow(color: Colors.white, blurRadius: 10)],
                     ),
                     recognizer: TapGestureRecognizer()
                       ..onTap = () => context.go('/login'),
@@ -167,6 +174,8 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
             ),
           ],
         ),
+          ),
+        ],
       ),
     );
   }

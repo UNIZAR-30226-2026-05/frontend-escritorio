@@ -265,7 +265,7 @@ class _MinigameOverlayState extends ConsumerState<MinigameOverlay> {
           
           // 3. Resultado específico de Doble o Nada
           if (results != null && gameState.minigameName == 'Doble o Nada')
-            _buildDobleNadaResult(results, gameState.activePlayerName ?? '', ref.read(authProvider).username),
+            _buildDobleNadaResult(results, gameState.activePlayerName ?? '', ref.read(authProvider).username ?? ''),
         ],
       ),
     );

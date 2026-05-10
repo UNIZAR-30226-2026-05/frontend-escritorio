@@ -168,7 +168,7 @@ class _FriendSearchModalState extends ConsumerState<FriendSearchModal> {
                   onTap: () => Navigator.of(context).pop(),
                   child: const Padding(
                     padding: EdgeInsets.all(4),
-                    child: Icon(Icons.close, color: Colors.white, size: 22),
+                    child: Text('X', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold, fontFamily: 'Retro Gaming')),
                   ),
                 ),
               ],

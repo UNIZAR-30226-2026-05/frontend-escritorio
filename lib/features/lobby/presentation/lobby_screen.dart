@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' show pi, cos, sin;
 
 // Importa las dependencias necesarias para Flutter, Riverpod y navegación.
 import 'package:flutter/material.dart';
@@ -361,10 +362,7 @@ class _LobbyScreenState extends ConsumerState<LobbyScreen> {
                       borderRadius: BorderRadius.circular(6),
                     ),
                     alignment: Alignment.center,
-                    child: const Text(
-                      '⚙️',
-                      style: TextStyle(fontSize: 22),
-                    ),
+                    child: const _RetroGearIcon(size: 22, color: Colors.white),
                   ),
                 ),
                 const SizedBox(width: 8),
@@ -380,7 +378,7 @@ class _LobbyScreenState extends ConsumerState<LobbyScreen> {
                       borderRadius: BorderRadius.circular(6),
                     ),
                     alignment: Alignment.center,
-                    child: const Icon(Icons.logout, color: Colors.white54, size: 22),
+                    child: const _RetroLogoutIcon(size: 22, color: Colors.white),
                   ),
                 ),
               ],
@@ -1322,15 +1320,15 @@ class _GameInviteRow extends StatelessWidget {
           SizedBox(width: height * 0.2),
           _IconRetroButton(
             asset: 'assets/images/ui/btn_verde.png',
-            icon: Icons.login,
             width: btnW,
             height: height,
             onTap: onJoin,
+            child: _RetroCheckIcon(size: height * 0.55),
           ),
           SizedBox(width: height * 0.2),
           _IconRetroButton(
             asset: 'assets/images/ui/btn_rojo.png',
-            icon: Icons.close,
+            child: Text('X', style: TextStyle(color: Colors.white, fontSize: height * 0.52, fontWeight: FontWeight.bold, fontFamily: 'Retro Gaming')),
             width: btnW,
             height: height,
             onTap: onDismiss,
@@ -1379,22 +1377,22 @@ class _FriendRequestRow extends StatelessWidget {
             ),
           ),
           SizedBox(width: height * 0.2),
-          // Botón aceptar: verde, con check.
+          // Botón aceptar: verde, con check dibujado.
           _IconRetroButton(
             asset: 'assets/images/ui/btn_verde.png',
-            icon: Icons.check,
             width: btnW,
             height: height,
             onTap: onAccept,
+            child: _RetroCheckIcon(size: height * 0.55),
           ),
           SizedBox(width: height * 0.2),
-          // Botón rechazar: rojo, con aspa.
+          // Botón rechazar: rojo, con X.
           _IconRetroButton(
             asset: 'assets/images/ui/btn_rojo.png',
-            icon: Icons.close,
             width: btnW,
             height: height,
             onTap: onReject,
+            child: Text('X', style: TextStyle(color: Colors.white, fontSize: height * 0.52, fontWeight: FontWeight.bold, fontFamily: 'Retro Gaming')),
           ),
         ],
       ),
@@ -1406,13 +1404,13 @@ class _FriendRequestRow extends StatelessWidget {
 // Pensado para las acciones aceptar/rechazar de las solicitudes de amistad.
 class _IconRetroButton extends StatelessWidget {
   final String asset;
-  final IconData icon;
+  final Widget child;
   final double width, height;
   final VoidCallback onTap;
 
   const _IconRetroButton({
     required this.asset,
-    required this.icon,
+    required this.child,
     required this.width,
     required this.height,
     required this.onTap,
@@ -1432,8 +1430,147 @@ class _IconRetroButton extends StatelessWidget {
             fit: BoxFit.fill,
           ),
         ),
-        child: Icon(icon, color: Colors.white, size: height * 0.55),
+        child: child,
       ),
     );
   }
+}
+
+// ── Iconos dibujados ────────────────────────────────────────────────────────
+
+class _RetroGearIcon extends StatelessWidget {
+  final double size;
+  final Color color;
+  const _RetroGearIcon({required this.size, required this.color});
+
+  @override
+  Widget build(BuildContext context) => SizedBox(
+        width: size,
+        height: size,
+        child: CustomPaint(painter: _GearPainter(color)),
+      );
+}
+
+class _RetroLogoutIcon extends StatelessWidget {
+  final double size;
+  final Color color;
+  const _RetroLogoutIcon({required this.size, required this.color});
+
+  @override
+  Widget build(BuildContext context) => SizedBox(
+        width: size,
+        height: size,
+        child: CustomPaint(painter: _LogoutPainter(color)),
+      );
+}
+
+class _RetroCheckIcon extends StatelessWidget {
+  final double size;
+  const _RetroCheckIcon({required this.size});
+
+  @override
+  Widget build(BuildContext context) => SizedBox(
+        width: size,
+        height: size,
+        child: const CustomPaint(painter: _CheckPainter(Colors.white)),
+      );
+}
+
+class _GearPainter extends CustomPainter {
+  final Color color;
+  const _GearPainter(this.color);
+
+  @override
+  void paint(Canvas canvas, Size s) {
+    final cx = s.width / 2, cy = s.height / 2, r = s.width / 2;
+    const teeth = 7;
+    final outer = r * 0.90, mid = r * 0.66, hole = r * 0.32;
+
+    final gear = Path();
+    for (int i = 0; i < teeth * 2; i++) {
+      final a = (i * pi) / teeth - pi / 2;
+      final rad = i.isEven ? outer : mid;
+      final x = cx + rad * cos(a), y = cy + rad * sin(a);
+      i == 0 ? gear.moveTo(x, y) : gear.lineTo(x, y);
+    }
+    gear.close();
+
+    final holeP = Path()
+      ..addOval(Rect.fromCircle(center: Offset(cx, cy), radius: hole));
+
+    canvas.drawPath(
+      Path.combine(PathOperation.difference, gear, holeP),
+      Paint()..color = color..style = PaintingStyle.fill..isAntiAlias = true,
+    );
+  }
+
+  @override
+  bool shouldRepaint(_GearPainter o) => o.color != color;
+}
+
+class _LogoutPainter extends CustomPainter {
+  final Color color;
+  const _LogoutPainter(this.color);
+
+  @override
+  void paint(Canvas canvas, Size s) {
+    final p = Paint()
+      ..color = color
+      ..strokeWidth = s.width * 0.13
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round
+      ..style = PaintingStyle.stroke;
+
+    // Marco de puerta (izq, arriba, abajo)
+    final doorH = s.height * 0.68, top = s.height * 0.16;
+    final left = s.width * 0.08, doorW = s.width * 0.42;
+    canvas.drawPath(
+      Path()
+        ..moveTo(left + doorW, top)
+        ..lineTo(left, top)
+        ..lineTo(left, top + doorH)
+        ..lineTo(left + doorW, top + doorH),
+      p,
+    );
+
+    // Flecha →
+    final ay = s.height / 2;
+    final ax0 = left + doorW * 0.4, ax1 = s.width * 0.92;
+    canvas.drawPath(Path()..moveTo(ax0, ay)..lineTo(ax1, ay), p);
+    canvas.drawPath(
+      Path()
+        ..moveTo(ax1 - s.width * 0.22, ay - s.height * 0.20)
+        ..lineTo(ax1, ay)
+        ..lineTo(ax1 - s.width * 0.22, ay + s.height * 0.20),
+      p,
+    );
+  }
+
+  @override
+  bool shouldRepaint(_LogoutPainter o) => o.color != color;
+}
+
+class _CheckPainter extends CustomPainter {
+  final Color color;
+  const _CheckPainter(this.color);
+
+  @override
+  void paint(Canvas canvas, Size s) {
+    canvas.drawPath(
+      Path()
+        ..moveTo(s.width * 0.12, s.height * 0.50)
+        ..lineTo(s.width * 0.40, s.height * 0.76)
+        ..lineTo(s.width * 0.88, s.height * 0.24),
+      Paint()
+        ..color = color
+        ..strokeWidth = s.width * 0.14
+        ..strokeCap = StrokeCap.round
+        ..strokeJoin = StrokeJoin.round
+        ..style = PaintingStyle.stroke
+        ..isAntiAlias = true,
+    );
+  }
+
+  @override
+  bool shouldRepaint(_CheckPainter o) => o.color != color;
 }

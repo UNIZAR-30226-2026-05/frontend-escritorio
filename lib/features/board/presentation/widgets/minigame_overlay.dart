@@ -81,6 +81,18 @@ class _MinigameOverlayState extends ConsumerState<MinigameOverlay> {
       return;
     }
 
+    // Igual para espectadores del Dilema del Prisionero (no participantes)
+    if (gameState.minigameName == 'Dilema del Prisionero') {
+      final participants = (gameState.minigameDetails?['jugadores'] as List?)?.cast<String>() ?? [];
+      if (!participants.contains(myUsername)) {
+        setState(() {
+          _countdownFinished = true;
+          _countdown = 0;
+        });
+        return;
+      }
+    }
+
     // Guardamos el timer en la variable
     _countdownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
       // Si el widget ya no existe, cancelamos el timer y salimos
@@ -215,6 +227,20 @@ class _MinigameOverlayState extends ConsumerState<MinigameOverlay> {
           if (_countdownFinished && results == null)
             if (gameState.minigameName == 'Doble o Nada' && gameState.activePlayerName != ref.read(authProvider).username)
               _buildDobleNadaWaitingScreen(gameState.activePlayerName ?? '')
+            else if (gameState.minigameName == 'Dilema del Prisionero') ...((){
+              final myUser = ref.read(authProvider).username ?? '';
+              final participants = (gameState.minigameDetails?['jugadores'] as List?)?.cast<String>() ?? [];
+              if (!participants.contains(myUser)) {
+                return [_buildDilemaWaitingScreen(gameState.activePlayerName ?? '')];
+              }
+              return [Positioned.fill(
+                child: MinigameFactory.buildGame(
+                  minigameName: gameState.minigameName ?? '',
+                  onFinish: _onMinigameFinish,
+                  details: gameState.minigameDetails ?? {},
+                ),
+              )];
+            })()
             else
               Positioned.fill(
                 child: MinigameFactory.buildGame(
@@ -341,6 +367,64 @@ class _MinigameOverlayState extends ConsumerState<MinigameOverlay> {
           ),
         ),
       );
+  }
+
+  Widget _buildDilemaWaitingScreen(String activePlayer) {
+    return Center(
+      child: Container(
+        width: 500,
+        padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 20),
+        decoration: BoxDecoration(
+          color: const Color(0xFF1B2538),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Colors.purpleAccent, width: 4),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text(
+              'DILEMA DEL PRISIONERO',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontFamily: 'Retro Gaming',
+                fontSize: 28,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
+            ),
+            const SizedBox(height: 40),
+            Container(
+              width: 400,
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: Colors.transparent,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.white24, width: 1),
+              ),
+              child: Text(
+                '${activePlayer.toUpperCase()} ESTÁ\nCOOPERANDO O\nTRAICIONANDO',
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontFamily: 'Retro Gaming',
+                  fontSize: 20,
+                  color: Colors.purpleAccent,
+                  height: 1.5,
+                ),
+              ),
+            ),
+            const SizedBox(height: 40),
+            const Text(
+              'ESPERANDO DECISIÓN...',
+              style: TextStyle(
+                fontFamily: 'Retro Gaming',
+                fontSize: 14,
+                color: Colors.white70,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   // Pantalla de resultado de Doble o Nada

@@ -225,8 +225,11 @@ class LobbyController extends StateNotifier<LobbyState> {
       updated.remove(friendId);
       // Si el amigo se desconecta, invalida cualquier invitación pendiente que
       // le hubiéramos enviado: ya no podrá unirse hasta reconectarse.
-      final invites = {...state.sentInvites}..remove(friendId);
-      state = state.copyWith(onlineFriends: updated, sentInvites: invites);
+      final sent = {...state.sentInvites}..remove(friendId);
+      // También elimina las invitaciones RECIBIDAS de ese amigo: si se fue,
+      // la invitación ya no es válida y no debe quedar en la lista.
+      final received = state.invites.where((i) => i.fromUser != friendId).toList();
+      state = state.copyWith(onlineFriends: updated, sentInvites: sent, invites: received);
       return;
     }
   }
@@ -289,6 +292,14 @@ class LobbyController extends StateNotifier<LobbyState> {
   void markInviteSent(String friendId) {
     if (state.sentInvites.contains(friendId)) return;
     state = state.copyWith(sentInvites: {...state.sentInvites, friendId});
+  }
+
+  // Elimina la marca de invitación enviada (p. ej. el destinatario la rechazó
+  // o expiró el tiempo de espera) para que el invitador pueda volver a invitar.
+  void clearInviteSent(String friendId) {
+    if (!state.sentInvites.contains(friendId)) return;
+    final updated = {...state.sentInvites}..remove(friendId);
+    state = state.copyWith(sentInvites: updated);
   }
 
   // Registra que el jugador local ha enviado una solicitud de amistad al

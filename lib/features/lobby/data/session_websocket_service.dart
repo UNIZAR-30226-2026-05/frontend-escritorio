@@ -30,6 +30,10 @@ class SessionWebSocketService {
   // sin resolver y revertimos la marca "Pendiente" de ese usuario.
   final List<String> _pendingFriendRequestTargets = [];
 
+  // Timers de expiración de invitaciones enviadas. Si el destinatario no acepta
+  // en 45 s se elimina la marca "Invitado" para permitir reenvío.
+  final Map<String, Timer> _inviteExpireTimers = {};
+
   // Credenciales para reconexión automática si se cae la conexión.
   String? _savedUsername;
   String? _savedToken;
@@ -159,6 +163,17 @@ class SessionWebSocketService {
           }
           break;
 
+        // El destinatario rechazó nuestra invitación: permitimos reenviarla.
+        case 'invite_declined':
+        case 'invite_rejected':
+          final fromUser = decoded['from_user']?.toString() ?? decoded['friend_id']?.toString() ?? '';
+          if (fromUser.isNotEmpty) {
+            _inviteExpireTimers[fromUser]?.cancel();
+            _inviteExpireTimers.remove(fromUser);
+            notifier.clearInviteSent(fromUser);
+          }
+          break;
+
         // Un usuario nos envía una nueva solicitud de amistad en tiempo real.
         case 'new_friend_request':
           final fromUser = decoded['from_user']?.toString() ?? '';
@@ -217,6 +232,16 @@ class SessionWebSocketService {
       }
     });
     _ref.read(lobbyProvider.notifier).markInviteSent(friendId);
+
+    // Expira la marca "Invitado" tras 45 s si el destinatario no acepta/rechaza.
+    _inviteExpireTimers[friendId]?.cancel();
+    _inviteExpireTimers[friendId] = Timer(
+      const Duration(seconds: 45),
+      () {
+        _inviteExpireTimers.remove(friendId);
+        _ref.read(lobbyProvider.notifier).clearInviteSent(friendId);
+      },
+    );
   }
 
   // Envía una solicitud de amistad a otro usuario.
@@ -260,6 +285,10 @@ class SessionWebSocketService {
     _intentionalDisconnect = true;
     _reconnectTimer?.cancel();
     _reconnectTimer = null;
+    for (final t in _inviteExpireTimers.values) {
+      t.cancel();
+    }
+    _inviteExpireTimers.clear();
     _channel?.sink.close();
     _channel = null;
     _isConnected = false;

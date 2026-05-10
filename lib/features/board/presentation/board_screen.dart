@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:math';
+import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -527,9 +528,9 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
               _buildDebugMenu(),
 
               // UI OVERLAY: Timer de Turno (top-right)
-              if (isMyTurn &&
-                  gameState.currentPhase == GamePhase.boardTurn &&
-                  !_hasRolledThisTurn &&
+              if (gameState.currentPhase == GamePhase.boardTurn &&
+                  (!isMyTurn || !_hasRolledThisTurn) &&
+                  !_showingDiceResult &&
                   !gameState.isMovementActive &&
                   !gameState.isWaitingForMinigameChoice &&
                   gameState.obtainedItemName == null &&
@@ -790,156 +791,104 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
     final bool isRoundOne = gameState.currentRound <= 1;
     final bool hasTwoDiceByDefault = !isRoundOne && myRank != 4 && myRank != 0;
 
-    // Tienes dos dados si ya los tenías por ranking O si has comprado la mejora
     final bool hasTwoDice = hasTwoDiceByDefault || gameState.hasImprovedDice;
 
     final gameId = ref.read(lobbyProvider).gameId ?? '1';
 
-    // El primer dado siempre es el normal (Blanco)
-    const dice1Color = Colors.white;
-    const dice1Border = Color(0xFF444466);
-    const Color? dice1Glow = null;
+    final String labelText =
+        hasTwoDice ? _extraDiceLabel(effectiveRankForExtraDice) : '1-6 NORMAL';
 
     return Center(
-      child: Container(
-        padding: const EdgeInsets.all(32),
-        decoration: BoxDecoration(
-          color: Colors.black.withValues(alpha: 0.4),
-          borderRadius: BorderRadius.circular(24),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // Texto de instrucción
-            const Text(
-              'ES TU TURNO',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-                letterSpacing: 2,
-              ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(24),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+          child: Container(
+            width: 650,
+            height: 450,
+            padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 32),
+            decoration: BoxDecoration(
+              color: Colors.black.withValues(alpha: 0.3),
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(
+                  color: Colors.amber.withValues(alpha: 0.6), width: 2),
             ),
-            const SizedBox(height: 30),
-            // Fila de dados
-            Row(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
               mainAxisSize: MainAxisSize.min,
               children: [
-                _buildDiceWidget(
-                  diceColor: dice1Color,
-                  borderColor: dice1Border,
-                  label: '1-6',
-                  labelColor: Colors.black54,
-                  glowColor: dice1Glow,
-                ),
-                if (hasTwoDice) ...[
-                  const SizedBox(width: 28),
-                  _buildDiceWidget(
-                    diceColor: _extraDiceColor(effectiveRankForExtraDice),
-                    borderColor:
-                        _extraDiceBorderColor(effectiveRankForExtraDice),
-                    label: _extraDiceLabel(effectiveRankForExtraDice),
-                    labelColor: _extraDiceLabelColor(effectiveRankForExtraDice),
-                    glowColor: _extraDiceGlowColor(effectiveRankForExtraDice),
+                Text(
+                  'TURNO DE ${myUsername.toUpperCase()}',
+                  style: const TextStyle(
+                    color: Colors.amber,
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 2,
                   ),
-                ],
+                ),
+                const SizedBox(height: 40),
+                const Text(
+                  '?',
+                  style: TextStyle(
+                    fontSize: 80,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                    shadows: [Shadow(color: Colors.black54, blurRadius: 10)],
+                  ),
+                ),
+                const SizedBox(height: 20),
+                Text(
+                  labelText,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                    letterSpacing: 1,
+                  ),
+                ),
+                const SizedBox(height: 40),
+                // Botones de acción del turno
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // Habilidad del Banquero integrada
+                    if (!_hasUsedBanqueroSkill &&
+                        gameState.players
+                                .firstWhere((p) => p.username == myUsername,
+                                    orElse: () => gameState.players.first)
+                                .characterClass ==
+                            CharacterClass.banquero) ...[
+                      _buildPixelButton(
+                        text: 'ROBAR',
+                        width: 140,
+                        asset: 'assets/images/ui/btn_verde.png',
+                        onPressed: () {
+                          setState(() => _isBanqueroOpen = true);
+                        },
+                      ),
+                      const SizedBox(width: 20),
+                    ],
+                    _buildPixelButton(
+                      text: 'TIENDA',
+                      width: 140,
+                      onPressed: () => setState(() => _isShopOpen = true),
+                    ),
+                    const SizedBox(width: 20),
+                    _buildPixelButton(
+                      text: hasTwoDice ? 'TIRAR DADOS' : 'TIRAR DADO',
+                      onPressed: () {
+                        setState(() => _hasRolledThisTurn = true);
+                        ref
+                            .read(webSocketProvider)
+                            .rollDiceCommand(gameId, myUsername);
+                      },
+                    ),
+                  ],
+                ),
               ],
             ),
-            const SizedBox(height: 40),
-            // Botones de acción del turno
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // Habilidad del Banquero integrada
-                if (!_hasUsedBanqueroSkill &&
-                    gameState.players
-                            .firstWhere((p) => p.username == myUsername,
-                                orElse: () => gameState.players.first)
-                            .characterClass ==
-                        CharacterClass.banquero) ...[
-                  _buildPixelButton(
-                    text: 'ROBAR',
-                    width: 140,
-                    asset: 'assets/images/ui/btn_verde.png',
-                    onPressed: () {
-                      setState(() => _isBanqueroOpen = true);
-                    },
-                  ),
-                  const SizedBox(width: 20),
-                ],
-                _buildPixelButton(
-                  text: 'TIENDA',
-                  width: 140,
-                  onPressed: () => setState(() => _isShopOpen = true),
-                ),
-                const SizedBox(width: 20),
-                _buildPixelButton(
-                  text: hasTwoDice ? 'TIRAR DADOS' : 'TIRAR DADO',
-                  onPressed: () {
-                    setState(() => _hasRolledThisTurn = true);
-                    ref
-                        .read(webSocketProvider)
-                        .rollDiceCommand(gameId, myUsername);
-                  },
-                ),
-              ],
-            ),
-          ],
+          ),
         ),
-      ),
-    );
-  }
-
-  /// Widget individual de un dado (icono cuadrado con estilo)
-  Widget _buildDiceWidget({
-    required Color diceColor,
-    required Color borderColor,
-    required String label,
-    required Color labelColor,
-    Color? glowColor,
-  }) {
-    return Container(
-      width: 100,
-      height: 100,
-      decoration: BoxDecoration(
-        color: diceColor,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: borderColor, width: 3),
-        boxShadow: [
-          if (glowColor != null)
-            BoxShadow(
-              color: glowColor.withValues(alpha: 0.6),
-              blurRadius: 24,
-              spreadRadius: 4,
-            ),
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.4),
-            blurRadius: 8,
-            offset: const Offset(2, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const Text(
-            '?',
-            style: TextStyle(
-              fontSize: 40,
-              fontWeight: FontWeight.bold,
-              color: Colors.black38,
-            ),
-          ),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.bold,
-              color: labelColor,
-              letterSpacing: 1,
-            ),
-          ),
-        ],
       ),
     );
   }
@@ -968,86 +917,85 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
         (gameState.hasImprovedDice && rank > 1) ? rank - 1 : rank;
 
     return Positioned.fill(
-      child: Container(
-        color: Colors.black.withValues(alpha: 0.4),
-        child: Center(
-          child: TweenAnimationBuilder<double>(
-            tween: Tween(begin: 0.0, end: 1.0),
-            duration: const Duration(milliseconds: 300),
-            curve: Curves.elasticOut,
-            builder: (context, value, child) {
-              return Transform.scale(
-                scale: value,
-                child: Opacity(
-                  opacity: value.clamp(0.0, 1.0),
-                  child: child,
-                ),
-              );
-            },
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 30),
-              decoration: BoxDecoration(
-                color: const Color(0xEE1a1a2e),
-                borderRadius: BorderRadius.circular(24),
-                border: Border.all(
-                    color: Colors.amber.withValues(alpha: 0.5), width: 2),
-                boxShadow: const [
-                  BoxShadow(
-                      color: Colors.black54, blurRadius: 20, spreadRadius: 5)
-                ],
+      child: Center(
+        child: TweenAnimationBuilder<double>(
+          tween: Tween(begin: 0.0, end: 1.0),
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.elasticOut,
+          builder: (context, value, child) {
+            return Transform.scale(
+              scale: value,
+              child: Opacity(
+                opacity: value.clamp(0.0, 1.0),
+                child: child,
               ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    _isRolling ? 'TIRANDO...' : 'RESULTADO',
-                    style: const TextStyle(
-                      color: Colors.white70,
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 4,
+            );
+          },
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(24),
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+              child: Container(
+                width: 650,
+                height: 450,
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 48, vertical: 32),
+                decoration: BoxDecoration(
+                  color: Colors.black.withValues(alpha: 0.3),
+                  borderRadius: BorderRadius.circular(24),
+                  border: Border.all(
+                      color: Colors.amber.withValues(alpha: 0.6), width: 2),
+                ),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      _isRolling ? 'TIRANDO...' : 'RESULTADO',
+                      style: const TextStyle(
+                        color: Colors.white70,
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 4,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 20),
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      _buildDiceFace(d1, Colors.white, Colors.black87),
-                      if (gameState.lastDice2 > 0 ||
-                          (_isRolling &&
-                              gameState.players
-                                  .firstWhere(
-                                      (p) =>
-                                          p.username ==
-                                          gameState.activePlayerName,
-                                      orElse: () => gameState.players[0])
-                                  .diceInventory
-                                  .isNotEmpty)) ...[
-                        const SizedBox(width: 20),
-                        _buildDiceFace(
-                          d2,
-                          _extraDiceColor(effectiveRank),
-                          _extraDiceLabelColor(effectiveRank),
-                        ),
+                    const SizedBox(height: 20),
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        _buildDiceFace(d1, 4),
+                        if (gameState.lastDice2 > 0 ||
+                            (_isRolling &&
+                                gameState.players
+                                    .firstWhere(
+                                        (p) =>
+                                            p.username ==
+                                            gameState.activePlayerName,
+                                        orElse: () => gameState.players[0])
+                                    .diceInventory
+                                    .isNotEmpty)) ...[
+                          const SizedBox(width: 20),
+                          _buildDiceFace(d2, effectiveRank),
+                        ],
                       ],
-                    ],
-                  ),
-                  const SizedBox(height: 20),
-                  Text(
-                    '$total',
-                    style: TextStyle(
-                      color: _isRolling ? Colors.white38 : Colors.amber,
-                      fontSize: 48,
-                      fontWeight: FontWeight.bold,
-                      shadows: _isRolling
-                          ? []
-                          : [
-                              const Shadow(
-                                  color: Colors.orange, blurRadius: 10),
-                            ],
                     ),
-                  ),
-                ],
+                    const SizedBox(height: 20),
+                    Text(
+                      '$total',
+                      style: TextStyle(
+                        color: _isRolling ? Colors.white38 : Colors.amber,
+                        fontSize: 48,
+                        fontWeight: FontWeight.bold,
+                        shadows: _isRolling
+                            ? []
+                            : [
+                                const Shadow(
+                                    color: Colors.orange, blurRadius: 10),
+                              ],
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
@@ -1056,59 +1004,32 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
     );
   }
 
-  Widget _buildDiceFace(int value, Color bgColor, Color textColor) {
-    return Container(
-      width: 80,
-      height: 80,
-      decoration: BoxDecoration(
-        color: bgColor,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.3),
-            blurRadius: 4,
-            offset: const Offset(2, 2),
-          )
-        ],
-      ),
-      child: Center(
-        child: Text(
-          '$value',
-          style: TextStyle(
-            color: textColor,
-            fontSize: 40,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
+  Widget _buildDiceFace(int value, int rank) {
+    String suffix = '';
+    if (rank == 1)
+      suffix = 'O';
+    else if (rank == 2)
+      suffix = 'P';
+    else if (rank == 3) suffix = 'B';
+
+    // Fallback if value is 0 during rolling
+    int displayValue = value > 0 ? value : 1;
+
+    // Evitar buscar assets que no existen durante la animación de random (ej: 6B.png)
+    if (rank == 3 && displayValue > 2) {
+      displayValue = (displayValue % 2) + 1;
+    } else if (rank == 2 && displayValue > 4) {
+      displayValue = (displayValue % 4) + 1;
+    }
+
+    return SizedBox(
+      width: 250,
+      height: 250,
+      child: Image.asset(
+        'assets/images/board/dados/$displayValue$suffix.png',
+        fit: BoxFit.contain,
       ),
     );
-  }
-
-  // Helpers para el color del dado extra por ranking
-  Color _extraDiceColor(int rank) {
-    switch (rank) {
-      case 1:
-        return const Color(0xFFFFD700); // Oro
-      case 2:
-        return const Color(0xFFC0C0C0); // Plata
-      case 3:
-        return const Color(0xFFCD7F32); // Bronce
-      default:
-        return Colors.white;
-    }
-  }
-
-  Color _extraDiceBorderColor(int rank) {
-    switch (rank) {
-      case 1:
-        return const Color(0xFFB8860B);
-      case 2:
-        return const Color(0xFF909090);
-      case 3:
-        return const Color(0xFF8B4513);
-      default:
-        return Colors.grey;
-    }
   }
 
   Color _extraDiceGlowColor(int rank) {
@@ -1134,19 +1055,6 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
         return '1-2 BRONCE';
       default:
         return '';
-    }
-  }
-
-  Color _extraDiceLabelColor(int rank) {
-    switch (rank) {
-      case 1:
-        return const Color(0xFF7A5C00);
-      case 2:
-        return const Color(0xFF505050);
-      case 3:
-        return const Color(0xFF5C2800);
-      default:
-        return Colors.black54;
     }
   }
 
@@ -1655,7 +1563,8 @@ class _TurnTimerWidgetState extends State<TurnTimerWidget> {
         decoration: BoxDecoration(
           color: const Color(0xFF1a1a2e).withValues(alpha: 0.9),
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.amber.withValues(alpha: 0.6), width: 2),
+          border:
+              Border.all(color: Colors.amber.withValues(alpha: 0.6), width: 2),
           boxShadow: const [BoxShadow(color: Colors.black54, blurRadius: 4)],
         ),
         child: Column(
@@ -1702,4 +1611,3 @@ class _TurnTimerWidgetState extends State<TurnTimerWidget> {
     );
   }
 }
-

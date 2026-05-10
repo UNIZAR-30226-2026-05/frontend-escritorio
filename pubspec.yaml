@@ -29,6 +29,7 @@ flutter:
    # - assets/animations/
     - assets/images/board/
     - assets/images/board/casillas/
+    - assets/images/board/dados/
     - assets/images/characters/
     - assets/images/characters/general/
     - assets/images/characters/tablero/

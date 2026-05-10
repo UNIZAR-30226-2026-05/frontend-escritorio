@@ -712,8 +712,11 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
   }
 
   // WIDGET: Overlay de dados en el centro de la pantalla
-  // Solo se muestra cuando es el turno del jugador local
+  // Se muestra para todos, pero los controles solo los ve el jugador activo
   Widget _buildCenterDiceOverlay(GameState gameState, String myUsername) {
+    final activePlayerId = gameState.activePlayerName ?? '';
+    final bool isMyTurn = activePlayerId == myUsername;
+
     // Buscar al jugador local para ver su penalización
     final localPlayer = gameState.players.firstWhere(
       (p) => p.username == myUsername,
@@ -721,7 +724,9 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
     );
     final isPenalized = localPlayer.penaltyTurns > 0;
 
-    if (isPenalized) {
+    // Solo vemos la pantalla de "ESTÁS BLOQUEADO" si es nuestro turno.
+    // Si no es nuestro turno, vemos lo que hace el jugador activo.
+    if (isPenalized && isMyTurn) {
       return Center(
         child: Container(
           padding: const EdgeInsets.all(32),
@@ -775,21 +780,21 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
       );
     }
 
-    // Inferir el tipo de dado extra a partir de la posición en el ranking
-    final myRankIndex = gameState.turnOrder.indexOf(myUsername);
-    final myRank = myRankIndex + 1; // 1-indexed
+    // Inferir el tipo de dado extra a partir de la posición en el ranking del JUGADOR ACTIVO
+    final rankIndex = gameState.turnOrder.indexOf(activePlayerId);
+    final rank = rankIndex + 1; // 1-indexed
 
     // Si ha mejorado los dados, visualmente mostramos el dado extra mejorado
     // Regla: 4º (1 dado) -> +Bronce, 3º (Bronce) -> +Plata, 2º (Plata) -> +Oro
-    int effectiveRankForExtraDice = myRank;
-    if (gameState.hasImprovedDice && myRank > 1) {
-      effectiveRankForExtraDice = myRank - 1;
+    int effectiveRankForExtraDice = rank;
+    if (gameState.hasImprovedDice && rank > 1) {
+      effectiveRankForExtraDice = rank - 1;
     }
 
     // REGLA: En la primera ronda NO hay dados especiales por defecto,
     // pero si compras la mejora, TE SALE el de bronce (effectiveRank 3).
     final bool isRoundOne = gameState.currentRound <= 1;
-    final bool hasTwoDiceByDefault = !isRoundOne && myRank != 4 && myRank != 0;
+    final bool hasTwoDiceByDefault = !isRoundOne && rank != 4 && rank != 0;
 
     final bool hasTwoDice = hasTwoDiceByDefault || gameState.hasImprovedDice;
 
@@ -818,7 +823,7 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  'TURNO DE ${myUsername.toUpperCase()}',
+                  isMyTurn ? 'ES TU TURNO' : 'TURNO DE ${activePlayerId.toUpperCase()}',
                   style: const TextStyle(
                     color: Colors.amber,
                     fontSize: 20,
@@ -846,45 +851,47 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
                     letterSpacing: 1,
                   ),
                 ),
-                const SizedBox(height: 40),
-                // Botones de acción del turno
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    // Habilidad del Banquero integrada
-                    if (!_hasUsedBanqueroSkill &&
-                        gameState.players
-                                .firstWhere((p) => p.username == myUsername,
-                                    orElse: () => gameState.players.first)
-                                .characterClass ==
-                            CharacterClass.banquero) ...[
+                if (isMyTurn) ...[
+                  const SizedBox(height: 40),
+                  // Botones de acción del turno
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Habilidad del Banquero integrada
+                      if (!_hasUsedBanqueroSkill &&
+                          gameState.players
+                                  .firstWhere((p) => p.username == myUsername,
+                                      orElse: () => gameState.players.first)
+                                  .characterClass ==
+                              CharacterClass.banquero) ...[
+                        _buildPixelButton(
+                          text: 'ROBAR',
+                          width: 140,
+                          asset: 'assets/images/ui/btn_verde.png',
+                          onPressed: () {
+                            setState(() => _isBanqueroOpen = true);
+                          },
+                        ),
+                        const SizedBox(width: 20),
+                      ],
                       _buildPixelButton(
-                        text: 'ROBAR',
+                        text: 'TIENDA',
                         width: 140,
-                        asset: 'assets/images/ui/btn_verde.png',
-                        onPressed: () {
-                          setState(() => _isBanqueroOpen = true);
-                        },
+                        onPressed: () => setState(() => _isShopOpen = true),
                       ),
                       const SizedBox(width: 20),
+                      _buildPixelButton(
+                        text: hasTwoDice ? 'TIRAR DADOS' : 'TIRAR DADO',
+                        onPressed: () {
+                          setState(() => _hasRolledThisTurn = true);
+                          ref
+                              .read(webSocketProvider)
+                              .rollDiceCommand(gameId, myUsername);
+                        },
+                      ),
                     ],
-                    _buildPixelButton(
-                      text: 'TIENDA',
-                      width: 140,
-                      onPressed: () => setState(() => _isShopOpen = true),
-                    ),
-                    const SizedBox(width: 20),
-                    _buildPixelButton(
-                      text: hasTwoDice ? 'TIRAR DADOS' : 'TIRAR DADO',
-                      onPressed: () {
-                        setState(() => _hasRolledThisTurn = true);
-                        ref
-                            .read(webSocketProvider)
-                            .rollDiceCommand(gameId, myUsername);
-                      },
-                    ),
-                  ],
-                ),
+                  ),
+                ],
               ],
             ),
           ),
@@ -1558,14 +1565,14 @@ class _TurnTimerWidgetState extends State<TurnTimerWidget> {
       top: 20,
       right: 20,
       child: Container(
-        width: 80,
-        height: 100,
+        width: 120,
+        height: 140,
         decoration: BoxDecoration(
           color: const Color(0xFF1a1a2e).withValues(alpha: 0.9),
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(16),
           border:
-              Border.all(color: Colors.amber.withValues(alpha: 0.6), width: 2),
-          boxShadow: const [BoxShadow(color: Colors.black54, blurRadius: 4)],
+              Border.all(color: Colors.amber.withValues(alpha: 0.6), width: 3),
+          boxShadow: const [BoxShadow(color: Colors.black54, blurRadius: 6)],
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -1574,14 +1581,14 @@ class _TurnTimerWidgetState extends State<TurnTimerWidget> {
               'TIEMPO',
               style: TextStyle(
                 fontFamily: 'Retro Gaming',
-                fontSize: 10,
+                fontSize: 14,
                 color: Colors.amber,
               ),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 12),
             SizedBox(
-              width: 50,
-              height: 50,
+              width: 80,
+              height: 80,
               child: Stack(
                 fit: StackFit.expand,
                 children: [
@@ -1589,14 +1596,14 @@ class _TurnTimerWidgetState extends State<TurnTimerWidget> {
                     value: progress,
                     color: color,
                     backgroundColor: Colors.white12,
-                    strokeWidth: 6,
+                    strokeWidth: 8,
                   ),
                   Center(
                     child: Text(
                       '$_timeLeft',
                       style: TextStyle(
                         fontFamily: 'Retro Gaming',
-                        fontSize: 20,
+                        fontSize: 32,
                         color: color,
                         fontWeight: FontWeight.bold,
                       ),

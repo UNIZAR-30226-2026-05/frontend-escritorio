@@ -113,8 +113,8 @@ class _RuletaModalState extends ConsumerState<RuletaModal>
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 380,
-      height: 560,
+      width: 500,
+      height: 640,
       decoration: BoxDecoration(
         color: const Color(0xFF141927), // Fondo azul oscuro
         borderRadius: BorderRadius.circular(16),
@@ -159,8 +159,8 @@ class _RuletaModalState extends ConsumerState<RuletaModal>
 
         // Contenedor de la Ruleta
         SizedBox(
-          width: 260,
-          height: 260,
+          width: 360,
+          height: 360,
           child: Stack(
             clipBehavior: Clip.none,
             alignment: Alignment.center,
@@ -177,7 +177,7 @@ class _RuletaModalState extends ConsumerState<RuletaModal>
                 child: Stack(
                   children: [
                     CustomPaint(
-                      size: const Size(260, 260),
+                      size: const Size(360, 360),
                       painter: _WheelPainter(),
                     ),
                     _buildSliceContent('+3\nCASILLAS', -pi / 4),
@@ -189,15 +189,15 @@ class _RuletaModalState extends ConsumerState<RuletaModal>
               ),
               // Puntero naranja fijo arriba
               Positioned(
-                top: -24,
+                top: -30,
                 child: Column(
                   children: [
                     const Icon(Icons.arrow_drop_down,
-                        color: Color(0xFFE65100), size: 60),
+                        color: Color(0xFFE65100), size: 80),
                     Container(
-                      width: 10,
-                      height: 10,
-                      transform: Matrix4.translationValues(0, -15, 0),
+                      width: 14,
+                      height: 14,
+                      transform: Matrix4.translationValues(0, -20, 0),
                       decoration: const BoxDecoration(
                         color: Colors.white,
                         shape: BoxShape.circle,
@@ -282,18 +282,18 @@ class _RuletaModalState extends ConsumerState<RuletaModal>
 
   // Pinta el texto rotado mirando hacia el centro
   Widget _buildSliceContent(String text, double angle) {
-    const double radius = 80;
-    final double x = 130 + radius * cos(angle);
-    final double y = 130 + radius * sin(angle);
+    const double radius = 110;
+    final double x = 180 + radius * cos(angle);
+    final double y = 180 + radius * sin(angle);
 
     return Positioned(
-      left: x - 40,
-      top: y - 40,
+      left: x - 50,
+      top: y - 50,
       child: Transform.rotate(
         angle: angle + pi / 2, // Hace que la base del texto apunte al centro
         child: SizedBox(
-          width: 80,
-          height: 80,
+          width: 100,
+          height: 100,
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
@@ -302,7 +302,7 @@ class _RuletaModalState extends ConsumerState<RuletaModal>
                 textAlign: TextAlign.center,
                 style: const TextStyle(
                   fontFamily: 'Retro Gaming',
-                  fontSize: 10,
+                  fontSize: 14,
                   fontWeight: FontWeight.bold,
                   color: Colors.black87,
                 ),

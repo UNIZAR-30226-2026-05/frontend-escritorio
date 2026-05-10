@@ -559,10 +559,10 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
 
               // El Modal de la tienda se movió más abajo para prioridad de z-index
 
-              // UI OVERLAY: Dado (Solo si es mi turno y no he tirado aun)
-              if (isMyTurn &&
-                  gameState.currentPhase == GamePhase.boardTurn &&
-                  !_hasRolledThisTurn &&
+              // UI OVERLAY: Dado (Se muestra el previo a tirar para todos)
+              if (gameState.currentPhase == GamePhase.boardTurn &&
+                  (!isMyTurn || !_hasRolledThisTurn) &&
+                  !_showingDiceResult &&
                   !gameState.isMovementActive &&
                   !gameState.isWaitingForMinigameChoice &&
                   gameState.obtainedItemName == null &&

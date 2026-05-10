@@ -483,6 +483,20 @@ class WebSocketService {
           // no aquí (que es broadcast a todos), para evitar que se bloquee
           // checkAndFinalizeTurn en jugadores que nunca recibirán ini_minijuego.
           _ref.read(gameProvider.notifier).updateMinigameDetails(decoded);
+
+          final name = decoded['minijuego'] as String?;
+          final user = decoded['user'] as String?;
+          final myUsername = _ref.read(authProvider).username;
+
+          // Para Doble o Nada, los espectadores no reciben ini_minijuego, así que
+          // forzamos el inicio del minijuego localmente para que se renderice el overlay de espera.
+          if (name == 'Doble o Nada' && user != myUsername) {
+            _ref.read(gameProvider.notifier).startMinigame(
+                  name: name!,
+                  description: decoded['descripcion'],
+                  details: decoded,
+                );
+          }
           break;
 
         case 'info':

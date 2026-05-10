@@ -68,6 +68,19 @@ class _MinigameOverlayState extends ConsumerState<MinigameOverlay> {
   }
 
   void _startCountdown() {
+    final gameState = ref.read(gameProvider);
+    final myUsername = ref.read(authProvider).username;
+    
+    // Si somos espectadores en Doble o Nada, saltamos el countdown para que
+    // aparezca inmediatamente la pantalla de espera sin el título de "MINIJUEGO"
+    if (gameState.minigameName == 'Doble o Nada' && gameState.activePlayerName != myUsername) {
+      setState(() {
+        _countdownFinished = true;
+        _countdown = 0;
+      });
+      return;
+    }
+
     // Guardamos el timer en la variable
     _countdownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
       // Si el widget ya no existe, cancelamos el timer y salimos
@@ -274,11 +287,9 @@ class _MinigameOverlayState extends ConsumerState<MinigameOverlay> {
   // Widgets auxiliares
 
   Widget _buildDobleNadaWaitingScreen(String activePlayer) {
-    return Container(
-      color: Colors.black.withValues(alpha: 0.85),
-      child: Center(
-        child: Container(
-          width: 500,
+    return Center(
+      child: Container(
+        width: 500,
           padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 20),
           decoration: BoxDecoration(
             color: const Color(0xFF2A1B38),
@@ -348,11 +359,9 @@ class _MinigameOverlayState extends ConsumerState<MinigameOverlay> {
       titleText = ganado ? '${activePlayer.toUpperCase()} HA\nGANADO' : '${activePlayer.toUpperCase()} HA\nPERDIDO';
     }
 
-    return Container(
-      color: Colors.black.withValues(alpha: 0.85),
-      child: Center(
-        child: Container(
-          width: 500,
+    return Center(
+      child: Container(
+        width: 500,
           padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 20),
           decoration: BoxDecoration(
             color: const Color(0xFF2A1B38),

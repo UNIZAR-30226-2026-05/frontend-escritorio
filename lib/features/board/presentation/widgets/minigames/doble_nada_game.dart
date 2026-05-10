@@ -64,16 +64,17 @@ class _DobleNadaGameState extends State<DobleNadaGame> {
 
         return Center(
           child: Container(
-            padding: const EdgeInsets.all(32),
+            width: 340,
+            padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 24),
             decoration: BoxDecoration(
-              color: const Color(0xDD2D1B4E),
+              color: const Color(0xFF2A1B38),
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: Colors.purpleAccent, width: 4),
+              border: Border.all(color: const Color(0xFFFF00FF), width: 2),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.purple.withValues(alpha: 0.5),
-                  blurRadius: 20,
-                  spreadRadius: 5,
+                  color: const Color(0xFFFF00FF).withValues(alpha: 0.3),
+                  blurRadius: 15,
+                  spreadRadius: 2,
                 )
               ],
             ),
@@ -81,42 +82,27 @@ class _DobleNadaGameState extends State<DobleNadaGame> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 const Text(
-                  "DOBLE O NADA",
+                  "¿DOBLE O\nNADA?",
+                  textAlign: TextAlign.center,
                   style: TextStyle(
-                    color: Colors.amber,
-                    fontSize: 32,
-                    fontWeight: FontWeight.bold,
-                    fontFamily: 'Retro Gaming',
-                  ),
-                ),
-                const SizedBox(height: 20),
-                Text(
-                  "Tus monedas: $maxCoins 🪙",
-                  style: const TextStyle(
                     color: Colors.white,
-                    fontSize: 20,
-                    fontFamily: 'Retro Gaming',
-                  ),
-                ),
-                const SizedBox(height: 30),
-                Text(
-                  "Apuesta: $_apuesta 🪙",
-                  style: const TextStyle(
-                    color: Colors.amberAccent,
-                    fontSize: 40,
+                    fontSize: 28,
                     fontWeight: FontWeight.bold,
                     fontFamily: 'Retro Gaming',
+                    height: 1.2,
                   ),
                 ),
-                const SizedBox(height: 40),
+                const SizedBox(height: 32),
+
+                // Selector de apuesta
                 Row(
-                  mainAxisSize: MainAxisSize.min,
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     // Botón Menos (-)
                     RetroImgButton(
                       label: '-',
                       asset: 'assets/images/ui/btn_morado.png',
-                      width: 60,
+                      width: 52,
                       height: 52,
                       fontSize: 30,
                       onTap: (_enviado || _apuesta <= 0)
@@ -125,29 +111,48 @@ class _DobleNadaGameState extends State<DobleNadaGame> {
                               setState(() => _apuesta--);
                             },
                     ),
-                    const SizedBox(width: 20),
+                    const SizedBox(width: 12),
 
-                    // Botón Jugar
-                    RetroImgButton(
-                      label: 'JUGAR',
-                      asset: 'assets/images/ui/btn_verde.png',
-                      width: 160,
-                      height: 52,
-                      fontSize: 16,
-                      onTap: _enviado
-                          ? null
-                          : () {
-                              setState(() => _enviado = true);
-                              widget.onFinish(_apuesta);
-                            },
+                    // Cuadro de Apuesta
+                    Container(
+                      width: 120,
+                      height: 60,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF1D1128),
+                        border: Border.all(color: Colors.white24, width: 2),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Text(
+                            "APUESTA",
+                            style: TextStyle(
+                              color: Colors.white70,
+                              fontSize: 10,
+                              fontFamily: 'Retro Gaming',
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            "$_apuesta¢",
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                              fontFamily: 'Retro Gaming',
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                    const SizedBox(width: 20),
+                    const SizedBox(width: 12),
 
                     // Botón Más (+)
                     RetroImgButton(
                       label: '+',
                       asset: 'assets/images/ui/btn_morado.png',
-                      width: 60,
+                      width: 52,
                       height: 52,
                       fontSize: 28,
                       onTap: (_enviado || _apuesta >= maxCoins)
@@ -157,6 +162,47 @@ class _DobleNadaGameState extends State<DobleNadaGame> {
                             },
                     ),
                   ],
+                ),
+                const SizedBox(height: 24),
+
+                // Botón Acción
+                RetroImgButton(
+                  label: _apuesta == 0 ? 'PASAR' : 'APOSTAR $_apuesta¢',
+                  asset: _apuesta == 0
+                      ? 'assets/images/ui/btn_rojo.png'
+                      : 'assets/images/ui/btn_verde.png',
+                  width: 200,
+                  height: 52,
+                  fontSize: 16,
+                  onTap: _enviado
+                      ? null
+                      : () {
+                          setState(() => _enviado = true);
+                          widget.onFinish(_apuesta);
+                        },
+                ),
+                const SizedBox(height: 24),
+
+                // Footer
+                Text(
+                  "TU SALDO: $maxCoins¢",
+                  style: const TextStyle(
+                    color: Colors.amber,
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                    fontFamily: 'Retro Gaming',
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  _apuesta == 0
+                      ? "PASAR NO CAMBIA TU BALANCE"
+                      : "AJUSTA LA APUESTA Y CONFIRMA ABAJO",
+                  style: const TextStyle(
+                    color: Colors.white60,
+                    fontSize: 8,
+                    fontFamily: 'Retro Gaming',
+                  ),
                 ),
               ],
             ),

@@ -269,6 +269,22 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
     final myUsername = ref.watch(authProvider).username;
     final isMyTurn = myUsername == activePlayerId && activePlayerId.isNotEmpty;
 
+    final me = gameState.players.firstWhere((p) => p.username == myUsername,
+        orElse: () => gameState.players.first);
+    final bool isBanquero = me.characterClass == CharacterClass.banquero;
+    final bool canRobAnyone = gameState.players
+        .where((p) => p.username != myUsername)
+        .any((p) => p.coins > 0);
+    final bool shouldForceBanquero = isMyTurn &&
+        isBanquero &&
+        !_hasUsedBanqueroSkill &&
+        canRobAnyone &&
+        gameState.currentPhase == GamePhase.boardTurn &&
+        !gameState.isMovementActive &&
+        gameState.obtainedItemName == null &&
+        (gameState.minigameChoices == null ||
+            gameState.minigameChoices!.isEmpty);
+
     // Arrancar / cancelar el timer de selección cuando el Videojugador recibe sus opciones
     ref.listen(
       gameProvider.select((s) => s.minigameChoices),
@@ -621,15 +637,18 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
                 ),
 
               // UI OVERLAY: Modal del Banquero (ENCIMA DEL TABLERO)
-              if (_isBanqueroOpen)
+              if (_isBanqueroOpen || shouldForceBanquero)
                 Positioned.fill(
                   child: Stack(
                     children: [
-                      GestureDetector(
-                        onTap: () => setState(() => _isBanqueroOpen = false),
-                        child: Container(
-                            color: Colors.black.withValues(alpha: 0.6)),
-                      ),
+                      if (!shouldForceBanquero)
+                        GestureDetector(
+                          onTap: () => setState(() => _isBanqueroOpen = false),
+                          child: Container(
+                              color: Colors.black.withValues(alpha: 0.6)),
+                        )
+                      else
+                        Container(color: Colors.black.withValues(alpha: 0.6)),
                       Center(
                         child: BanqueroModal(
                           onClose: () =>
@@ -857,23 +876,6 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
                   Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      // Habilidad del Banquero integrada
-                      if (!_hasUsedBanqueroSkill &&
-                          gameState.players
-                                  .firstWhere((p) => p.username == myUsername,
-                                      orElse: () => gameState.players.first)
-                                  .characterClass ==
-                              CharacterClass.banquero) ...[
-                        _buildPixelButton(
-                          text: 'ROBAR',
-                          width: 140,
-                          asset: 'assets/images/ui/btn_verde.png',
-                          onPressed: () {
-                            setState(() => _isBanqueroOpen = true);
-                          },
-                        ),
-                        const SizedBox(width: 20),
-                      ],
                       _buildPixelButton(
                         text: 'TIENDA',
                         width: 140,

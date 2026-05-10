@@ -83,8 +83,9 @@ class BanqueroModal extends ConsumerWidget {
               children: otherPlayers.map((player) {
                 final isEscapista =
                     player.characterClass == CharacterClass.escapista;
-                final amountToRob = isEscapista ? 1 : 2;
-                final canRob = player.coins >= amountToRob;
+                final maxToRob = isEscapista ? 1 : 2;
+                final amountToRob = player.coins > maxToRob ? maxToRob : player.coins;
+                final canRob = amountToRob > 0;
 
                 // Color de botón según el mockup (david/escapista es purpura, otros verde)
                 final buttonAsset = isEscapista

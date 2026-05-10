@@ -828,6 +828,24 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
+          if (gameState.turnTheftMessage != null)
+            Container(
+              margin: const EdgeInsets.only(bottom: 20),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              decoration: BoxDecoration(
+                color: Colors.black.withValues(alpha: 0.7),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.redAccent, width: 2),
+              ),
+              child: Text(
+                gameState.turnTheftMessage!,
+                style: const TextStyle(
+                  fontFamily: 'Retro Gaming',
+                  fontSize: 14,
+                  color: Colors.white,
+                ),
+              ),
+            ),
           if (purchases.isNotEmpty)
             Padding(
               padding: const EdgeInsets.only(bottom: 20),

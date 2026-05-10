@@ -197,6 +197,9 @@ class GameState {
   // Items comprados en este turno
   final Map<String, int> turnPurchasedItems;
 
+  // Mensaje de robo del banquero en este turno
+  final String? turnTheftMessage;
+
   // Evento bloqueante individual (Doble o Nada, ruleta) — bloquea al siguiente jugador
 
 
@@ -226,6 +229,7 @@ class GameState {
     this.winnerName,
     this.hasImprovedDice = false,
     this.turnPurchasedItems = const {},
+    this.turnTheftMessage,
   });
 
   GameState copyWith({
@@ -253,6 +257,7 @@ class GameState {
     String? winnerName,
     bool? hasImprovedDice,
     Map<String, int>? turnPurchasedItems,
+    String? turnTheftMessage,
   }) {
     return GameState(
       currentPhase: currentPhase ?? this.currentPhase,
@@ -280,6 +285,7 @@ class GameState {
       winnerName: winnerName ?? this.winnerName,
       hasImprovedDice: hasImprovedDice ?? this.hasImprovedDice,
       turnPurchasedItems: turnPurchasedItems ?? this.turnPurchasedItems,
+      turnTheftMessage: turnTheftMessage ?? this.turnTheftMessage,
     );
   }
 }

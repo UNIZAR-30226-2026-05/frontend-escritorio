@@ -374,6 +374,15 @@ class WebSocketService {
 
           break;
 
+        case 'robar_banquero':
+          final victima = decoded['nombre'] as String;
+          final monedas = decoded['monedas'] as int;
+          // El banquero es el jugador activo actualmente en su turno
+          final banquero = _ref.read(gameProvider).activePlayerName ?? 'Banquero';
+          final message = '${banquero.toUpperCase()} HA ROBADO $monedas MONEDA${monedas > 1 ? 'S' : ''} A ${victima.toUpperCase()}';
+          _ref.read(gameProvider.notifier).setTurnTheftMessage(message);
+          break;
+
         case 'round_ended':
           debugPrint(
               "Fin de ronda detectado. Esperando elección de minijuego...");
@@ -491,11 +500,19 @@ class WebSocketService {
           // Para Doble o Nada, los espectadores no reciben ini_minijuego, así que
           // forzamos el inicio del minijuego localmente para que se renderice el overlay de espera.
           if (name == 'Doble o Nada' && user != myUsername) {
-            _ref.read(gameProvider.notifier).startMinigame(
-                  name: name!,
-                  description: decoded['descripcion'],
-                  details: decoded,
-                );
+            Future.doWhile(() async {
+              if (_ref.read(gameProvider.notifier).isAnimationQueueEmpty) {
+                return false;
+              }
+              await Future.delayed(const Duration(milliseconds: 200));
+              return true;
+            }).then((_) {
+              _ref.read(gameProvider.notifier).startMinigame(
+                    name: name!,
+                    description: decoded['descripcion'],
+                    details: decoded,
+                  );
+            });
           }
           break;
 

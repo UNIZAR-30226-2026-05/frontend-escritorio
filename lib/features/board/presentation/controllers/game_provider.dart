@@ -329,7 +329,14 @@ class GameController extends StateNotifier<GameState> {
   }
 
   void clearTurnPurchasedItems() {
-    state = state.copyWith(turnPurchasedItems: {});
+    state = state.copyWith(
+      turnPurchasedItems: {},
+      turnTheftMessage: null,
+    );
+  }
+
+  void setTurnTheftMessage(String message) {
+    state = state.copyWith(turnTheftMessage: message);
   }
 
   /// Actualiza los detalles del minijuego actual fusionando los nuevos datos.
@@ -439,6 +446,8 @@ class GameController extends StateNotifier<GameState> {
       obtainedItemName: null,
       obtainedItemDesc: null,
       obtainedItemPlayer: null,
+      turnPurchasedItems: state.turnPurchasedItems,
+      turnTheftMessage: state.turnTheftMessage,
     );
 
     if (_rouletteCompleter != null && !_rouletteCompleter!.isCompleted) {

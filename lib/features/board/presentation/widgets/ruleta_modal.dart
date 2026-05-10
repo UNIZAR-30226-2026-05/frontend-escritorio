@@ -187,22 +187,15 @@ class _RuletaModalState extends ConsumerState<RuletaModal>
                   ],
                 ),
               ),
-              // Puntero naranja fijo arriba
-              Positioned(
-                top: -30,
-                child: Column(
-                  children: [
-                    const Icon(Icons.arrow_drop_down,
-                        color: Color(0xFFE65100), size: 80),
-                    Container(
-                      width: 14,
-                      height: 14,
-                      transform: Matrix4.translationValues(0, -20, 0),
-                      decoration: const BoxDecoration(
-                        color: Colors.white,
-                        shape: BoxShape.circle,
-                      ),
-                    ),
+              // Flecha naranja fija arriba que indica el premio
+              const Positioned(
+                top: -20,
+                child: Icon(
+                  Icons.arrow_downward_rounded,
+                  color: Color(0xFFE65100),
+                  size: 60,
+                  shadows: [
+                    Shadow(color: Colors.black54, blurRadius: 4, offset: Offset(0, 2))
                   ],
                 ),
               ),

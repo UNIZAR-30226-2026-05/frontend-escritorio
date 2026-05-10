@@ -69,6 +69,17 @@ class LobbyService {
     throw Exception('Error al buscar usuarios: ${response.statusCode}');
   }
 
+  // Elimina la amistad entre dos usuarios.
+  Future<bool> removeAmigo(String user1, String user2, String token) async {
+    final response = await http.delete(
+      Uri.parse(
+        '${ApiConstants.baseUrl}/usuarios/amigos?user1=${Uri.encodeComponent(user1)}&user2=${Uri.encodeComponent(user2)}',
+      ),
+      headers: _authHeaders(token),
+    );
+    return response.statusCode == 200;
+  }
+
   // Llama al endpoint para unirse a una partida existente antes de conectar el WS.
   // Devuelve void si el servidor acepta al jugador; lanza excepción si no.
   Future<void> unirsePartida(String gameId, String token) async {

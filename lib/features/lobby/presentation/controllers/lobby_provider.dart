@@ -287,6 +287,14 @@ class LobbyController extends StateNotifier<LobbyState> {
     );
   }
 
+  // Elimina un amigo del estado local tras borrarlo en el backend.
+  void removeFriend(String username) {
+    state = state.copyWith(
+      allFriends: {...state.allFriends}..remove(username),
+      onlineFriends: {...state.onlineFriends}..remove(username),
+    );
+  }
+
   // Registra que el jugador local ha enviado una invitación de partida al
   // usuario indicado para poder pintar el chip "Invitado" en la UI.
   void markInviteSent(String friendId) {

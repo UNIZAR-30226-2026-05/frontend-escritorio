@@ -463,7 +463,8 @@ class _LeftPanel extends ConsumerWidget {
 
           SizedBox(height: h * 0.025),
 
-          Expanded(
+          SizedBox(
+            height: h * 0.55,
             child: invites.isEmpty
                 ? Text(
                     'No tienes invitaciones\npendientes',
@@ -486,7 +487,10 @@ class _LeftPanel extends ConsumerWidget {
                         height: h * 0.055,
                         fontSize: textSize * 1.3,
                         onJoin: () => onJoinInvite(invite.gameId),
-                        onDismiss: () => onDismissInvite(invite.gameId),
+                        onDismiss: () {
+                          ref.read(sessionWebSocketProvider).rejectInvite(invite.fromUser);
+                          onDismissInvite(invite.gameId);
+                        },
                       );
                     },
                   ),
@@ -985,7 +989,8 @@ class _RightPanel extends ConsumerWidget {
 
           SizedBox(height: h * 0.025),
 
-          Expanded(
+          SizedBox(
+            height: h * 0.45,
             child: (requests.isEmpty && friends.isEmpty)
                 ? Text(
                     'No tienes amigos\naún',

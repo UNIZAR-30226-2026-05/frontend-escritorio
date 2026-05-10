@@ -73,6 +73,25 @@ class _FriendSearchModalState extends ConsumerState<FriendSearchModal> {
     }
   }
 
+  Future<void> _removeAmigo(String friendUsername) async {
+    final auth = ref.read(authProvider);
+    final currentUser = auth.username ?? '';
+    final token = auth.token ?? '';
+    final ok = await _service.removeAmigo(currentUser, friendUsername, token);
+    if (!mounted) return;
+    if (ok) {
+      ref.read(lobbyProvider.notifier).removeFriend(friendUsername);
+      setState(() {});
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('No se pudo eliminar el amigo'),
+          duration: Duration(seconds: 2),
+        ),
+      );
+    }
+  }
+
   void _sendRequest(String playerId) {
     ref.read(sessionWebSocketProvider).sendFriendRequest(playerId);
     ScaffoldMessenger.of(context).showSnackBar(
@@ -149,7 +168,7 @@ class _FriendSearchModalState extends ConsumerState<FriendSearchModal> {
                   onTap: () => Navigator.of(context).pop(),
                   child: const Padding(
                     padding: EdgeInsets.all(4),
-                    child: Icon(Icons.close, color: Colors.white, size: 22),
+                    child: Text('X', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold, fontFamily: 'Retro Gaming')),
                   ),
                 ),
               ],
@@ -287,6 +306,9 @@ class _FriendSearchModalState extends ConsumerState<FriendSearchModal> {
           onAnyadir: status == _SearchRowStatus.anyadir
               ? () => _sendRequest(username)
               : null,
+          onEliminar: status == _SearchRowStatus.amigo
+              ? () => _removeAmigo(username)
+              : null,
         );
       },
     );
@@ -299,11 +321,13 @@ class _SearchRow extends StatelessWidget {
   final String username;
   final _SearchRowStatus status;
   final VoidCallback? onAnyadir;
+  final VoidCallback? onEliminar;
 
   const _SearchRow({
     required this.username,
     required this.status,
     required this.onAnyadir,
+    this.onEliminar,
   });
 
   @override
@@ -361,13 +385,13 @@ class _SearchRow extends StatelessWidget {
           onTap: null,
         );
       case _SearchRowStatus.amigo:
-        return const RetroImgButton(
-          label: 'Amigo',
-          asset: 'assets/images/ui/btn_verde.png',
+        return RetroImgButton(
+          label: 'Eliminar',
+          asset: 'assets/images/ui/btn_rojo.png',
           width: 90,
           height: 30,
           fontSize: 11,
-          onTap: null,
+          onTap: onEliminar,
         );
     }
   }

@@ -30,9 +30,6 @@ class SessionWebSocketService {
   // sin resolver y revertimos la marca "Pendiente" de ese usuario.
   final List<String> _pendingFriendRequestTargets = [];
 
-  // Timers de expiración de invitaciones enviadas. Si el destinatario no acepta
-  // en 45 s se elimina la marca "Invitado" para permitir reenvío.
-  final Map<String, Timer> _inviteExpireTimers = {};
 
   // Credenciales para reconexión automática si se cae la conexión.
   String? _savedUsername;
@@ -71,8 +68,9 @@ class SessionWebSocketService {
         },
       );
 
-      // Pide la lista de amigos online nada más conectar.
+      // Pide la lista de amigos online y las solicitudes pendientes al conectar.
       _sendRaw({'action': 'get_online_friends'});
+      _sendRaw({'action': 'get_pending_request'});
 
       // Obtiene la lista completa de amigos (online + offline) vía HTTP.
       _ref.read(lobbyProvider.notifier).fetchAllFriends(username, token);
@@ -164,13 +162,11 @@ class SessionWebSocketService {
           break;
 
         // El destinatario rechazó nuestra invitación: permitimos reenviarla.
-        case 'invite_declined':
-        case 'invite_rejected':
-          final fromUser = decoded['from_user']?.toString() ?? decoded['friend_id']?.toString() ?? '';
-          if (fromUser.isNotEmpty) {
-            _inviteExpireTimers[fromUser]?.cancel();
-            _inviteExpireTimers.remove(fromUser);
-            notifier.clearInviteSent(fromUser);
+        // El back usa "reject_invite" con campo "username" = quien rechazó.
+        case 'reject_invite':
+          final rejector = decoded['username']?.toString() ?? '';
+          if (rejector.isNotEmpty) {
+            notifier.clearInviteSent(rejector);
           }
           break;
 
@@ -232,16 +228,8 @@ class SessionWebSocketService {
       }
     });
     _ref.read(lobbyProvider.notifier).markInviteSent(friendId);
-
-    // Expira la marca "Invitado" tras 45 s si el destinatario no acepta/rechaza.
-    _inviteExpireTimers[friendId]?.cancel();
-    _inviteExpireTimers[friendId] = Timer(
-      const Duration(seconds: 45),
-      () {
-        _inviteExpireTimers.remove(friendId);
-        _ref.read(lobbyProvider.notifier).clearInviteSent(friendId);
-      },
-    );
+    // El back envía invite_declined/invite_rejected cuando el destinatario rechaza,
+    // por lo que no necesitamos timer de expiración local.
   }
 
   // Envía una solicitud de amistad a otro usuario.
@@ -258,17 +246,22 @@ class SessionWebSocketService {
   }
 
   // Acepta una solicitud de amistad pendiente.
+  // El back envía automáticamente online_friends_list a ambas partes tras aceptar.
   void acceptFriendRequest(String playerId) {
     _sendRaw({
       'action': 'accept_request',
       'payload': {'player_id': playerId}
     });
     _ref.read(lobbyProvider.notifier).removeFriendRequest(playerId);
-    _sendRaw({'action': 'get_online_friends'});
-    // Refresca la lista completa de amigos para incluir al recién aceptado.
-    if (_savedUsername != null && _savedToken != null) {
-      _ref.read(lobbyProvider.notifier).fetchAllFriends(_savedUsername!, _savedToken!);
-    }
+  }
+
+  // Notifica al back que el usuario rechaza una invitación de partida.
+  // El back reenvía el mensaje al invitador para que pueda limpiar el chip "Invitado".
+  void rejectInvite(String inviterId) {
+    _sendRaw({
+      'action': 'reject_invite',
+      'payload': {'friend_id': inviterId}
+    });
   }
 
   // Rechaza una solicitud de amistad pendiente.
@@ -285,10 +278,6 @@ class SessionWebSocketService {
     _intentionalDisconnect = true;
     _reconnectTimer?.cancel();
     _reconnectTimer = null;
-    for (final t in _inviteExpireTimers.values) {
-      t.cancel();
-    }
-    _inviteExpireTimers.clear();
     _channel?.sink.close();
     _channel = null;
     _isConnected = false;

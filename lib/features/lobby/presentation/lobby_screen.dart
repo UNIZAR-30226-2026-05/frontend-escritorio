@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 // Importa los servicios y providers específicos del lobby, así como el provider de autenticación
 import '../data/lobby_websocket_service.dart';
 import '../data/session_websocket_service.dart';
+import '../domain/lobby_models.dart';
 import 'controllers/lobby_provider.dart';
 import '../../auth/presentation/controllers/auth_provider.dart';
 import '../../../core/widgets/retro_widgets.dart';
@@ -129,6 +130,19 @@ class _LobbyScreenState extends ConsumerState<LobbyScreen> {
     }
   }
 
+  // Une al usuario a la partida de una invitación recibida y la elimina de la lista.
+  Future<void> _joinInvite(String gameId) async {
+    final token = ref.read(authProvider).token!;
+    ref.read(lobbyWebSocketProvider).disconnect();
+    ref.read(lobbyProvider.notifier).clearGameSession();
+    final accepted =
+        await ref.read(lobbyProvider.notifier).unirsePartida(gameId, token);
+    if (accepted && mounted) {
+      ref.read(lobbyWebSocketProvider).connect(gameId, token);
+    }
+    ref.read(lobbyProvider.notifier).removeInvite(gameId);
+  }
+
   // Metodo privado para cerrar el WebSocket, resetear el estado del lobby y llamar al logout de auth,
   // lo que redirigirá automáticamente a la pantalla de login por el router.
   Future<void> _logout() async {
@@ -168,47 +182,10 @@ class _LobbyScreenState extends ConsumerState<LobbyScreen> {
         // Limpia el flag de forceDisconnected para que el mensaje solo se muestre una vez.
         ref.read(lobbyProvider.notifier).clearForceDisconnected();
       }
-      // Al recibir una nueva invitación de partida muestra la notificación
-      // tipo SnackBar con el username del remitente y el código para unirse.
+      // Las invitaciones ya se muestran en el panel izquierdo; solo limpiamos
+      // lastInvite para que el flag no quede activo indefinidamente.
       if (next.lastInvite != null &&
           (prev == null || prev.lastInvite != next.lastInvite)) {
-        final invite = next.lastInvite!;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            backgroundColor: const Color(0xFF2D1B4E),
-            duration: const Duration(seconds: 6),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  '¡${invite.fromUser} te ha invitado!',
-                  style: const TextStyle(
-                    fontFamily: 'Retro Gaming',
-                    color: Colors.white,
-                    fontSize: 14,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  'Únete con el código: ${invite.gameId}',
-                  style: const TextStyle(
-                    fontFamily: 'Retro Gaming',
-                    color: Colors.white70,
-                    fontSize: 12,
-                  ),
-                ),
-              ],
-            ),
-            action: SnackBarAction(
-              label: 'Copiar',
-              textColor: Colors.amberAccent,
-              onPressed: () {
-                _codeController.text = invite.gameId;
-              },
-            ),
-          ),
-        );
         ref.read(lobbyProvider.notifier).clearLastInvite();
       }
       // Error devuelto por el WS de sesión al enviar una solicitud de amistad
@@ -294,7 +271,15 @@ class _LobbyScreenState extends ConsumerState<LobbyScreen> {
                 // Columna izquierda: partidas de amigos y botón de logout.
                 SizedBox(
                   width: w * 0.33,
-                  child: _LeftPanel(onLogout: _logout, w: w, h: h),
+                  child: _LeftPanel(
+                    onLogout: _logout,
+                    onJoinInvite: _joinInvite,
+                    onDismissInvite: (gameId) =>
+                        ref.read(lobbyProvider.notifier).removeInvite(gameId),
+                    username: username,
+                    w: w,
+                    h: h,
+                  ),
                 ),
                 // Columna central: crear partida / cambiar contraseña.
                 SizedBox(
@@ -357,27 +342,48 @@ class _LobbyScreenState extends ConsumerState<LobbyScreen> {
             ),
           ),
 
-          // Botón engranaje "Cambiar Contraseña" (esquina inferior izquierda)
+          // Botones inferiores izquierda: ajustes y logout
           Positioned(
             left: 10,
             bottom: 10,
-            child: GestureDetector(
-              onTap: () =>
-                  setState(() => _showPasswordChange = !_showPasswordChange),
-              child: Container(
-                width: 42,
-                height: 42,
-                decoration: BoxDecoration(
-                  color: const Color(0xFF2D1B4E),
-                  border: Border.all(color: Colors.white54, width: 1.5),
-                  borderRadius: BorderRadius.circular(6),
+            child: Row(
+              children: [
+                // Engranaje: cambiar contraseña
+                GestureDetector(
+                  onTap: () =>
+                      setState(() => _showPasswordChange = !_showPasswordChange),
+                  child: Container(
+                    width: 42,
+                    height: 42,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF2D1B4E),
+                      border: Border.all(color: Colors.white54, width: 1.5),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    alignment: Alignment.center,
+                    child: const Text(
+                      '⚙️',
+                      style: TextStyle(fontSize: 22),
+                    ),
+                  ),
                 ),
-                alignment: Alignment.center,
-                child: const Text(
-                  '⚙️',
-                  style: TextStyle(fontSize: 22),
+                const SizedBox(width: 8),
+                // Logout
+                GestureDetector(
+                  onTap: _logout,
+                  child: Container(
+                    width: 42,
+                    height: 42,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF2D1B4E),
+                      border: Border.all(color: Colors.white54, width: 1.5),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    alignment: Alignment.center,
+                    child: const Icon(Icons.logout, color: Colors.white54, size: 22),
+                  ),
                 ),
-              ),
+              ],
             ),
           ),
         ],
@@ -387,15 +393,20 @@ class _LobbyScreenState extends ConsumerState<LobbyScreen> {
 }
 
 // COLUMNA IZQUIERDA
-// Muestra el icono de logout y la lista de solicitudes de amistad pendientes.
-// Cada solicitud se puede aceptar o rechazar desde aquí; las acciones se envían
-// al WS de sesión y se eliminan localmente de forma optimista.
+// Muestra el nombre de usuario, el icono de logout y la lista de invitaciones
+// a partida recibidas. Cada invitación puede aceptarse (unirse) o ignorarse.
 class _LeftPanel extends ConsumerWidget {
   final VoidCallback onLogout;
+  final Future<void> Function(String gameId) onJoinInvite;
+  final void Function(String gameId) onDismissInvite;
+  final String username;
   final double w, h;
 
   const _LeftPanel({
     required this.onLogout,
+    required this.onJoinInvite,
+    required this.onDismissInvite,
+    required this.username,
     required this.w,
     required this.h,
   });
@@ -404,31 +415,40 @@ class _LeftPanel extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final titleSize = h * 0.042;
     final textSize = h * 0.020;
-    final requests = ref.watch(
-      lobbyProvider.select((s) => s.friendRequests),
-    );
-    final session = ref.read(sessionWebSocketProvider);
+    final invites = ref.watch(lobbyProvider.select((s) => s.invites));
 
     return Padding(
       padding: EdgeInsets.all(w * 0.018),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Icono de logout alineado a la derecha del panel.
-          Align(
-            alignment: Alignment.topRight,
-            child: GestureDetector(
-              onTap: onLogout,
-              child: Icon(Icons.logout, color: Colors.white54, size: h * 0.030),
-            ),
+          // Fila superior: nombre de usuario centrado-derecha, logout a la derecha.
+          Row(
+            children: [
+              SizedBox(width: w * 0.09),
+              Flexible(
+                child: Text(
+                  username,
+                  overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.left,
+                  style: TextStyle(
+                    fontFamily: 'Retro Gaming',
+                    fontSize: textSize * 2,
+                    color: Colors.white,
+                    shadows: const [
+                      Shadow(color: Colors.white, blurRadius: 12),
+                      Shadow(color: Colors.white54, blurRadius: 5),
+                    ],
+                  ),
+                ),
+              ),
+            ],
           ),
 
-          // Margen superior para que el título no quede tapado por el marco.
           SizedBox(height: h * 0.12),
 
-          // Título retro con doble sombra blanca.
           Text(
-            'Solicitudes\nde amistad',
+            'Invitaciones',
             style: TextStyle(
               fontFamily: 'Retro Gaming',
               fontSize: titleSize,
@@ -443,12 +463,10 @@ class _LeftPanel extends ConsumerWidget {
 
           SizedBox(height: h * 0.025),
 
-          // Si no hay solicitudes pendientes mostramos un texto guía; si hay,
-          // una lista scrollable con aceptar/rechazar por cada solicitud.
           Expanded(
-            child: requests.isEmpty
+            child: invites.isEmpty
                 ? Text(
-                    'No tienes solicitudes\npendientes',
+                    'No tienes invitaciones\npendientes',
                     style: TextStyle(
                       fontFamily: 'Retro Gaming',
                       fontSize: textSize * 0.85,
@@ -458,17 +476,17 @@ class _LeftPanel extends ConsumerWidget {
                   )
                 : ListView.separated(
                     padding: EdgeInsets.zero,
-                    itemCount: requests.length,
+                    itemCount: invites.length,
                     separatorBuilder: (_, __) => SizedBox(height: h * 0.015),
                     itemBuilder: (context, i) {
-                      final from = requests[i];
-                      return _FriendRequestRow(
-                        username: from,
+                      final invite = invites[i];
+                      return _GameInviteRow(
+                        invite: invite,
                         width: w * 0.30,
                         height: h * 0.055,
-                        fontSize: textSize * 0.9,
-                        onAccept: () => session.acceptFriendRequest(from),
-                        onReject: () => session.rejectFriendRequest(from),
+                        fontSize: textSize * 1.3,
+                        onJoin: () => onJoinInvite(invite.gameId),
+                        onDismiss: () => onDismissInvite(invite.gameId),
                       );
                     },
                   ),
@@ -919,6 +937,7 @@ class _RightPanel extends ConsumerWidget {
     final inGame = ref.watch(lobbyProvider.select((s) => s.playersConnected));
     final sent = ref.watch(lobbyProvider.select((s) => s.sentInvites));
     final gameId = ref.watch(lobbyProvider.select((s) => s.gameId));
+    final requests = ref.watch(lobbyProvider.select((s) => s.friendRequests));
     final session = ref.read(sessionWebSocketProvider);
 
     // Online primero (alfabético), luego offline (alfabético).
@@ -967,7 +986,7 @@ class _RightPanel extends ConsumerWidget {
           SizedBox(height: h * 0.025),
 
           Expanded(
-            child: friends.isEmpty
+            child: (requests.isEmpty && friends.isEmpty)
                 ? Text(
                     'No tienes amigos\naún',
                     style: TextStyle(
@@ -977,33 +996,61 @@ class _RightPanel extends ConsumerWidget {
                       height: 1.4,
                     ),
                   )
-                : ListView.separated(
+                : ListView(
                     padding: EdgeInsets.zero,
-                    itemCount: friends.length,
-                    separatorBuilder: (_, __) => SizedBox(height: h * 0.015),
-                    itemBuilder: (context, i) {
-                      final username = friends[i];
-                      final isOnline = online.contains(username);
-                      final status = _resolveStatus(
-                        username: username,
-                        isOnline: isOnline,
-                        inGame: inGame,
-                        sent: sent,
-                        hasActiveGame: gameId != null,
-                      );
-                      return _FriendRow(
-                        username: username,
-                        status: status,
-                        nameWidth: w * 0.16,
-                        chipWidth: w * 0.09,
-                        chipHeight: h * 0.045,
-                        fontSize: textSize * 0.85,
-                        chipFontSize: textSize * 0.75,
-                        onInvite: (status == _FriendChipStatus.invitar && gameId != null)
-                            ? () => session.inviteFriend(username, gameId)
-                            : null,
-                      );
-                    },
+                    children: [
+                      // Solicitudes de amistad pendientes.
+                      if (requests.isNotEmpty) ...[
+                        Text(
+                          'Solicitudes',
+                          style: TextStyle(
+                            fontFamily: 'Retro Gaming',
+                            fontSize: textSize * 0.8,
+                            color: Colors.white54,
+                          ),
+                        ),
+                        SizedBox(height: h * 0.010),
+                        ...requests.map((from) => Padding(
+                              padding: EdgeInsets.only(bottom: h * 0.012),
+                              child: _FriendRequestRow(
+                                username: from,
+                                width: w * 0.30,
+                                height: h * 0.050,
+                                fontSize: textSize * 0.85,
+                                onAccept: () => session.acceptFriendRequest(from),
+                                onReject: () => session.rejectFriendRequest(from),
+                              ),
+                            )),
+                        SizedBox(height: h * 0.015),
+                      ],
+                      // Lista de amigos (online primero, luego offline).
+                      ...friends.map((username) {
+                        final isOnline = online.contains(username);
+                        final status = _resolveStatus(
+                          username: username,
+                          isOnline: isOnline,
+                          inGame: inGame,
+                          sent: sent,
+                          hasActiveGame: gameId != null,
+                        );
+                        return Padding(
+                          padding: EdgeInsets.only(bottom: h * 0.015),
+                          child: _FriendRow(
+                            username: username,
+                            status: status,
+                            nameWidth: w * 0.16,
+                            chipWidth: w * 0.09,
+                            chipHeight: h * 0.045,
+                            fontSize: textSize * 0.85,
+                            chipFontSize: textSize * 0.75,
+                            onInvite: (status == _FriendChipStatus.invitar &&
+                                    gameId != null)
+                                ? () => session.inviteFriend(username, gameId)
+                                : null,
+                          ),
+                        );
+                      }),
+                    ],
                   ),
           ),
         ],
@@ -1214,6 +1261,81 @@ class _FriendChip extends StatelessWidget {
 
 // Fila para la lista de solicitudes de amistad entrantes: nombre del solicitante
 // a la izquierda y dos botones (aceptar / rechazar) a la derecha.
+// Fila de invitación a partida: muestra quién invita y el código de la partida,
+// con botón "Unirse" (verde) e "Ignorar" (rojo).
+class _GameInviteRow extends StatelessWidget {
+  final GameInvite invite;
+  final double width, height, fontSize;
+  final VoidCallback onJoin;
+  final VoidCallback onDismiss;
+
+  const _GameInviteRow({
+    required this.invite,
+    required this.width,
+    required this.height,
+    required this.fontSize,
+    required this.onJoin,
+    required this.onDismiss,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final btnW = height * 1.2;
+    return SizedBox(
+      width: width,
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  invite.fromUser,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontFamily: 'Retro Gaming',
+                    fontSize: fontSize,
+                    color: Colors.white,
+                    shadows: const [
+                      Shadow(color: Colors.white, blurRadius: 10),
+                    ],
+                  ),
+                ),
+                Text(
+                  'Código: ${invite.gameId}',
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontFamily: 'Retro Gaming',
+                    fontSize: fontSize * 0.75,
+                    color: Colors.white54,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          SizedBox(width: height * 0.2),
+          _IconRetroButton(
+            asset: 'assets/images/ui/btn_verde.png',
+            icon: Icons.login,
+            width: btnW,
+            height: height,
+            onTap: onJoin,
+          ),
+          SizedBox(width: height * 0.2),
+          _IconRetroButton(
+            asset: 'assets/images/ui/btn_rojo.png',
+            icon: Icons.close,
+            width: btnW,
+            height: height,
+            onTap: onDismiss,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _FriendRequestRow extends StatelessWidget {
   final String username;
   final double width, height, fontSize;

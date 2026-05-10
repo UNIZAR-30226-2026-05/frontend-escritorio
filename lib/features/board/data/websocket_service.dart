@@ -210,6 +210,7 @@ class WebSocketService {
           _isActionLocked = false;
           _pendingTileMinigame = false;
           _pendingTurnAdvance = false;
+          _ref.read(gameProvider.notifier).clearTurnPurchasedItems();
           break;
 
         case 'dados_mejorados':
@@ -223,6 +224,11 @@ class WebSocketService {
               '¡FIN DE PARTIDA! El jugador $winner ha llegado a la meta.');
           // El cambio a GamePhase.finished lo maneja el game_provider
           // automáticamente cuando la animación del jugador alcanza la casilla final.
+          break;
+
+        case 'objeto_comprado':
+          final objeto = decoded['objeto'] as String? ?? 'Objeto desconocido';
+          _ref.read(gameProvider.notifier).addTurnPurchasedItem(objeto);
           break;
 
         // Tipo de mensaje cuando el jugador cae en una casilla de objeto y le toca intercambiar
@@ -342,20 +348,21 @@ class WebSocketService {
           // LA CLAVE ESTÁ AQUÍ: Comprobamos estrictamente que estamos en el Doble o Nada
           // y que las monedas que han cambiado incluyen al jugador que está apostando.
           if (activeUser != null &&
-              gameState.minigameDetails?['minijuego'] == 'Doble o Nada' &&
+              gameState.minigameName == 'Doble o Nada' &&
               balances.containsKey(activeUser)) {
             final oldPlayer = gameState.players.firstWhere(
                 (p) => p.id == activeUser || p.username == activeUser,
                 orElse: () => gameState.players.first);
             final diff = (balances[activeUser] as int) - oldPlayer.coins;
 
-            // Mostramos a todos lo que ha pasado con la apuesta
-            if (diff != 0) {
-              final msg = diff > 0
-                  ? "¡$activeUser ha GANADO $diff monedas en Doble o Nada! 🪙"
-                  : "¡$activeUser ha PERDIDO ${diff.abs()} monedas en Doble o Nada! 💸";
-              _eventController.add({'type': 'info_message', 'message': msg});
-            }
+            // Computed locally instead of needing a backend change
+            final map = {
+              activeUser: {
+                'apuesta': diff.abs(),
+                'ganado': diff > 0 || diff == 0, // Si es 0 es neutro, ponemos ganado
+              }
+            };
+            _ref.read(gameProvider.notifier).setMinigameResults(map, [activeUser]);
           }
 
           // 2. Para cada jugador en el Map, actualizamos su balance

@@ -822,87 +822,143 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
     final String labelText =
         hasTwoDice ? _extraDiceLabel(effectiveRankForExtraDice) : '1-6 NORMAL';
 
+    final purchases = gameState.turnPurchasedItems.entries.toList();
+
     return Center(
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(24),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
-          child: Container(
-            width: 650,
-            height: 450,
-            padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 32),
-            decoration: BoxDecoration(
-              color: Colors.black.withValues(alpha: 0.3),
-              borderRadius: BorderRadius.circular(24),
-              border: Border.all(
-                  color: Colors.amber.withValues(alpha: 0.6), width: 2),
-            ),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  isMyTurn ? 'ES TU TURNO' : 'TURNO DE ${activePlayerId.toUpperCase()}',
-                  style: const TextStyle(
-                    color: Colors.amber,
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 2,
-                  ),
-                ),
-                const SizedBox(height: 40),
-                const Text(
-                  '?',
-                  style: TextStyle(
-                    fontSize: 80,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                    shadows: [Shadow(color: Colors.black54, blurRadius: 10)],
-                  ),
-                ),
-                const SizedBox(height: 20),
-                Text(
-                  labelText,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                    letterSpacing: 1,
-                  ),
-                ),
-                if (isMyTurn) ...[
-                  const SizedBox(height: 40),
-                  // Botones de acción del turno
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      _buildPixelButton(
-                        text: 'TIENDA',
-                        width: 140,
-                        onPressed: () => setState(() => _isShopOpen = true),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (purchases.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 20),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: purchases.map((e) {
+                  final itemName = e.key.toUpperCase();
+                  final count = e.value;
+                  return Container(
+                    margin: const EdgeInsets.only(bottom: 8),
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.7),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.amber, width: 1),
+                    ),
+                    child: RichText(
+                      text: TextSpan(
+                        style: const TextStyle(
+                          fontFamily: 'Retro Gaming',
+                          fontSize: 14,
+                          color: Colors.white,
+                        ),
+                        children: [
+                          TextSpan(
+                              text: isMyTurn 
+                                  ? 'HAS COMPRADO ' 
+                                  : '${activePlayerId.toUpperCase()} HA COMPRADO '),
+                          TextSpan(
+                              text: itemName,
+                              style: const TextStyle(color: Colors.amber)),
+                          if (count > 1)
+                            TextSpan(
+                              text: ' X$count',
+                              style: const TextStyle(
+                                  color: Colors.redAccent,
+                                  fontWeight: FontWeight.bold),
+                            ),
+                        ],
                       ),
-                      const SizedBox(width: 20),
-                      _buildPixelButton(
-                        text: hasTwoDice ? 'TIRAR DADOS' : 'TIRAR DADO',
-                        onPressed: () {
-                          setState(() => _hasRolledThisTurn = true);
-                          ref
-                              .read(webSocketProvider)
-                              .rollDiceCommand(gameId, myUsername);
-                        },
+                    ),
+                  );
+                }).toList(),
+              ),
+            ),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(24),
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+              child: Container(
+                width: 650,
+                height: 450,
+                padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 32),
+                decoration: BoxDecoration(
+                  color: Colors.black.withValues(alpha: 0.3),
+                  borderRadius: BorderRadius.circular(24),
+                  border: Border.all(
+                      color: Colors.amber.withValues(alpha: 0.6), width: 2),
+                ),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      isMyTurn
+                          ? 'ES TU TURNO'
+                          : 'TURNO DE ${activePlayerId.toUpperCase()}',
+                      style: const TextStyle(
+                        color: Colors.amber,
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 2,
+                      ),
+                    ),
+                    const SizedBox(height: 40),
+                    const Text(
+                      '?',
+                      style: TextStyle(
+                        fontSize: 80,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                        shadows: [
+                          Shadow(color: Colors.black54, blurRadius: 10)
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    Text(
+                      labelText,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                        letterSpacing: 1,
+                      ),
+                    ),
+                    if (isMyTurn) ...[
+                      const SizedBox(height: 40),
+                      // Botones de acción del turno
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          _buildPixelButton(
+                            text: 'TIENDA',
+                            width: 140,
+                            onPressed: () => setState(() => _isShopOpen = true),
+                          ),
+                          const SizedBox(width: 20),
+                          _buildPixelButton(
+                            text: hasTwoDice ? 'TIRAR DADOS' : 'TIRAR DADO',
+                            onPressed: () {
+                              setState(() => _hasRolledThisTurn = true);
+                              ref
+                                  .read(webSocketProvider)
+                                  .rollDiceCommand(gameId, myUsername);
+                            },
+                          ),
+                        ],
                       ),
                     ],
-                  ),
-                ],
-              ],
+                  ],
+                ),
+              ),
             ),
           ),
-        ),
+        ],
       ),
     );
   }
 
-  // WIDGET: Overlay de resultado de dados (Animado)
+  // WIDGET: Overlay con el resultado de los dados (Animado)
   Widget _buildDiceResultOverlay(GameState gameState) {
     // Detectar nuevo lanzamiento
     if (gameState.lastDiceRollId != _lastHandledDiceId) {

@@ -321,6 +321,17 @@ class GameController extends StateNotifier<GameState> {
     );
   }
 
+  // Actualiza la lista de items comprados en el turno
+  void addTurnPurchasedItem(String itemName) {
+    final currentItems = Map<String, int>.from(state.turnPurchasedItems);
+    currentItems[itemName] = (currentItems[itemName] ?? 0) + 1;
+    state = state.copyWith(turnPurchasedItems: currentItems);
+  }
+
+  void clearTurnPurchasedItems() {
+    state = state.copyWith(turnPurchasedItems: {});
+  }
+
   /// Actualiza los detalles del minijuego actual fusionando los nuevos datos.
   /// Útil para minijuegos con múltiples fases como el Póker.
   void updateMinigameDetails(Map<String, dynamic> newDetails) {

@@ -194,6 +194,9 @@ class GameState {
   final String? winnerName;
   final bool hasImprovedDice;
 
+  // Items comprados en este turno
+  final Map<String, int> turnPurchasedItems;
+
   // Evento bloqueante individual (Doble o Nada, ruleta) — bloquea al siguiente jugador
 
 
@@ -222,7 +225,7 @@ class GameState {
     this.videnteDiceResults,
     this.winnerName,
     this.hasImprovedDice = false,
-
+    this.turnPurchasedItems = const {},
   });
 
   GameState copyWith({
@@ -249,7 +252,7 @@ class GameState {
     List<int>? videnteDiceResults,
     String? winnerName,
     bool? hasImprovedDice,
-
+    Map<String, int>? turnPurchasedItems,
   }) {
     return GameState(
       currentPhase: currentPhase ?? this.currentPhase,
@@ -276,11 +279,7 @@ class GameState {
       videnteDiceResults: videnteDiceResults ?? this.videnteDiceResults,
       winnerName: winnerName ?? this.winnerName,
       hasImprovedDice: hasImprovedDice ?? this.hasImprovedDice,
-
-
-
+      turnPurchasedItems: turnPurchasedItems ?? this.turnPurchasedItems,
     );
   }
 }
-
-

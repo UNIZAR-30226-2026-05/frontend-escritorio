@@ -32,13 +32,6 @@ class _MinigameOverlayState extends ConsumerState<MinigameOverlay> {
   bool _countdownFinished = false;
   Timer? _countdownTimer;
   ProviderSubscription<Map<String, dynamic>?>? _resultsSubscription;
-  ProviderSubscription<List<dynamic>>? _balancesSubscription;
-
-  // Para Doble o Nada: guardamos la apuesta y si ha terminado
-  int? _apuestaDobleNada;
-  bool?
-      _dobleNadaGanado; // null = esperando resultado, true = ganó, false = perdió
-
   @override
   void initState() {
     super.initState();
@@ -49,46 +42,16 @@ class _MinigameOverlayState extends ConsumerState<MinigameOverlay> {
         gameProvider.select((s) => s.minigameResults),
         (prev, next) {
           if (prev == null && next != null) {
-            // El cierre automático ocurre 5 s después de mostrar los resultados
-            Future.delayed(const Duration(seconds: 5), () {
+            final isDobleNada = ref.read(gameProvider).minigameName == 'Doble o Nada';
+            final delay = isDobleNada ? 4 : 5;
+            
+            // El cierre automático ocurre después de mostrar los resultados
+            Future.delayed(Duration(seconds: delay), () {
               if (mounted && ref.read(gameProvider).minigameResults != null) {
                 ref.read(gameProvider.notifier).finishMinigame();
-              }
-            });
-          }
-        },
-      );
-
-      // Escuchamos cambios de monedas para detectar el resultado de Doble o Nada
-      _balancesSubscription = ref.listenManual(
-        gameProvider.select((s) => s.players.map((p) => p.coins).toList()),
-        (prev, next) {
-          if (!mounted) return;
-          final gameState = ref.read(gameProvider);
-          if (gameState.minigameName != 'Doble o Nada') return;
-          if (_apuestaDobleNada == null) return;
-          if (_dobleNadaGanado != null) return; // ya procesado
-
-          final myUsername = ref.read(authProvider).username;
-          final myPlayer = gameState.players.firstWhere(
-            (p) => p.username == myUsername,
-            orElse: () => gameState.players.first,
-          );
-          final myNewCoins = myPlayer.coins;
-          final myPrevCoins = prev != null && prev.length == next.length
-              ? prev[gameState.players.indexOf(myPlayer)]
-              : null;
-
-          if (myPrevCoins != null) {
-            final ganado = myNewCoins > myPrevCoins;
-            setState(() => _dobleNadaGanado = ganado);
-
-            // Cerramos automáticamente tras 3 segundos
-            Future.delayed(const Duration(seconds: 3), () {
-              if (mounted) {
-                ref.read(gameProvider.notifier).finishMinigame();
-                // Delegamos el avance y el end_round al evaluador maestro
-                ref.read(webSocketProvider).checkAndFinalizeTurn();
+                if (isDobleNada) {
+                  ref.read(webSocketProvider).checkAndFinalizeTurn();
+                }
               }
             });
           }
@@ -101,7 +64,6 @@ class _MinigameOverlayState extends ConsumerState<MinigameOverlay> {
   void dispose() {
     _countdownTimer?.cancel();
     _resultsSubscription?.close();
-    _balancesSubscription?.close();
     super.dispose();
   }
 
@@ -193,11 +155,9 @@ class _MinigameOverlayState extends ConsumerState<MinigameOverlay> {
       ref.read(webSocketProvider).sendMinigameScore(score);
     }
 
-    // Para Doble o Nada: guardamos la apuesta y esperamos al listener de balances
-    // que detectará el resultado cuando llegue balances_changed del backend.
+    // Doble o Nada también espera a doblenada_resultados del backend
     if (gameState.minigameName == 'Doble o Nada') {
-      setState(() => _apuestaDobleNada = score is int ? score : 0);
-      return; // El listener _balancesSubscription se encarga del cierre
+      return; 
     }
 
     // Dilema del Prisionero espera minijuego_resultados igual que los minijuegos
@@ -240,16 +200,19 @@ class _MinigameOverlayState extends ConsumerState<MinigameOverlay> {
         children: [
           // 1. Minijuego (se dibuja ocupando todo el fondo por detrás del texto)
           if (_countdownFinished && results == null)
-            Positioned.fill(
-              child: MinigameFactory.buildGame(
-                minigameName: gameState.minigameName ?? '',
-                onFinish: _onMinigameFinish,
-                details: gameState.minigameDetails ?? {},
+            if (gameState.minigameName == 'Doble o Nada' && gameState.activePlayerName != ref.read(authProvider).username)
+              _buildDobleNadaWaitingScreen(gameState.activePlayerName ?? '')
+            else
+              Positioned.fill(
+                child: MinigameFactory.buildGame(
+                  minigameName: gameState.minigameName ?? '',
+                  onFinish: _onMinigameFinish,
+                  details: gameState.minigameDetails ?? {},
+                ),
               ),
-            ),
 
           // 2. Elementos de UI superpuestos
-          if (!_countdownFinished || results != null)
+          if (!_countdownFinished || (results != null && gameState.minigameName != 'Doble o Nada'))
             Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
@@ -299,9 +262,10 @@ class _MinigameOverlayState extends ConsumerState<MinigameOverlay> {
                   _buildCountdownScreen(),
               ],
             ),
-          // 3. Resultado de Doble o Nada (se superpone si ya tenemos el resultado)
-          if (_dobleNadaGanado != null)
-            _buildDobleNadaResult(_dobleNadaGanado!, _apuestaDobleNada ?? 0),
+          
+          // 3. Resultado específico de Doble o Nada
+          if (results != null && gameState.minigameName == 'Doble o Nada')
+            _buildDobleNadaResult(results, gameState.activePlayerName ?? '', ref.read(authProvider).username),
         ],
       ),
     );
@@ -309,62 +273,157 @@ class _MinigameOverlayState extends ConsumerState<MinigameOverlay> {
 
   // Widgets auxiliares
 
+  Widget _buildDobleNadaWaitingScreen(String activePlayer) {
+    return Container(
+      color: Colors.black.withValues(alpha: 0.85),
+      child: Center(
+        child: Container(
+          width: 500,
+          padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 20),
+          decoration: BoxDecoration(
+            color: const Color(0xFF2A1B38),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: Colors.amber, width: 4),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text(
+                'DOBLE O NADA',
+                style: TextStyle(
+                  fontFamily: 'Retro Gaming',
+                  fontSize: 32,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
+              ),
+              const SizedBox(height: 40),
+              Container(
+                width: 400,
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  color: Colors.transparent,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.white24, width: 1),
+                ),
+                child: Text(
+                  '${activePlayer.toUpperCase()} ESTÁ\nDESAFIANDO A LA\nSUERTE',
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    fontFamily: 'Retro Gaming',
+                    fontSize: 20,
+                    color: Colors.amber,
+                    height: 1.5,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 40),
+              const Text(
+                'ESPERANDO RESULTADO...',
+                style: TextStyle(
+                  fontFamily: 'Retro Gaming',
+                  fontSize: 14,
+                  color: Colors.white70,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   // Pantalla de resultado de Doble o Nada
-  Widget _buildDobleNadaResult(bool ganado, int apuesta) {
+  Widget _buildDobleNadaResult(Map<String, dynamic> results, String activePlayer, String myUsername) {
+    final bool isMyTurn = activePlayer == myUsername;
+    final data = results[activePlayer] as Map<String, dynamic>? ?? {};
+    final bool ganado = data['ganado'] == true;
+    final int apuesta = data['apuesta'] ?? 0;
+
     final color = ganado ? const Color(0xFF4CAF50) : const Color(0xFFE53935);
-    final emoji = ganado ? '🎉' : '💸';
-    final titulo = ganado ? '¡DOBLE O NADA!' : '¡MALA SUERTE!';
-    final subtitulo = ganado
-        ? 'Has ganado $apuesta monedas 🪙'
-        : 'Has perdido $apuesta monedas 🪙';
+    final String titleText;
+    if (isMyTurn) {
+      titleText = ganado ? 'HAS GANADO' : 'HAS PERDIDO';
+    } else {
+      titleText = ganado ? '${activePlayer.toUpperCase()} HA\nGANADO' : '${activePlayer.toUpperCase()} HA\nPERDIDO';
+    }
 
     return Container(
       color: Colors.black.withValues(alpha: 0.85),
       child: Center(
         child: Container(
-          padding: const EdgeInsets.all(40),
+          width: 500,
+          padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 20),
           decoration: BoxDecoration(
-            color: const Color(0xFF1A1A2E),
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: color, width: 3),
-            boxShadow: [
-              BoxShadow(
-                  color: color.withValues(alpha: 0.4),
-                  blurRadius: 30,
-                  spreadRadius: 5),
-            ],
+            color: const Color(0xFF2A1B38),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: color, width: 4),
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text(emoji, style: const TextStyle(fontSize: 64)),
-              const SizedBox(height: 16),
-              Text(
-                titulo,
+              const Text(
+                'DOBLE O NADA',
                 style: TextStyle(
                   fontFamily: 'Retro Gaming',
-                  fontSize: 30,
+                  fontSize: 32,
                   fontWeight: FontWeight.bold,
-                  color: color,
-                  letterSpacing: 2,
-                ),
-              ),
-              const SizedBox(height: 16),
-              Text(
-                subtitulo,
-                style: const TextStyle(
-                  fontFamily: 'Retro Gaming',
-                  fontSize: 18,
                   color: Colors.white,
                 ),
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 40),
+              Container(
+                width: 400,
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  color: Colors.transparent,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.white24, width: 1),
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      titleText,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontFamily: 'Retro Gaming',
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                        color: color,
+                        height: 1.5,
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    Text(
+                      'APUESTA: $apuesta¢',
+                      style: const TextStyle(
+                        fontFamily: 'Retro Gaming',
+                        fontSize: 16,
+                        color: Colors.white,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      ganado ? '+$apuesta¢' : '-$apuesta¢',
+                      style: const TextStyle(
+                        fontFamily: 'Retro Gaming',
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 40),
               const Text(
-                'Volviendo al tablero...',
+                'CERRANDO RONDA EN BREVE...',
                 style: TextStyle(
-                    color: Colors.white38,
-                    fontSize: 13,
-                    fontFamily: 'Retro Gaming'),
+                  fontFamily: 'Retro Gaming',
+                  fontSize: 14,
+                  color: Colors.white70,
+                ),
               ),
             ],
           ),

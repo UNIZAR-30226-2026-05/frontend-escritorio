@@ -838,7 +838,8 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
                   final count = e.value;
                   return Container(
                     margin: const EdgeInsets.only(bottom: 8),
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                     decoration: BoxDecoration(
                       color: Colors.black.withValues(alpha: 0.7),
                       borderRadius: BorderRadius.circular(12),
@@ -853,8 +854,8 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
                         ),
                         children: [
                           TextSpan(
-                              text: isMyTurn 
-                                  ? 'HAS COMPRADO ' 
+                              text: isMyTurn
+                                  ? 'HAS COMPRADO '
                                   : '${activePlayerId.toUpperCase()} HA COMPRADO '),
                           TextSpan(
                               text: itemName,
@@ -880,7 +881,8 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
               child: Container(
                 width: 650,
                 height: 450,
-                padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 32),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 48, vertical: 32),
                 decoration: BoxDecoration(
                   color: Colors.black.withValues(alpha: 0.3),
                   borderRadius: BorderRadius.circular(24),
@@ -1095,19 +1097,6 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
         fit: BoxFit.contain,
       ),
     );
-  }
-
-  Color _extraDiceGlowColor(int rank) {
-    switch (rank) {
-      case 1:
-        return Colors.amber;
-      case 2:
-        return Colors.blueGrey;
-      case 3:
-        return Colors.orange;
-      default:
-        return Colors.white;
-    }
   }
 
   String _extraDiceLabel(int rank) {

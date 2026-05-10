@@ -340,8 +340,7 @@ class _MinigameOverlayState extends ConsumerState<MinigameOverlay> {
             ],
           ),
         ),
-      ),
-    );
+      );
   }
 
   // Pantalla de resultado de Doble o Nada
@@ -437,8 +436,7 @@ class _MinigameOverlayState extends ConsumerState<MinigameOverlay> {
             ],
           ),
         ),
-      ),
-    );
+      );
   }
 
   // Pantalla de cuenta atrás (3, 2, 1...)

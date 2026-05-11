@@ -434,9 +434,13 @@ class _MinigameOverlayState extends ConsumerState<MinigameOverlay> {
     final bool ganado = data['ganado'] == true;
     final int apuesta = data['apuesta'] ?? 0;
 
-    final color = ganado ? const Color(0xFF4CAF50) : const Color(0xFFE53935);
+    final bool canPlay = apuesta > 0;
+    final color = canPlay ? (ganado ? const Color(0xFF4CAF50) : const Color(0xFFE53935)) : Colors.amber;
     final String titleText;
-    if (isMyTurn) {
+
+    if (!canPlay) {
+      titleText = isMyTurn ? 'NO PUEDES JUGAR' : '${activePlayer.toUpperCase()} NO\nPUEDE JUGAR';
+    } else if (isMyTurn) {
       titleText = ganado ? 'HAS GANADO' : 'HAS PERDIDO';
     } else {
       titleText = ganado ? '${activePlayer.toUpperCase()} HA\nGANADO' : '${activePlayer.toUpperCase()} HA\nPERDIDO';
@@ -486,25 +490,27 @@ class _MinigameOverlayState extends ConsumerState<MinigameOverlay> {
                         height: 1.5,
                       ),
                     ),
-                    const SizedBox(height: 20),
-                    Text(
-                      'APUESTA: $apuesta¢',
-                      style: const TextStyle(
-                        fontFamily: 'Retro Gaming',
-                        fontSize: 16,
-                        color: Colors.white,
+                    if (canPlay) ...[
+                      const SizedBox(height: 20),
+                      Text(
+                        'APUESTA: $apuesta¢',
+                        style: const TextStyle(
+                          fontFamily: 'Retro Gaming',
+                          fontSize: 16,
+                          color: Colors.white,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      ganado ? '+$apuesta¢' : '-$apuesta¢',
-                      style: const TextStyle(
-                        fontFamily: 'Retro Gaming',
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
+                      const SizedBox(height: 16),
+                      Text(
+                        ganado ? '+$apuesta¢' : '-$apuesta¢',
+                        style: const TextStyle(
+                          fontFamily: 'Retro Gaming',
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
                       ),
-                    ),
+                    ],
                   ],
                 ),
               ),

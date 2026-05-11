@@ -161,7 +161,8 @@ class _CronometroGameState extends State<CronometroGame>
                     Positioned.fill(
                       child: Container(
                         decoration: BoxDecoration(
-                          border: Border.all(color: Colors.blueAccent, width: 4),
+                          border:
+                              Border.all(color: Colors.blueAccent, width: 4),
                           boxShadow: [
                             BoxShadow(
                               color: Colors.blueAccent.withValues(alpha: 0.5),
@@ -266,7 +267,7 @@ class _CronometroGameState extends State<CronometroGame>
                 // Centro: Mensaje de resultado (solo visible al terminar)
                 if (_state == CronometroState.finished)
                   Padding(
-                    padding: const EdgeInsets.only(bottom: 150),
+                    padding: const EdgeInsets.only(bottom: 120),
                     child: Text(
                       _mensajeResultado,
                       style: const TextStyle(

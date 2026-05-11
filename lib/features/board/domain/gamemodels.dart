@@ -258,6 +258,8 @@ class GameState {
     bool? hasImprovedDice,
     Map<String, int>? turnPurchasedItems,
     String? turnTheftMessage,
+    bool clearTheftMessage = false,
+    bool clearObtainedItem = false,
   }) {
     return GameState(
       currentPhase: currentPhase ?? this.currentPhase,
@@ -278,14 +280,15 @@ class GameState {
       isWaitingForMinigameChoice:
           isWaitingForMinigameChoice ?? this.isWaitingForMinigameChoice,
       isMovementActive: isMovementActive ?? this.isMovementActive,
-      obtainedItemName: obtainedItemName ?? this.obtainedItemName,
-      obtainedItemDesc: obtainedItemDesc ?? this.obtainedItemDesc,
-      obtainedItemPlayer: obtainedItemPlayer ?? this.obtainedItemPlayer,
+      obtainedItemName: clearObtainedItem ? null : (obtainedItemName ?? this.obtainedItemName),
+      obtainedItemDesc: clearObtainedItem ? null : (obtainedItemDesc ?? this.obtainedItemDesc),
+      obtainedItemPlayer: clearObtainedItem ? null : (obtainedItemPlayer ?? this.obtainedItemPlayer),
       videnteDiceResults: videnteDiceResults ?? this.videnteDiceResults,
       winnerName: winnerName ?? this.winnerName,
       hasImprovedDice: hasImprovedDice ?? this.hasImprovedDice,
       turnPurchasedItems: turnPurchasedItems ?? this.turnPurchasedItems,
-      turnTheftMessage: turnTheftMessage ?? this.turnTheftMessage,
+      turnTheftMessage:
+          clearTheftMessage ? null : (turnTheftMessage ?? this.turnTheftMessage),
     );
   }
 }

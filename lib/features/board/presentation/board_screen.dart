@@ -152,20 +152,22 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
   static const double _boardOriginalWidth = 1920.0;
   static const double _boardOriginalHeight = 1080.0;
 
+  late final WebSocketService _wsService;
+
   @override
   void initState() {
     super.initState();
+    _wsService = ref.read(webSocketProvider);
     Future.microtask(() {
       final token = ref.read(authProvider).token;
       if (token != null) {
         // Conectamos el WebSocket del juego usando el gameId guardado en el estado del lobby
         // (si se viene de lobby) y el token de autenticación.
         final gameId = ref.read(lobbyProvider).gameId ?? '1';
-        ref.read(webSocketProvider).connect(gameId, token);
+        _wsService.connect(gameId, token);
       }
 
-      _wsEventSubscription =
-          ref.read(webSocketProvider).eventStream.listen((event) {
+      _wsEventSubscription = _wsService.eventStream.listen((event) {
         if (event['type'] == 'info_message') {
           if (!mounted) return;
           ScaffoldMessenger.of(context).showSnackBar(
@@ -186,7 +188,7 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
     _choiceTimer?.cancel();
     _rollTimer?.cancel();
     _wsEventSubscription?.cancel();
-    ref.read(webSocketProvider).disconnect();
+    _wsService.disconnect();
     super.dispose();
   }
 
@@ -349,8 +351,12 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
       gameProvider.select((s) => '${s.activePlayerName}_${s.currentPhase}'),
       (prev, next) {
         if (prev != next && mounted) {
-          setState(() => _hasRolledThisTurn = false);
-          setState(() => _hasUsedBanqueroSkill = false);
+          setState(() {
+            _hasRolledThisTurn = false;
+            _hasUsedBanqueroSkill = false;
+            _isShopOpen = false;
+            _isBanqueroOpen = false;
+          });
         }
       },
     );
@@ -552,7 +558,15 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
                   gameState.obtainedItemName == null &&
                   (gameState.minigameChoices == null ||
                       gameState.minigameChoices!.isEmpty))
-                const TurnTimerWidget(),
+                TurnTimerWidget(
+                  key: ValueKey(gameState.activePlayerName),
+                  onTimeout: () {
+                    // Si es mi turno y se acaba el tiempo, forzamos el fin de turno desde el front
+                    if (isMyTurn) {
+                      ref.read(webSocketProvider).sendEndRound();
+                    }
+                  },
+                ),
 
               // UI OVERLAY: Botones Interactivos (bottom-left)
               // (Eliminado el botón de habilidad de aquí para moverlo al overlay de dados)
@@ -1591,7 +1605,8 @@ String getCharacterPerfilPath(CharacterClass charClass) {
 }
 
 class TurnTimerWidget extends StatefulWidget {
-  const TurnTimerWidget({super.key});
+  final VoidCallback? onTimeout;
+  const TurnTimerWidget({super.key, this.onTimeout});
 
   @override
   State<TurnTimerWidget> createState() => _TurnTimerWidgetState();
@@ -1610,6 +1625,7 @@ class _TurnTimerWidgetState extends State<TurnTimerWidget> {
         setState(() => _timeLeft--);
       } else {
         timer.cancel();
+        widget.onTimeout?.call();
       }
     });
   }

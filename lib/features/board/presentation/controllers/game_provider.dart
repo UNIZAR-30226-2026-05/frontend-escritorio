@@ -331,7 +331,7 @@ class GameController extends StateNotifier<GameState> {
   void clearTurnPurchasedItems() {
     state = state.copyWith(
       turnPurchasedItems: {},
-      turnTheftMessage: null,
+      clearTheftMessage: true,
     );
   }
 
@@ -340,7 +340,7 @@ class GameController extends StateNotifier<GameState> {
   }
 
   void clearTurnTheftMessage() {
-    state = state.copyWith(turnTheftMessage: null);
+    state = state.copyWith(clearTheftMessage: true);
   }
 
   /// Actualiza los detalles del minijuego actual fusionando los nuevos datos.
@@ -389,6 +389,7 @@ class GameController extends StateNotifier<GameState> {
       minigameName: null, // Limpiar minijuegos viejos
       minigameDescription: null,
       minigameDetails: null,
+      videnteDiceResults: null,
     );
   }
 
@@ -433,26 +434,7 @@ class GameController extends StateNotifier<GameState> {
 
   void hideObtainedItem() {
     // Ya NO avanzamos el turno aquí manualmente
-    state = GameState(
-      currentPhase: state.currentPhase,
-      currentRound: state.currentRound,
-      players: state.players,
-      turnOrder: state.turnOrder,
-      activePlayerName: state.activePlayerName,
-      serverMessage: state.serverMessage,
-      isWaitingForMinigameChoice: state.isWaitingForMinigameChoice,
-      winnerName: state.winnerName,
-      videnteDiceResults: state.videnteDiceResults,
-      lastDiceResult: state.lastDiceResult,
-      lastDice1: state.lastDice1,
-      lastDice2: state.lastDice2,
-      lastDiceRollId: state.lastDiceRollId,
-      obtainedItemName: null,
-      obtainedItemDesc: null,
-      obtainedItemPlayer: null,
-      turnPurchasedItems: state.turnPurchasedItems,
-      turnTheftMessage: state.turnTheftMessage,
-    );
+    state = state.copyWith(clearObtainedItem: true);
 
     if (_rouletteCompleter != null && !_rouletteCompleter!.isCompleted) {
       _rouletteCompleter!.complete();

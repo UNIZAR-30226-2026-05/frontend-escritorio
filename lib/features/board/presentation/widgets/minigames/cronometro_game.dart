@@ -265,13 +265,16 @@ class _CronometroGameState extends State<CronometroGame>
 
                 // Centro: Mensaje de resultado (solo visible al terminar)
                 if (_state == CronometroState.finished)
-                  Text(
-                    _mensajeResultado,
-                    style: const TextStyle(
-                      fontSize: 32,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                      shadows: [Shadow(color: Colors.black, blurRadius: 4)],
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 150),
+                    child: Text(
+                      _mensajeResultado,
+                      style: const TextStyle(
+                        fontSize: 32,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                        shadows: [Shadow(color: Colors.black, blurRadius: 4)],
+                      ),
                     ),
                   ),
 

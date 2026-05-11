@@ -339,6 +339,10 @@ class GameController extends StateNotifier<GameState> {
     state = state.copyWith(turnTheftMessage: message);
   }
 
+  void clearTurnTheftMessage() {
+    state = state.copyWith(turnTheftMessage: null);
+  }
+
   /// Actualiza los detalles del minijuego actual fusionando los nuevos datos.
   /// Útil para minijuegos con múltiples fases como el Póker.
   void updateMinigameDetails(Map<String, dynamic> newDetails) {

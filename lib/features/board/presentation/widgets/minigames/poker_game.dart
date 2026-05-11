@@ -415,7 +415,7 @@ class _PokerGameState extends ConsumerState<PokerGame> {
           const SizedBox(height: 24),
           Row(
               mainAxisAlignment: MainAxisAlignment.center,
-              children: List.generate(5, (i) {
+              children: List.generate(3, (i) {
                 final visible = i < _communityCards.length;
                 return Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 4),

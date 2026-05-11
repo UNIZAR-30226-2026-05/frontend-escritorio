@@ -187,16 +187,13 @@ class _RuletaModalState extends ConsumerState<RuletaModal>
                   ],
                 ),
               ),
-              // Flecha naranja fija arriba que indica el premio
+              // Puntero triangular fijo arriba que indica el premio
               const Positioned(
-                top: -20,
-                child: Icon(
-                  Icons.arrow_downward_rounded,
-                  color: Color(0xFFE65100),
-                  size: 60,
-                  shadows: [
-                    Shadow(color: Colors.black54, blurRadius: 4, offset: Offset(0, 2))
-                  ],
+                top: -24,
+                child: SizedBox(
+                  width: 48,
+                  height: 48,
+                  child: CustomPaint(painter: _PointerPainter()),
                 ),
               ),
             ],
@@ -353,6 +350,39 @@ class _WheelPainter extends CustomPainter {
         Offset(size.width / 2, size.height - 5), paint);
     canvas.drawLine(Offset(5, size.height / 2),
         Offset(size.width - 5, size.height / 2), paint);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+class _PointerPainter extends CustomPainter {
+  const _PointerPainter();
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final w = size.width;
+    final h = size.height;
+
+    // Triángulo apuntando hacia abajo (puntero de ruleta)
+    final path = Path()
+      ..moveTo(w / 2, h)       // vértice inferior (punta)
+      ..lineTo(0, 0)            // esquina superior izquierda
+      ..lineTo(w, 0)            // esquina superior derecha
+      ..close();
+
+    // Relleno rojo
+    canvas.drawPath(path, Paint()..color = const Color(0xFFE53935)..style = PaintingStyle.fill);
+
+    // Borde negro
+    canvas.drawPath(
+      path,
+      Paint()
+        ..color = Colors.black
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 3
+        ..strokeJoin = StrokeJoin.round,
+    );
   }
 
   @override

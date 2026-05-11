@@ -381,6 +381,9 @@ class WebSocketService {
           final banquero = _ref.read(gameProvider).activePlayerName ?? 'Banquero';
           final message = '${banquero.toUpperCase()} HA ROBADO $monedas MONEDA${monedas > 1 ? 'S' : ''} A ${victima.toUpperCase()}';
           _ref.read(gameProvider.notifier).setTurnTheftMessage(message);
+          Future.delayed(const Duration(seconds: 4), () {
+            _ref.read(gameProvider.notifier).clearTurnTheftMessage();
+          });
           break;
 
         case 'round_ended':
@@ -515,27 +518,6 @@ class WebSocketService {
             });
           }
 
-          // Para Dilema del Prisionero, los espectadores (no participantes) tampoco
-          // reciben ini_minijuego, así que les mostramos la pantalla de espera.
-          if (name == 'Dilema del Prisionero') {
-            final participants = (decoded['jugadores'] as List?)?.cast<String>() ?? [];
-            final isParticipant = participants.contains(myUsername);
-            if (!isParticipant) {
-              Future.doWhile(() async {
-                if (_ref.read(gameProvider.notifier).isAnimationQueueEmpty) {
-                  return false;
-                }
-                await Future.delayed(const Duration(milliseconds: 200));
-                return true;
-              }).then((_) {
-                _ref.read(gameProvider.notifier).startMinigame(
-                      name: name!,
-                      description: decoded['descripcion'],
-                      details: decoded,
-                    );
-              });
-            }
-          }
           break;
 
         case 'info':

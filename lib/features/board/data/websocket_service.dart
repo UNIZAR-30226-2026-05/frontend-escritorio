@@ -159,7 +159,8 @@ class WebSocketService {
           if (decoded['sincronizando'] == true) {
             _isReconnecting = true;
             _eventController.add({'type': 'reconnecting', 'value': true});
-            debugPrint('Reconectando: mostrando overlay hasta el siguiente punto seguro.');
+            debugPrint(
+                'Reconectando: mostrando overlay hasta el siguiente punto seguro.');
           }
           break;
 
@@ -219,7 +220,8 @@ class WebSocketService {
           _pendingTileMinigame = false;
           _pendingTurnAdvance = false;
           _ref.read(gameProvider.notifier).clearTurnPurchasedItems();
-
+          // Comentario commit vacio
+          _ref.read(gameProvider.notifier).clearTurnPurchasedItems();
           // Si estábamos reconectando, este mensaje es la señal de que ya podemos jugar.
           if (_isReconnecting) {
             _isReconnecting = false;
@@ -298,7 +300,8 @@ class WebSocketService {
               if (_isReconnecting) {
                 _isReconnecting = false;
                 _eventController.add({'type': 'reconnecting', 'value': false});
-                debugPrint('Reconexión completada via ini_minijuego: ocultando overlay.');
+                debugPrint(
+                    'Reconexión completada via ini_minijuego: ocultando overlay.');
               }
               // Limpiamos el flag ANTES de llamar a startMinigame.
               if (isTileMinigame) _pendingTileMinigame = false;
@@ -377,10 +380,13 @@ class WebSocketService {
             final map = {
               activeUser: {
                 'apuesta': diff.abs(),
-                'ganado': diff > 0 || diff == 0, // Si es 0 es neutro, ponemos ganado
+                'ganado':
+                    diff > 0 || diff == 0, // Si es 0 es neutro, ponemos ganado
               }
             };
-            _ref.read(gameProvider.notifier).setMinigameResults(map, [activeUser]);
+            _ref
+                .read(gameProvider.notifier)
+                .setMinigameResults(map, [activeUser]);
           }
 
           // 2. Para cada jugador en el Map, actualizamos su balance
@@ -396,8 +402,10 @@ class WebSocketService {
           final victima = decoded['nombre'] as String;
           final monedas = decoded['monedas'] as int;
           // El banquero es el jugador activo actualmente en su turno
-          final banquero = _ref.read(gameProvider).activePlayerName ?? 'Banquero';
-          final message = '${banquero.toUpperCase()} HA ROBADO $monedas MONEDA${monedas > 1 ? 'S' : ''} A ${victima.toUpperCase()}';
+          final banquero =
+              _ref.read(gameProvider).activePlayerName ?? 'Banquero';
+          final message =
+              '${banquero.toUpperCase()} HA ROBADO $monedas MONEDA${monedas > 1 ? 'S' : ''} A ${victima.toUpperCase()}';
           _ref.read(gameProvider.notifier).setTurnTheftMessage(message);
           Future.delayed(const Duration(seconds: 4), () {
             _ref.read(gameProvider.notifier).clearTurnTheftMessage();
@@ -474,7 +482,8 @@ class WebSocketService {
         // Lo reenviamos como backend_error al minijuego activo para que
         // reactive el turno del jugador y evite un deadlock.
         case 'error':
-          final errorMsg = decoded['message']?.toString() ?? 'Error desconocido';
+          final errorMsg =
+              decoded['message']?.toString() ?? 'Error desconocido';
           debugPrint(' [WS] Error del backend: $errorMsg');
           _isActionLocked = false;
           _ref.read(gameProvider.notifier).updateMinigameDetails({
@@ -487,10 +496,10 @@ class WebSocketService {
           // El backend de Dilema del Prisionero nunca envía minijuego_resultados,
           // así que construimos el equivalente aquí para que _resultsSubscription
           // del overlay se dispare y cierre el minijuego correctamente.
-          final decisiones = Map<String, dynamic>.from(
-              decoded['decisiones'] as Map? ?? {});
-          final recompensas = Map<String, dynamic>.from(
-              decoded['recompensas'] as Map? ?? {});
+          final decisiones =
+              Map<String, dynamic>.from(decoded['decisiones'] as Map? ?? {});
+          final recompensas =
+              Map<String, dynamic>.from(decoded['recompensas'] as Map? ?? {});
           final sortedEntries = recompensas.entries.toList()
             ..sort((a, b) => (b.value as num).compareTo(a.value as num));
           int pos = 1;
@@ -521,11 +530,13 @@ class WebSocketService {
           // Para Dilema del Prisionero, los espectadores no reciben ini_minijuego.
           // Solo lanzamos el overlay cuando hay 2 participantes (la partida realmente empieza).
           if (name == 'Dilema del Prisionero') {
-            final participants = (decoded['jugadores'] as List?)?.cast<String>() ?? [];
+            final participants =
+                (decoded['jugadores'] as List?)?.cast<String>() ?? [];
             final isParticipant = participants.contains(myUsername);
             if (!isParticipant && participants.length >= 2) {
               Future.doWhile(() async {
-                if (_ref.read(gameProvider.notifier).isAnimationQueueEmpty) return false;
+                if (_ref.read(gameProvider.notifier).isAnimationQueueEmpty)
+                  return false;
                 await Future.delayed(const Duration(milliseconds: 200));
                 return true;
               }).then((_) {

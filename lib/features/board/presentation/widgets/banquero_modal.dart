@@ -4,8 +4,8 @@ import '../../data/websocket_service.dart';
 import '../../domain/gamemodels.dart';
 import '../controllers/game_provider.dart';
 import '../../../../core/widgets/retro_widgets.dart';
-import '../board_screen.dart'; // Para reutilizar getCharacterImagePath
-import '../../../auth/presentation/controllers/auth_provider.dart'; // <-- IMPORTACIÓN AÑADIDA
+import '../board_screen.dart'; 
+import '../../../auth/presentation/controllers/auth_provider.dart'; 
 
 class BanqueroModal extends ConsumerWidget {
   final VoidCallback onClose;
@@ -120,8 +120,7 @@ class BanqueroModal extends ConsumerWidget {
                                   color: const Color(0xFF4A3E66), width: 2),
                             ),
                             child: Image.asset(
-                              getCharacterImagePath(
-                                  player.characterClass, true),
+                              getCharacterPerfilPath(player.characterClass),
                               fit: BoxFit.contain,
                             ),
                           ),

@@ -163,7 +163,7 @@ class GameController extends StateNotifier<GameState> {
       winnerName: newWinner,
     );
   }
-/*
+
   // Método para sincronizar el estado completo desde el backend en una reconexión
   void syncBoardState(Map<String, dynamic> boardState, String gameStatus) {
     // Si la partida está jugandose en el servidor, actualizamos la fase
@@ -267,7 +267,7 @@ class GameController extends StateNotifier<GameState> {
       isMovementActive: false, // Asegurar tablero estático tras sincro
     );
   }
-*/
+
   // Minijuegos
 
   void startMinigame({

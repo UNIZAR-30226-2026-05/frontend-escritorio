@@ -139,22 +139,18 @@ class WebSocketService {
             checkAndFinalizeTurn();
           });
           break;
-/*
+
         // Tipo de mensaje de reconexión exitosa
         case 'reconnect_success':
-          // DEBUG: imprimimos reconexion exitosa
           debugPrint("Reconexión exitosa. Sincronizando tablero...");
-          // La reconexion es exitosa y guardamos el estado de playing
           final String gameStatus = decoded['game_status'] ?? 'PLAYING';
-          // El backend envía el estado completo del tablero en "current_board" para que el cliente se sincronice
           final Map<String, dynamic> currentBoard =
               decoded['current_board'] ?? {};
-          // Enviamos el estado del tablero al gameProvider para que actualice su estado interno y la UI se sincronice con el backend
           _ref
               .read(gameProvider.notifier)
               .syncBoardState(currentBoard, gameStatus);
           break;
-*/
+
         // Tipo de mensaje de comenzar el juego
         case 'game_start':
           debugPrint("El juego ha iniciado.");

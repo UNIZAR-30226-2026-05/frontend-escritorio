@@ -7,7 +7,6 @@ class RuletaModal extends ConsumerStatefulWidget {
   final String playerName;
   final bool isLocalPlayer;
   final VoidCallback onClose;
-  final bool isDebug;
 
   const RuletaModal({
     super.key,
@@ -15,7 +14,6 @@ class RuletaModal extends ConsumerStatefulWidget {
     required this.playerName,
     required this.isLocalPlayer,
     required this.onClose,
-    this.isDebug = false,
   });
 
   @override

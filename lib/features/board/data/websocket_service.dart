@@ -500,6 +500,26 @@ class WebSocketService {
           final user = decoded['user'] as String?;
           final myUsername = _ref.read(authProvider).username;
 
+          // Para Dilema del Prisionero, los espectadores no reciben ini_minijuego.
+          // Solo lanzamos el overlay cuando hay 2 participantes (la partida realmente empieza).
+          if (name == 'Dilema del Prisionero') {
+            final participants = (decoded['jugadores'] as List?)?.cast<String>() ?? [];
+            final isParticipant = participants.contains(myUsername);
+            if (!isParticipant && participants.length >= 2) {
+              Future.doWhile(() async {
+                if (_ref.read(gameProvider.notifier).isAnimationQueueEmpty) return false;
+                await Future.delayed(const Duration(milliseconds: 200));
+                return true;
+              }).then((_) {
+                _ref.read(gameProvider.notifier).startMinigame(
+                      name: name!,
+                      description: decoded['descripcion'],
+                      details: decoded,
+                    );
+              });
+            }
+          }
+
           // Para Doble o Nada, los espectadores no reciben ini_minijuego, así que
           // forzamos el inicio del minijuego localmente para que se renderice el overlay de espera.
           if (name == 'Doble o Nada' && user != myUsername) {
@@ -661,26 +681,6 @@ class WebSocketService {
       debugPrint(" [POKER] Acción enviada: $decision ($cantidad)");
     } else {
       debugPrint("No se pudo enviar 'poker_accion' porque no hay conexión.");
-    }
-  }
-
-  /// Pide al servidor 50 monedas extra para todos los jugadores (Debug)
-  void sendDebugAddCoins() {
-    if (_channel != null && _isConnected) {
-      _channel!.sink.add(jsonEncode({'action': 'debug_add_coins'}));
-      debugPrint("🪙 Cheat activado: Comando '+50 monedas' enviado al servidor.");
-    } else {
-      debugPrint("No se pudo enviar el cheat porque no hay conexión.");
-    }
-  }
-
-  /// Fuerza el inicio del Poker saltándose las casillas (Debug)
-  void sendDebugForcePoker() {
-    if (_channel != null && _isConnected) {
-      _channel!.sink.add(jsonEncode({'action': 'debug_force_poker'}));
-      debugPrint("🃏 Cheat activado: Comando 'Forzar Poker' enviado al servidor.");
-    } else {
-      debugPrint("No se pudo enviar el cheat porque no hay conexión.");
     }
   }
 

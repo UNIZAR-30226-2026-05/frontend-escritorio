@@ -139,11 +139,13 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
     super.initState();
     _wsService = ref.read(webSocketProvider);
     Future.microtask(() {
+      // Inicializamos los jugadores desde los datos del lobby antes de conectar
+      final lobbyState = ref.read(lobbyProvider);
+      ref.read(gameProvider.notifier).initFromLobby(lobbyState.selectedCharacters);
+
       final token = ref.read(authProvider).token;
       if (token != null) {
-        // Conectamos el WebSocket del juego usando el gameId guardado en el estado del lobby
-        // (si se viene de lobby) y el token de autenticación.
-        final gameId = ref.read(lobbyProvider).gameId ?? '1';
+        final gameId = lobbyState.gameId ?? '1';
         _wsService.connect(gameId, token);
       }
 

@@ -679,7 +679,7 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.block, color: Colors.redAccent, size: 64),
+              const _ProhibitionIcon(size: 64),
               const SizedBox(height: 20),
               const Text(
                 'ESTÁS BLOQUEADO',
@@ -1606,4 +1606,70 @@ class _TurnTimerWidgetState extends State<TurnTimerWidget> {
       ),
     );
   }
+}
+
+class _ProhibitionIcon extends StatelessWidget {
+  final double size;
+  const _ProhibitionIcon({this.size = 64});
+
+  @override
+  Widget build(BuildContext context) {
+    return CustomPaint(
+      size: Size(size, size),
+      painter: _ProhibitionPainter(),
+    );
+  }
+}
+
+class _ProhibitionPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = Offset(size.width / 2, size.height / 2);
+    final radius = size.width / 2;
+    final strokeWidth = size.width * 0.12;
+
+    final whiteBorder = Paint()
+      ..color = Colors.white
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = strokeWidth + size.width * 0.06;
+
+    final redFill = Paint()
+      ..color = const Color(0xFFD32F2F)
+      ..style = PaintingStyle.fill;
+
+    final redStroke = Paint()
+      ..color = const Color(0xFFD32F2F)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = strokeWidth;
+
+    canvas.drawCircle(center, radius - strokeWidth / 2, whiteBorder);
+    canvas.drawCircle(center, radius - strokeWidth / 2, redFill);
+    canvas.drawCircle(center, radius - strokeWidth / 2, redStroke);
+
+    final diag = radius * 0.65;
+    final whiteLine = Paint()
+      ..color = Colors.white
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round
+      ..strokeWidth = strokeWidth + size.width * 0.06;
+    final redLine = Paint()
+      ..color = const Color(0xFFD32F2F)
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round
+      ..strokeWidth = strokeWidth;
+
+    canvas.drawLine(
+      Offset(center.dx - diag, center.dy + diag),
+      Offset(center.dx + diag, center.dy - diag),
+      whiteLine,
+    );
+    canvas.drawLine(
+      Offset(center.dx - diag, center.dy + diag),
+      Offset(center.dx + diag, center.dy - diag),
+      redLine,
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

@@ -2,6 +2,7 @@ import 'dart:ui' show AppExitResponse;
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:window_manager/window_manager.dart';
 
 import 'core/router/app_router.dart';
 import 'features/board/data/websocket_service.dart';
@@ -10,6 +11,8 @@ import 'features/lobby/data/session_websocket_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await windowManager.ensureInitialized();
+  await windowManager.setFullScreen(true);
   runApp(
     const ProviderScope(
       child: SnowPartyApp(),

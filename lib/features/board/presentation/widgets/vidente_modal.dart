@@ -50,9 +50,7 @@ class VidenteModal extends ConsumerWidget {
               fontSize: 32,
               fontFamily: 'Retro Gaming',
               letterSpacing: 2.0,
-              shadows: [
-                Shadow(color: Colors.white, blurRadius: 12),
-              ],
+              shadows: [Shadow(color: Colors.white, blurRadius: 12)],
             ),
           ),
           const SizedBox(height: 24),
@@ -69,43 +67,22 @@ class VidenteModal extends ConsumerWidget {
 
           // ---------------- LISTA DE RESULTADOS ----------------
           ...List.generate(diceResults.length, (index) {
-            final rankText = _getRankText(index);
             final total = diceResults[index];
+            // rank: 1=oro(O), 2=plata(P), 3=bronce(B), 4=solo dado normal
+            final rank = index + 1;
 
-            // Lógica para separar el total en dos dados (mismo que el backend o visual)
-            // Según la imagen:
-            // 1er puesto: 4 + 2 = 6 (Blanco + Amarillo)
-            // 2do puesto: 1 + 4 = 5 (Blanco + Blanco)
-            // 3er puesto: 6 + 1 = 7 (Blanco + Naranja)
-            // 4to puesto: 3 (Blanco)
-
-            List<Widget> diceWidgets = [];
-            if (index == 0) {
-              // 1er puesto
-              diceWidgets = [
-                _buildDie(4, Colors.white, Colors.black87),
-                const SizedBox(width: 12),
-                _buildDie(2, const Color(0xFFFFEB3B), Colors.black87,
-                    glow: true),
-              ];
-            } else if (index == 1) {
-              // 2do puesto
-              diceWidgets = [
-                _buildDie(1, Colors.white, Colors.black87),
-                const SizedBox(width: 12),
-                _buildDie(4, Colors.white, Colors.black87),
-              ];
-            } else if (index == 2) {
-              // 3er puesto
-              diceWidgets = [
-                _buildDie(6, Colors.white, Colors.black87),
-                const SizedBox(width: 12),
-                _buildDie(1, const Color(0xFFFFAB91), Colors.black87),
-              ];
+            List<Widget> diceWidgets;
+            if (rank == 4) {
+              diceWidgets = [_buildDiceFace(total, 4)];
             } else {
-              // 4to puesto
+              final specialMax = rank == 1 ? 6 : (rank == 2 ? 4 : 2);
+              // Descomponemos: die2 ∈ [1, specialMax], die1 ∈ [1, 6], die1+die2=total
+              final die2 = _clamp(total - 6, 1, specialMax);
+              final die1 = _clamp(total - die2, 1, 6);
               diceWidgets = [
-                _buildDie(total, Colors.white, Colors.black87),
+                _buildDiceFace(die1, 4),
+                const SizedBox(width: 12),
+                _buildDiceFace(die2, rank),
               ];
             }
 
@@ -124,7 +101,7 @@ class VidenteModal extends ConsumerWidget {
                     Expanded(
                       flex: 3,
                       child: Text(
-                        rankText,
+                        _getRankText(index),
                         style: const TextStyle(
                           color: Color(0xFFA070FF),
                           fontSize: 14,
@@ -185,6 +162,41 @@ class VidenteModal extends ConsumerWidget {
     );
   }
 
+  // Mismos assets que el overlay de dados del tablero.
+  // rank: 1=O (oro), 2=P (plata), 3=B (bronce), 4=normal (sin sufijo)
+  Widget _buildDiceFace(int value, int rank) {
+    String suffix = '';
+    if (rank == 1) {
+      suffix = 'O';
+    } else if (rank == 2) {
+      suffix = 'P';
+    } else if (rank == 3) {
+      suffix = 'B';
+    }
+
+    int displayValue = value.clamp(1, 6);
+    if (rank == 3 && displayValue > 2) {
+      displayValue = (displayValue % 2) + 1;
+    } else if (rank == 2 && displayValue > 4) {
+      displayValue = (displayValue % 4) + 1;
+    }
+
+    return SizedBox(
+      width: 56,
+      height: 56,
+      child: Image.asset(
+        'assets/images/board/dados/$displayValue$suffix.png',
+        fit: BoxFit.contain,
+      ),
+    );
+  }
+
+  int _clamp(int value, int min, int max) {
+    if (value < min) return min;
+    if (value > max) return max;
+    return value;
+  }
+
   String _getRankText(int index) {
     switch (index) {
       case 0:
@@ -199,95 +211,4 @@ class VidenteModal extends ConsumerWidget {
         return 'PUESTO ${index + 1}';
     }
   }
-
-  Widget _buildDie(int value, Color color, Color dotColor,
-      {bool glow = false}) {
-    return Container(
-      width: 50,
-      height: 50,
-      decoration: BoxDecoration(
-        color: color,
-        borderRadius: BorderRadius.circular(8),
-        boxShadow: glow
-            ? [
-                BoxShadow(
-                    color: color.withValues(alpha: 0.6),
-                    blurRadius: 10,
-                    spreadRadius: 2),
-              ]
-            : null,
-      ),
-      child: Center(
-        child: _DieFace(value: value, dotColor: dotColor),
-      ),
-    );
-  }
-}
-
-class _DieFace extends StatelessWidget {
-  final int value;
-  final Color dotColor;
-
-  const _DieFace({required this.value, required this.dotColor});
-
-  @override
-  Widget build(BuildContext context) {
-    return CustomPaint(
-      size: const Size(30, 30),
-      painter: _DicePainter(value: value, dotColor: dotColor),
-    );
-  }
-}
-
-class _DicePainter extends CustomPainter {
-  final int value;
-  final Color dotColor;
-
-  _DicePainter({required this.value, required this.dotColor});
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()..color = dotColor;
-    final r = size.width / 10;
-    final center = size.width / 2;
-    final left = size.width * 0.25;
-    final right = size.width * 0.75;
-    final top = size.height * 0.25;
-    final bottom = size.height * 0.75;
-
-    void drawDot(double x, double y) =>
-        canvas.drawCircle(Offset(x, y), r, paint);
-
-    if (value == 1) {
-      drawDot(center, center);
-    } else if (value == 2) {
-      drawDot(left, top);
-      drawDot(right, bottom);
-    } else if (value == 3) {
-      drawDot(left, top);
-      drawDot(center, center);
-      drawDot(right, bottom);
-    } else if (value == 4) {
-      drawDot(left, top);
-      drawDot(right, top);
-      drawDot(left, bottom);
-      drawDot(right, bottom);
-    } else if (value == 5) {
-      drawDot(left, top);
-      drawDot(right, top);
-      drawDot(center, center);
-      drawDot(left, bottom);
-      drawDot(right, bottom);
-    } else if (value == 6) {
-      drawDot(left, top);
-      drawDot(right, top);
-      drawDot(left, center);
-      drawDot(right, center);
-      drawDot(left, bottom);
-      drawDot(right, bottom);
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

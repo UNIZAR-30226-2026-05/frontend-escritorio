@@ -69,6 +69,14 @@ class GameController extends StateNotifier<GameState> {
       {int dice1 = 0, int dice2 = 0}) async {
     if (state.currentPhase == GamePhase.finished) return;
 
+    // Buscar el jugador de forma segura para evitar excepciones si no existe en el estado local
+    final playerIndex = state.players.indexWhere((p) => p.id == playerId);
+    if (playerIndex == -1) {
+      debugPrint("⚠️ ADVERTENCIA: Se intentó mover al jugador $playerId pero no existe en state.players.");
+      return;
+    }
+    final currentPlayer = state.players[playerIndex];
+
     if (diceRoll > 0) {
       state = state.copyWith(
         isMovementActive: true,
@@ -77,19 +85,18 @@ class GameController extends StateNotifier<GameState> {
         lastDice2: dice2,
         lastDiceRollId: state.lastDiceRollId + 1,
         serverMessage:
-            "${state.players.firstWhere((p) => p.id == playerId).username} sacó un $diceRoll.",
+            "${currentPlayer.username} sacó un $diceRoll.",
       );
       await Future.delayed(const Duration(seconds: 2));
     } else {
       state = state.copyWith(
         isMovementActive: true,
         serverMessage:
-            "${state.players.firstWhere((p) => p.id == playerId).username} se desplaza por el tablero.",
+            "${currentPlayer.username} se desplaza por el tablero.",
       );
       await Future.delayed(const Duration(milliseconds: 400));
     }
 
-    final currentPlayer = state.players.firstWhere((p) => p.id == playerId);
     String newMessage = diceRoll == 0
         ? "${currentPlayer.username} ajusta su posición."
         : "${currentPlayer.username} sacó un $diceRoll.";
@@ -351,6 +358,7 @@ class GameController extends StateNotifier<GameState> {
   void setActivePlayerName(String? name, {int? round}) {
     state = state.copyWith(
       activePlayerName: name,
+      currentPhase: GamePhase.boardTurn,
       currentRound: round ?? state.currentRound,
       hasImprovedDice: false, // Resetear mejora al cambiar de turno
       lastDiceResult:

@@ -76,104 +76,106 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
         children: [
           Image.asset('assets/images/ui/fondo_menu.png', fit: BoxFit.cover),
           Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              'Registrarse',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontFamily: 'Retro Gaming',
-                fontSize: titleSize,
-                color: Colors.white,
-                shadows: const [
-                  Shadow(color: Colors.white, blurRadius: 16),
-                  Shadow(color: Colors.white, blurRadius: 8),
-                ],
-              ),
-            ),
-            SizedBox(height: gap * 1.8),
-            RetroField(
-              label: 'Nombre de usuario',
-              controller: _usernameController,
-              focusNode: _usernameFocus,
-              fieldWidth: fw,
-              fieldHeight: fh,
-              labelFontSize: labelSize,
-              inputFontSize: inputSize,
-              errorText: _usernameError,
-              textInputAction: TextInputAction.next,
-              onSubmitted: () => _passwordFocus.requestFocus(),
-            ),
-            SizedBox(height: gap),
-            RetroField(
-              label: 'Contraseña',
-              controller: _passwordController,
-              focusNode: _passwordFocus,
-              fieldWidth: fw,
-              fieldHeight: fh,
-              labelFontSize: labelSize,
-              inputFontSize: inputSize,
-              obscureText: true,
-              errorText: _passwordError,
-              textInputAction: TextInputAction.next,
-              onSubmitted: () => _confirmPasswordFocus.requestFocus(),
-            ),
-            SizedBox(height: gap),
-            RetroField(
-              label: 'Repite la contraseña',
-              controller: _confirmPasswordController,
-              focusNode: _confirmPasswordFocus,
-              fieldWidth: fw,
-              fieldHeight: fh,
-              labelFontSize: labelSize,
-              inputFontSize: inputSize,
-              obscureText: true,
-              errorText: _confirmPasswordError,
-              textInputAction: TextInputAction.done,
-              onSubmitted: _submit,
-            ),
-            if (authState.error != null) ...[
-              SizedBox(height: gap * 0.5),
-              Text(
-                authState.error!,
-                style: TextStyle(
-                  color: Colors.red,
-                  fontFamily: 'Retro Gaming',
-                  fontSize: labelSize * 0.85,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'Registrarse',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontFamily: 'Retro Gaming',
+                    fontSize: titleSize,
+                    color: Colors.white,
+                    shadows: const [
+                      Shadow(color: Colors.white, blurRadius: 16),
+                      Shadow(color: Colors.white, blurRadius: 8),
+                    ],
+                  ),
                 ),
-                textAlign: TextAlign.center,
-              ),
-            ],
-            SizedBox(height: gap * 1.4),
-            RichText(
-              textAlign: TextAlign.center,
-              text: TextSpan(
-                style: TextStyle(
-                  fontFamily: 'Retro Gaming',
-                  fontSize: linkSize,
-                  color: Colors.white,
-                  shadows: const [
-                    Shadow(color: Colors.white, blurRadius: 8),
-                  ],
+                SizedBox(height: gap * 1.8),
+                RetroField(
+                  label: 'Nombre de usuario',
+                  controller: _usernameController,
+                  focusNode: _usernameFocus,
+                  fieldWidth: fw,
+                  fieldHeight: fh,
+                  labelFontSize: labelSize,
+                  inputFontSize: inputSize,
+                  errorText: _usernameError,
+                  textInputAction: TextInputAction.next,
+                  onSubmitted: () => _passwordFocus.requestFocus(),
                 ),
-                children: [
-                  const TextSpan(text: 'Si ya tienes cuenta,\n'),
-                  TextSpan(
-                    text: 'INICIA SESION',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      decoration: TextDecoration.underline,
-                      shadows: [Shadow(color: Colors.white, blurRadius: 10)],
+                SizedBox(height: gap),
+                RetroField(
+                  label: 'Contraseña',
+                  controller: _passwordController,
+                  focusNode: _passwordFocus,
+                  fieldWidth: fw,
+                  fieldHeight: fh,
+                  labelFontSize: labelSize,
+                  inputFontSize: inputSize,
+                  obscureText: true,
+                  errorText: _passwordError,
+                  textInputAction: TextInputAction.next,
+                  onSubmitted: () => _confirmPasswordFocus.requestFocus(),
+                ),
+                SizedBox(height: gap),
+                RetroField(
+                  label: 'Repite la contraseña',
+                  controller: _confirmPasswordController,
+                  focusNode: _confirmPasswordFocus,
+                  fieldWidth: fw,
+                  fieldHeight: fh,
+                  labelFontSize: labelSize,
+                  inputFontSize: inputSize,
+                  obscureText: true,
+                  errorText: _confirmPasswordError,
+                  textInputAction: TextInputAction.done,
+                  onSubmitted: _submit,
+                ),
+                if (authState.error != null) ...[
+                  SizedBox(height: gap * 0.5),
+                  Text(
+                    authState.error!,
+                    style: TextStyle(
+                      color: Colors.red,
+                      fontFamily: 'Retro Gaming',
+                      fontSize: labelSize * 0.85,
                     ),
-                    recognizer: TapGestureRecognizer()
-                      ..onTap = () => context.go('/login'),
+                    textAlign: TextAlign.center,
                   ),
                 ],
-              ),
+                SizedBox(height: gap * 1.4),
+                RichText(
+                  textAlign: TextAlign.center,
+                  text: TextSpan(
+                    style: TextStyle(
+                      fontFamily: 'Retro Gaming',
+                      fontSize: linkSize,
+                      color: Colors.white,
+                      shadows: const [
+                        Shadow(color: Colors.white, blurRadius: 8),
+                      ],
+                    ),
+                    children: [
+                      const TextSpan(text: 'Si ya tienes cuenta,\n'),
+                      TextSpan(
+                        text: 'INICIA SESION',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          decoration: TextDecoration.underline,
+                          shadows: [
+                            Shadow(color: Colors.white, blurRadius: 10)
+                          ],
+                        ),
+                        recognizer: TapGestureRecognizer()
+                          ..onTap = () => context.go('/login'),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
-          ],
-        ),
           ),
         ],
       ),

@@ -52,6 +52,8 @@ class AuthService {
     }
   }
 
+
+
   // Método register de la clase de autenticación.
   // Devuelve un Future (promesa) que contendrá un void (es una función asíncorna).
   Future<void> register(String nombre, String password) async {

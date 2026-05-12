@@ -94,8 +94,8 @@ class _MayorMenorGameState extends ConsumerState<MayorMenorGame> {
   late List<int> _cartasRaw;
 
   // Índice de la carta asignada a este jugador según su posición en el orden de turno.
-  // No importa qué carta pulse visualmente: siempre se revela y puntúa esta.
-  late int _assignedIndex;
+  // Se recalcula en cada build() para garantizar que turnOrder ya está poblado.
+  int _assignedIndex = 0;
 
   int? _indiceSeleccionado;
   bool _juegoTerminado = false;
@@ -111,12 +111,6 @@ class _MayorMenorGameState extends ConsumerState<MayorMenorGame> {
       _cartasRaw = [0, 13, 26, 39];
     }
 
-    // Buscamos la posición del jugador local en el orden de turno.
-    // cartas[0] → 1er jugador en turnOrder, cartas[1] → 2º, etc.
-    final myUsername = ref.read(authProvider).username ?? '';
-    final turnOrder = ref.read(gameProvider).turnOrder;
-    final pos = turnOrder.indexOf(myUsername);
-    _assignedIndex = (pos >= 0 ? pos : 0).clamp(0, _cartasRaw.length - 1);
   }
 
   // Controlador de interacción, secuencia y cierre
@@ -147,6 +141,13 @@ class _MayorMenorGameState extends ConsumerState<MayorMenorGame> {
   @override
   Widget build(BuildContext context) {
     final myUsername = ref.watch(authProvider).username;
+
+    // Recalculamos el índice asignado de forma reactiva para asegurar que
+    // turnOrder ya está poblado cuando el minijuego se renderiza.
+    final turnOrder = ref.watch(gameProvider.select((s) => s.turnOrder));
+    final pos = turnOrder.indexOf(myUsername ?? '');
+    _assignedIndex = (pos >= 0 ? pos : 0).clamp(0, _cartasRaw.length - 1);
+
     final player = ref
         .watch(gameProvider)
         .players

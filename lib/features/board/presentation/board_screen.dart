@@ -49,6 +49,9 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
   bool _showingDiceResult = false;
   Timer? _diceResultTimer;
 
+  // Indica que el jugador acaba de reconectarse y está esperando
+  // al siguiente punto seguro del juego para volver a interactuar.
+
   // Coordenadas de los centros de las casillas en el tablero
   final Map<int, Offset> tileCenters = {
     -1: const Offset(
@@ -139,17 +142,21 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
     super.initState();
     _wsService = ref.read(webSocketProvider);
     Future.microtask(() {
-      final token = ref.read(authProvider).token;
+      final authState = ref.read(authProvider);
+      final token = authState.token;
       if (token != null) {
-        // Conectamos el WebSocket del juego usando el gameId guardado en el estado del lobby
-        // (si se viene de lobby) y el token de autenticación.
-        final gameId = ref.read(lobbyProvider).gameId ?? '1';
-        _wsService.connect(gameId, token);
+        final gameId = ref.read(lobbyProvider).gameId;
+            
+        if (gameId != null) {
+          _wsService.connect(gameId, token);
+        } else {
+          debugPrint("Error: No se encontró gameId para conectar el WebSocket.");
+        }
       }
 
       _wsEventSubscription = _wsService.eventStream.listen((event) {
+        if (!mounted) return;
         if (event['type'] == 'info_message') {
-          if (!mounted) return;
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(event['message'] ?? '',
@@ -204,7 +211,7 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
     final isMyTurn = myUsername == activePlayerId && activePlayerId.isNotEmpty;
 
     final me = gameState.players.firstWhere((p) => p.username == myUsername,
-        orElse: () => gameState.players.first);
+        orElse: () => gameState.players.isNotEmpty ? gameState.players.first : Player(id: '0', username: '...', characterClass: CharacterClass.videojugador));
     final bool isBanquero = me.characterClass == CharacterClass.banquero;
     final bool canRobAnyone = gameState.players
         .where((p) => p.username != myUsername)
@@ -212,6 +219,7 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
     final bool shouldForceBanquero = isMyTurn &&
         isBanquero &&
         !_hasUsedBanqueroSkill &&
+        !_hasRolledThisTurn &&
         canRobAnyone &&
         gameState.currentPhase == GamePhase.boardTurn &&
         !gameState.isMovementActive &&
@@ -277,12 +285,17 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
       },
     );
 
-    // Resetear _hasRolledThisTurn cuando cambia el turno,
-    // vuelve la fase al tablero o es un juego de 1 jugador
+    // Resetear flags de turno solo cuando cambia el jugador activo.
+    // No resetear en cambios de fase (boardTurn → minigameTile → boardTurn)
+    // para que el popup del banquero no reaparezca tras un minijuego de casilla.
     ref.listen(
-      gameProvider.select((s) => '${s.activePlayerName}_${s.currentPhase}'),
+      gameProvider.select((s) => (s.activePlayerName, s.currentPhase, s.currentRound)),
       (prev, next) {
-        if (prev != next && mounted) {
+        final nameChanged = prev?.$1 != next.$1;
+        final phaseChanged = prev?.$2 != next.$2;
+        final roundChanged = prev?.$3 != next.$3;
+
+        if ((nameChanged || phaseChanged || roundChanged) && mounted) {
           setState(() {
             _hasRolledThisTurn = false;
             _hasUsedBanqueroSkill = false;
@@ -470,10 +483,7 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
                     const SizedBox(height: 16),
                     // Inventario del Jugador Local
                     InventoryPanel(
-                      items: gameState.players
-                          .firstWhere((p) => p.username == myUsername,
-                              orElse: () => gameState.players.first)
-                          .itemInventory,
+                      items: me.itemInventory,
                     ),
                   ],
                 ),
@@ -568,9 +578,9 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
                       ),
                       Center(
                         child: ShopModal(
-                          playerCoins: gameState.players
-                              .firstWhere((p) => p.id == activePlayerId)
-                              .coins,
+                          playerCoins: gameState.players.isNotEmpty
+                              ? gameState.players.firstWhere((p) => p.id == activePlayerId, orElse: () => gameState.players.first).coins
+                              : 0,
                           hasRolled: _hasRolledThisTurn,
                           onClose: () => setState(() => _isShopOpen = false),
                         ),
@@ -641,6 +651,8 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
                     ],
                   ),
                 ),
+              // UI OVERLAY: Pantalla de Reconexión
+              // Se muestra mientras el jugador espera su punto de reentrada al juego.
             ],
           );
         },
@@ -657,7 +669,7 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
     // Buscar al jugador local para ver su penalización
     final localPlayer = gameState.players.firstWhere(
       (p) => p.username == myUsername,
-      orElse: () => gameState.players.first,
+      orElse: () => gameState.players.isNotEmpty ? gameState.players.first : Player(id: '0', username: '...', characterClass: CharacterClass.videojugador),
     );
     final isPenalized = localPlayer.penaltyTurns > 0;
 
@@ -675,7 +687,11 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.block, color: Colors.redAccent, size: 64),
+              const SizedBox(
+                width: 64,
+                height: 64,
+                child: CustomPaint(painter: _ProhibidoPainter()),
+              ),
               const SizedBox(height: 20),
               const Text(
                 'ESTÁS BLOQUEADO',
@@ -967,14 +983,14 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         _buildDiceFace(d1, 4),
-                        if (gameState.lastDice2 > 0 ||
+                         if (gameState.lastDice2 > 0 ||
                             (_isRolling &&
                                 gameState.players
                                     .firstWhere(
                                         (p) =>
                                             p.username ==
                                             gameState.activePlayerName,
-                                        orElse: () => gameState.players[0])
+                                        orElse: () => gameState.players.isNotEmpty ? gameState.players.first : Player(id: '0', username: '...', characterClass: CharacterClass.videojugador))
                                     .diceInventory
                                     .isNotEmpty)) ...[
                           const SizedBox(width: 20),
@@ -1602,4 +1618,40 @@ class _TurnTimerWidgetState extends State<TurnTimerWidget> {
       ),
     );
   }
+}
+
+class _ProhibidoPainter extends CustomPainter {
+  const _ProhibidoPainter();
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = Offset(size.width / 2, size.height / 2);
+    final radius = size.width / 2;
+    final borderW = radius * 0.12;
+
+    // Borde blanco exterior
+    canvas.drawCircle(center, radius,
+        Paint()..color = Colors.white..style = PaintingStyle.fill);
+
+    // Círculo rojo
+    canvas.drawCircle(center, radius - borderW,
+        Paint()..color = const Color(0xFFE53935)..style = PaintingStyle.fill);
+
+    // Barra diagonal blanca (clipada al círculo rojo)
+    canvas.save();
+    canvas.clipPath(Path()
+      ..addOval(Rect.fromCircle(center: center, radius: radius - borderW)));
+    canvas.translate(center.dx, center.dy);
+    canvas.rotate(pi / 4);
+    final barHalf = radius * 0.95;
+    final barThick = radius * 0.22;
+    canvas.drawRect(
+      Rect.fromLTRB(-barHalf, -barThick, barHalf, barThick),
+      Paint()..color = Colors.white..style = PaintingStyle.fill,
+    );
+    canvas.restore();
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

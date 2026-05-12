@@ -283,9 +283,13 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
       gameProvider.select((s) => '${s.activePlayerName}_${s.currentPhase}'),
       (prev, next) {
         if (prev != next && mounted) {
+          final prevPlayer = prev?.split('_').first;
+          final nextPlayer = next.split('_').first;
           setState(() {
             _hasRolledThisTurn = false;
-            _hasUsedBanqueroSkill = false;
+            // Solo resetear la habilidad del banquero cuando cambia el jugador activo,
+            // no cuando la fase cambia por un minijuego de casilla (y luego vuelve).
+            if (prevPlayer != nextPlayer) _hasUsedBanqueroSkill = false;
             _isShopOpen = false;
             _isBanqueroOpen = false;
           });

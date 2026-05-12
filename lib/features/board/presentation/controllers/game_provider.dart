@@ -484,31 +484,6 @@ class GameController extends StateNotifier<GameState> {
     );
   }
 
-  // MODO DEBUG: Inicia un minijuego localmente sin avisar al backend
-  void startDebugMinigameLocal(String name) {
-    Map<String, dynamic> mockDetails = {};
-
-    // Generamos datos falsos según lo que necesite cada minijuego
-    if (name == 'Tren') {
-      mockDetails = {'objetivo': 20.0};
-    } else if (name == 'Mayor o Menor') {
-      mockDetails = {
-        'cartas': [12, 25, 38, 51],
-        'personaje': 'banquero'
-      };
-    } else if (name == 'Cronometro ciego') {
-      mockDetails = {'objetivo': 8};
-    } else if (name == 'Cortar pan') {
-      mockDetails = {'objetivo': 50};
-    }
-
-    startMinigame(
-      name: name,
-      description: "DEBUG_MODE", // Usamos esto como bandera secreta
-      details: mockDetails,
-    );
-  }
-
   // Actualiza el estado de conexión de un jugador
   void setPlayerConnectionStatus(String playerId, bool isConnected) {
     final updatedPlayers = state.players.map((p) {

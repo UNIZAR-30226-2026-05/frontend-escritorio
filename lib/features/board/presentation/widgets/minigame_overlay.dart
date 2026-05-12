@@ -119,56 +119,7 @@ class _MinigameOverlayState extends ConsumerState<MinigameOverlay> {
   void _onMinigameFinish(dynamic score) {
     final gameState = ref.read(gameProvider);
 
-    // 1. INTERCEPTAMOS SI ES MODO DEBUG
-    if (gameState.minigameDescription == "DEBUG_MODE") {
-      debugPrint(
-          " [DEBUG] Simulando resultados locales. Score enviado: $score");
-
-      // Creamos un podio falso con los jugadores de la partida actual
-      Map<String, dynamic> fakeResults = {};
-      int pos = 1;
-      for (var p in gameState.turnOrder) {
-        // A ti te ponemos la puntuación real, a los demás puntuaciones inventadas
-        // Si el score no es int (ej: es un string), no podemos hacer resta
-        dynamic fakeScore;
-        if (score is int) {
-          fakeScore = pos == 1 ? score : score - (pos * 10);
-        } else {
-          fakeScore = score;
-        }
-
-        fakeResults[p] = {
-          "posicion": pos,
-          "score": fakeScore,
-        };
-        pos++;
-      }
-
-      // Enviamos los resultados al provider (como si vinieran del backend)
-      // Interceptar si debug
-      if (gameState.minigameDescription == "DEBUG_MODE") {
-        debugPrint(
-            " [DEBUG] Simulando resultados locales. Score enviado: $score");
-        // ... (fakeResults) ...
-        ref
-            .read(gameProvider.notifier)
-            .setMinigameResults(fakeResults, gameState.turnOrder);
-
-        if (gameState.minigameName == 'Doble o Nada') {
-          Future.delayed(const Duration(seconds: 2), () {
-            if (mounted) {
-              ref.read(gameProvider.notifier).finishMinigame();
-              ref
-                  .read(webSocketProvider)
-                  .sendEndRound(); // Avisamos que terminamos la casilla
-            }
-          });
-        }
-        return;
-      }
-    }
-
-    // Lógica normal (Si no es debug, se envía al backend)
+    // Enviamos la puntuación al backend
     if (gameState.minigameName == 'Tren') {
       final objetivo =
           (gameState.minigameDetails?['objetivo'] as num?)?.toDouble();

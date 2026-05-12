@@ -11,7 +11,6 @@ import '../../auth/presentation/controllers/auth_provider.dart';
 import '../../lobby/presentation/controllers/lobby_provider.dart';
 
 import '../../shop/presentation/controllers/shop_providers.dart';
-import '../../shop/data/shop_repository.dart';
 import 'widgets/minigame_overlay.dart';
 import 'widgets/banquero_modal.dart';
 import 'widgets/vidente_modal.dart';
@@ -38,13 +37,9 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
   Timer? _rollTimer;
   StreamSubscription? _wsEventSubscription;
 
-  // Lista de minijuegos para el menú de debug
   Timer? _choiceTimer;
   int _choiceCountdown = 10;
   bool _hasRolledThisTurn = false;
-  bool _debugShowWinScreen = false;
-  bool _debugShowRuleta = false;
-  String _debugRuletaItem = 'Barrera'; // Default
 
   // Estado de la habilidad del banquero
   bool _isBanqueroOpen = false; // esta abierta la habilidad
@@ -53,21 +48,6 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
   // Resultado de dados a mostrar brevemente (animación)
   bool _showingDiceResult = false;
   Timer? _diceResultTimer;
-
-  // Minijuegos para debugear
-  final List<String> _debugMinigames = [
-    'Reflejos',
-    'Tren',
-    'Cortar pan',
-    'Cronometro ciego',
-    'Mayor o Menor',
-    'Doble o Nada',
-    'Dilema del Prisionero',
-    'Test: Fin de Partida',
-    'Ruleta',
-    'Cheat: Forzar Poker',
-    'Cheat: +50 Monedas',
-  ];
 
   // Coordenadas de los centros de las casillas en el tablero
   final Map<int, Offset> tileCenters = {
@@ -214,54 +194,6 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
         });
       }
     });
-  }
-
-  // Para poder poner/quitar el overlay de debug
-  Widget _buildDebugMenu() {
-    return Positioned(
-      top: 16,
-      right: 16,
-      child: PopupMenuButton<String>(
-        tooltip: 'Testear Minijuegos (Local)',
-        // Usamos un color verde o distinto para saber que es de uso local
-        icon: const Icon(Icons.bug_report, color: Colors.greenAccent, size: 36),
-        color: const Color(0xFF2D1B4E),
-        onSelected: (String minigame) {
-          if (minigame == 'Test: Fin de Partida') {
-            setState(() => _debugShowWinScreen = true);
-          } else if (minigame == 'Ruleta') {
-            // Seleccionamos un ítem al azar del catálogo para testear
-            final items = ShopRepository.catalog.map((i) => i.name).toList();
-            final randomItem = items[Random().nextInt(items.length)];
-            setState(() {
-              _debugRuletaItem = randomItem;
-              _debugShowRuleta = true;
-            });
-          } else if (minigame == 'Cheat: Forzar Poker') {
-            ref.read(webSocketProvider).sendDebugForcePoker();
-          } else if (minigame == 'Cheat: +50 Monedas') {
-            ref.read(webSocketProvider).sendDebugAddCoins();
-          } else {
-            // Llamamos a nuestro nuevo método local
-            ref.read(gameProvider.notifier).startDebugMinigameLocal(minigame);
-          }
-        },
-        itemBuilder: (BuildContext context) {
-          return _debugMinigames.map((String choice) {
-            return PopupMenuItem<String>(
-              value: choice,
-              child: Text(
-                choice,
-                style: const TextStyle(
-                    color: Colors.white,
-                    fontFamily: 'Retro Gaming',
-                    fontSize: 12),
-              ),
-            );
-          }).toList();
-        },
-      ),
-    );
   }
 
   @override
@@ -546,9 +478,6 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
                   ],
                 ),
               ),
-              // UI OVERLAY: Menú Debug (top-right)
-              _buildDebugMenu(),
-
               // UI OVERLAY: Timer de Turno (top-right)
               if (gameState.currentPhase == GamePhase.boardTurn &&
                   (!isMyTurn || !_hasRolledThisTurn) &&
@@ -693,9 +622,8 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
                 ),
 
               // UI OVERLAY: Pantalla de Ganador (FIN DE PARTIDA)
-              if ((gameState.currentPhase == GamePhase.finished &&
-                      gameState.winnerName != null) ||
-                  _debugShowWinScreen)
+              if (gameState.currentPhase == GamePhase.finished &&
+                  gameState.winnerName != null)
                 Positioned.fill(
                   child: Stack(
                     children: [
@@ -707,31 +635,7 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
                               (a, b) => b.currentTileIndex
                                   .compareTo(a.currentTileIndex),
                             ),
-                          onClose: _debugShowWinScreen
-                              ? () =>
-                                  setState(() => _debugShowWinScreen = false)
-                              : null,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-
-              // UI OVERLAY: Ruleta de Objetos (DEBUG)
-              if (_debugShowRuleta)
-                Positioned.fill(
-                  child: Stack(
-                    children: [
-                      // Fondo oscurecido
-                      Container(color: Colors.black.withValues(alpha: 0.85)),
-                      Center(
-                        child: RuletaModal(
-                          itemName: _debugRuletaItem,
-                          playerName: 'Debug',
-                          isLocalPlayer: true,
-                          isDebug: true,
-                          onClose: () =>
-                              setState(() => _debugShowRuleta = false),
+                          onClose: null,
                         ),
                       ),
                     ],

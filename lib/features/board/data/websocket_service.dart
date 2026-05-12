@@ -664,26 +664,6 @@ class WebSocketService {
     }
   }
 
-  /// Pide al servidor 50 monedas extra para todos los jugadores (Debug)
-  void sendDebugAddCoins() {
-    if (_channel != null && _isConnected) {
-      _channel!.sink.add(jsonEncode({'action': 'debug_add_coins'}));
-      debugPrint("🪙 Cheat activado: Comando '+50 monedas' enviado al servidor.");
-    } else {
-      debugPrint("No se pudo enviar el cheat porque no hay conexión.");
-    }
-  }
-
-  /// Fuerza el inicio del Poker saltándose las casillas (Debug)
-  void sendDebugForcePoker() {
-    if (_channel != null && _isConnected) {
-      _channel!.sink.add(jsonEncode({'action': 'debug_force_poker'}));
-      debugPrint("🃏 Cheat activado: Comando 'Forzar Poker' enviado al servidor.");
-    } else {
-      debugPrint("No se pudo enviar el cheat porque no hay conexión.");
-    }
-  }
-
   /// Función robusta para evaluar si un turno ha finalizado por completo.
   /// Espera a que todas las animaciones, la ruleta y cualquier minijuego de
   /// casilla hayan terminado antes de enviar fin_turno al backend.

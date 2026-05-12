@@ -51,7 +51,6 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
 
   // Indica que el jugador acaba de reconectarse y está esperando
   // al siguiente punto seguro del juego para volver a interactuar.
-  bool _isReconnecting = false;
 
   // Coordenadas de los centros de las casillas en el tablero
   final Map<int, Offset> tileCenters = {
@@ -169,9 +168,6 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
               duration: const Duration(seconds: 4),
             ),
           );
-        } else if (event['type'] == 'reconnecting') {
-          // El WS service nos notifica si entra o sale del estado de reconexion.
-          setState(() => _isReconnecting = event['value'] == true);
         }
       });
     });
@@ -656,50 +652,6 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
                 ),
               // UI OVERLAY: Pantalla de Reconexión
               // Se muestra mientras el jugador espera su punto de reentrada al juego.
-              // Bloquea todas las interacciones hasta que el backend envíe turno_de o ini_minijuego.
-              if (_isReconnecting && gameState.currentPhase == GamePhase.boardTurn)
-                Positioned.fill(
-                  child: Container(
-                    color: Colors.black.withValues(alpha: 0.92),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const SizedBox(
-                          width: 80,
-                          height: 80,
-                          child: CircularProgressIndicator(
-                            color: Colors.amber,
-                            strokeWidth: 6,
-                          ),
-                        ),
-                        const SizedBox(height: 32),
-                        const Text(
-                          'RECONECTANDO...',
-                          style: TextStyle(
-                            fontFamily: 'Retro Gaming',
-                            fontSize: 28,
-                            color: Colors.amber,
-                            letterSpacing: 3,
-                            shadows: [
-                              Shadow(
-                                  color: Colors.amber,
-                                  blurRadius: 16),
-                            ],
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        const Text(
-                          'Esperando el siguiente turno...',
-                          style: TextStyle(
-                            fontFamily: 'Retro Gaming',
-                            fontSize: 14,
-                            color: Colors.white54,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
             ],
           );
         },

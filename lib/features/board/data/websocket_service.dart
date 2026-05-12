@@ -41,9 +41,6 @@ class WebSocketService {
   // startMinigame cambie la fase a minigameTile.
   bool _pendingTileMinigame = false;
 
-  // Indica que el jugador acaba de reconectarse y está esperando
-  // el siguiente turno_de o ini_minijuego para volver a jugar normalmente.
-  bool _isReconnecting = false;
 
   // Controlador para notificar eventos especiales a la UI (ej. navegación forzada)
   final _eventController = StreamController<Map<String, dynamic>>.broadcast();
@@ -144,25 +141,6 @@ class WebSocketService {
           });
           break;
 
-        // Tipo de mensaje de reconexión exitosa
-        case 'reconnect_success':
-          debugPrint("Reconexión exitosa. Sincronizando tablero...");
-          final String gameStatus = decoded['game_status'] ?? 'PLAYING';
-          final Map<String, dynamic> currentBoard =
-              decoded['current_board'] ?? {};
-          _ref
-              .read(gameProvider.notifier)
-              .syncBoardState(currentBoard, gameStatus);
-
-          // Si el backend indica sincronización activa, activamos el overlay
-          // de "Reconectando..." hasta recibir el siguiente turno_de o ini_minijuego.
-          if (decoded['sincronizando'] == true) {
-            _isReconnecting = true;
-            _eventController.add({'type': 'reconnecting', 'value': true});
-            debugPrint(
-                'Reconectando: mostrando overlay hasta el siguiente punto seguro.');
-          }
-          break;
 
         // Tipo de mensaje de comenzar el juego
         case 'game_start':
@@ -222,12 +200,6 @@ class WebSocketService {
           _ref.read(gameProvider.notifier).clearTurnPurchasedItems();
           // Comentario commit vacio
           _ref.read(gameProvider.notifier).clearTurnPurchasedItems();
-          // Si estábamos reconectando, este mensaje es la señal de que ya podemos jugar.
-          if (_isReconnecting) {
-            _isReconnecting = false;
-            _eventController.add({'type': 'reconnecting', 'value': false});
-            debugPrint('Reconexión completada: ocultando overlay.');
-          }
           break;
 
         case 'dados_mejorados':
@@ -296,13 +268,6 @@ class WebSocketService {
               await Future.delayed(const Duration(milliseconds: 200));
               return true; // Sigue esperando
             }).then((_) {
-              // Si estábamos reconectando, ini_minijuego también es la señal de que podemos jugar.
-              if (_isReconnecting) {
-                _isReconnecting = false;
-                _eventController.add({'type': 'reconnecting', 'value': false});
-                debugPrint(
-                    'Reconexión completada via ini_minijuego: ocultando overlay.');
-              }
               // Limpiamos el flag ANTES de llamar a startMinigame.
               if (isTileMinigame) _pendingTileMinigame = false;
               _ref.read(gameProvider.notifier).startMinigame(

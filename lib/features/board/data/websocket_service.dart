@@ -140,6 +140,21 @@ class WebSocketService {
           });
           break;
 
+        // Tipo de mensaje de reconexión exitosa
+        case 'reconnect_success':
+          // DEBUG: imprimimos reconexion exitosa
+          debugPrint("Reconexión exitosa. Sincronizando tablero...");
+          // La reconexion es exitosa y guardamos el estado de playing
+          final String gameStatus = decoded['game_status'] ?? 'PLAYING';
+          // El backend envía el estado completo del tablero en "current_board" para que el cliente se sincronice
+          final Map<String, dynamic> currentBoard =
+              decoded['current_board'] ?? {};
+          // Enviamos el estado del tablero al gameProvider para que actualice su estado interno y la UI se sincronice con el backend
+          _ref
+              .read(gameProvider.notifier)
+              .syncBoardState(currentBoard, gameStatus);
+          break;
+
         // Tipo de mensaje de comenzar el juego
         case 'game_start':
           debugPrint("El juego ha iniciado.");
@@ -344,13 +359,10 @@ class WebSocketService {
             final map = {
               activeUser: {
                 'apuesta': diff.abs(),
-                'ganado':
-                    diff > 0 || diff == 0, // Si es 0 es neutro, ponemos ganado
+                'ganado': diff > 0 || diff == 0, // Si es 0 es neutro, ponemos ganado
               }
             };
-            _ref
-                .read(gameProvider.notifier)
-                .setMinigameResults(map, [activeUser]);
+            _ref.read(gameProvider.notifier).setMinigameResults(map, [activeUser]);
           }
 
           // 2. Para cada jugador en el Map, actualizamos su balance
@@ -366,10 +378,8 @@ class WebSocketService {
           final victima = decoded['nombre'] as String;
           final monedas = decoded['monedas'] as int;
           // El banquero es el jugador activo actualmente en su turno
-          final banquero =
-              _ref.read(gameProvider).activePlayerName ?? 'Banquero';
-          final message =
-              '${banquero.toUpperCase()} HA ROBADO $monedas MONEDA${monedas > 1 ? 'S' : ''} A ${victima.toUpperCase()}';
+          final banquero = _ref.read(gameProvider).activePlayerName ?? 'Banquero';
+          final message = '${banquero.toUpperCase()} HA ROBADO $monedas MONEDA${monedas > 1 ? 'S' : ''} A ${victima.toUpperCase()}';
           _ref.read(gameProvider.notifier).setTurnTheftMessage(message);
           Future.delayed(const Duration(seconds: 4), () {
             _ref.read(gameProvider.notifier).clearTurnTheftMessage();
@@ -446,8 +456,7 @@ class WebSocketService {
         // Lo reenviamos como backend_error al minijuego activo para que
         // reactive el turno del jugador y evite un deadlock.
         case 'error':
-          final errorMsg =
-              decoded['message']?.toString() ?? 'Error desconocido';
+          final errorMsg = decoded['message']?.toString() ?? 'Error desconocido';
           debugPrint(' [WS] Error del backend: $errorMsg');
           _isActionLocked = false;
           _ref.read(gameProvider.notifier).updateMinigameDetails({
@@ -460,10 +469,10 @@ class WebSocketService {
           // El backend de Dilema del Prisionero nunca envía minijuego_resultados,
           // así que construimos el equivalente aquí para que _resultsSubscription
           // del overlay se dispare y cierre el minijuego correctamente.
-          final decisiones =
-              Map<String, dynamic>.from(decoded['decisiones'] as Map? ?? {});
-          final recompensas =
-              Map<String, dynamic>.from(decoded['recompensas'] as Map? ?? {});
+          final decisiones = Map<String, dynamic>.from(
+              decoded['decisiones'] as Map? ?? {});
+          final recompensas = Map<String, dynamic>.from(
+              decoded['recompensas'] as Map? ?? {});
           final sortedEntries = recompensas.entries.toList()
             ..sort((a, b) => (b.value as num).compareTo(a.value as num));
           int pos = 1;
@@ -493,8 +502,7 @@ class WebSocketService {
 
           // Para Doble o Nada y Dilema del Prisionero, los espectadores no reciben
           // ini_minijuego, así que forzamos el inicio localmente para renderizar el overlay de espera.
-          if ((name == 'Doble o Nada' || name == 'Dilema del Prisionero') &&
-              user != myUsername) {
+          if ((name == 'Doble o Nada' || name == 'Dilema del Prisionero') && user != myUsername) {
             // Dilema del Prisionero solo arranca cuando DOS jugadores coinciden en la misma
             // casilla. Como minijuego_casilla se emite cada vez que alguien cae (aunque
             // esté solo), verificamos que haya al menos 2 jugadores en esa casilla antes de
@@ -518,22 +526,6 @@ class WebSocketService {
               await Future.delayed(const Duration(milliseconds: 200));
               return true;
             }).then((_) {
-              // Para Dilema del Prisionero el juego solo arranca cuando DOS jugadores
-              // coinciden en la misma casilla. Comprobamos AQUÍ, tras vaciar la cola de
-              // animaciones, porque las posiciones se actualizan durante el movimiento.
-              if (name == 'Dilema del Prisionero') {
-                final gameState = _ref.read(gameProvider);
-                final trigger = gameState.players.firstWhere(
-                  (p) => p.username == user || p.id == user,
-                  orElse: () => gameState.players.first,
-                );
-                final onSameTile = gameState.players
-                    .where(
-                        (p) => p.currentTileIndex == trigger.currentTileIndex)
-                    .length;
-                if (onSameTile < 2) return;
-              }
-
               _ref.read(gameProvider.notifier).startMinigame(
                     name: name!,
                     description: decoded['descripcion'],
@@ -549,17 +541,6 @@ class WebSocketService {
           if (msg.isNotEmpty) {
             _eventController.add({'type': 'info_message', 'message': msg});
           }
-          break;
-
-        // El backend envía esto al conectar con una partida en curso.
-        // Contiene el estado completo: orden de turno, posiciones, balances y ronda.
-        case 'reconnect_success':
-          final boardState =
-              decoded['current_board'] as Map<String, dynamic>? ?? {};
-          final gameStatus = decoded['game_status'] as String? ?? 'PLAYING';
-          _ref
-              .read(gameProvider.notifier)
-              .syncBoardState(boardState, gameStatus);
           break;
 
         // Tipo de mensaje por defecto

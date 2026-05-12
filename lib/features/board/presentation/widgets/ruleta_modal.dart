@@ -363,17 +363,13 @@ class _PointerPainter extends CustomPainter {
 
     // Triángulo apuntando hacia abajo (puntero de ruleta)
     final path = Path()
-      ..moveTo(w / 2, h) // vértice inferior (punta)
-      ..lineTo(0, 0) // esquina superior izquierda
-      ..lineTo(w, 0) // esquina superior derecha
+      ..moveTo(w / 2, h)       // vértice inferior (punta)
+      ..lineTo(0, 0)            // esquina superior izquierda
+      ..lineTo(w, 0)            // esquina superior derecha
       ..close();
 
     // Relleno rojo
-    canvas.drawPath(
-        path,
-        Paint()
-          ..color = const Color.fromARGB(192, 251, 255, 0)
-          ..style = PaintingStyle.fill);
+    canvas.drawPath(path, Paint()..color = const Color(0xFFE53935)..style = PaintingStyle.fill);
 
     // Borde negro
     canvas.drawPath(

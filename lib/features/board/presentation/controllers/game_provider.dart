@@ -19,11 +19,43 @@ class GameController extends StateNotifier<GameState> {
   Completer<void>? _rouletteCompleter;
   bool get isAnimationQueueEmpty => _animationQueue.isEmpty && !_isAnimating;
 
+  // 3. Estado Inicial de la Partida — 4 jugadores según el diseño del tablero
   GameController()
       : super(GameState(
           currentPhase: GamePhase.boardTurn,
-          turnOrder: [],
-          players: [],
+          turnOrder: ['1', '2', '3', '4'],
+          activePlayerName: 'David',
+          players: [
+            Player(
+              id: '1',
+              username: 'David',
+              characterClass: CharacterClass.videojugador,
+              coins: 0,
+              diceInventory: [DiceType.normal],
+            ),
+            Player(
+              id: '2',
+              username: 'Elena',
+              characterClass: CharacterClass.banquero,
+              coins: 0,
+              diceInventory: [DiceType.normal],
+            ),
+            Player(
+              id: '3',
+              username: 'Marcos',
+              characterClass: CharacterClass.escapista,
+              coins: 0,
+              diceInventory: [DiceType.normal],
+            ),
+            Player(
+              id: '4',
+              username: 'Lucía',
+              characterClass: CharacterClass.vidente,
+              coins: 0,
+              diceInventory: [DiceType.normal],
+            ),
+          ],
+          serverMessage: "¡Comienza el juego!",
         ));
 
   Future<void> updatePlayerFromBackend(
@@ -132,35 +164,7 @@ class GameController extends StateNotifier<GameState> {
     );
   }
 
-  // Inicializa los jugadores desde los datos del lobby (selectedCharacters: username→personaje)
-  void initFromLobby(Map<String, String> selectedCharacters) {
-    final players = selectedCharacters.entries.map((entry) {
-      final username = entry.key;
-      final charString = entry.value.toLowerCase();
-      CharacterClass charClass = CharacterClass.banquero;
-      if (charString.contains('escapista')) {
-        charClass = CharacterClass.escapista;
-      } else if (charString.contains('vidente')) {
-        charClass = CharacterClass.vidente;
-      } else if (charString.contains('videojugador')) {
-        charClass = CharacterClass.videojugador;
-      }
-      return Player(
-        id: username,
-        username: username,
-        characterClass: charClass,
-        coins: 0,
-        diceInventory: [DiceType.normal],
-      );
-    }).toList();
-
-    state = state.copyWith(
-      players: players,
-      turnOrder: players.map((p) => p.username).toList(),
-    );
-  }
-
-  // Sincronización con el backend — mantenida pero no usada activamente
+  // Método para sincronizar el estado completo desde el backend en una reconexión
   void syncBoardState(Map<String, dynamic> boardState, String gameStatus) {
     // Si la partida está jugandose en el servidor, actualizamos la fase
     GamePhase newPhase =
@@ -253,17 +257,14 @@ class GameController extends StateNotifier<GameState> {
     debugPrint('  • Turno actual (backend): $turnoActual');
     debugPrint('  • Jugador activo identificado: $activeName');
 
-    final int syncRound = boardState['round'] as int? ?? state.currentRound;
-
     state = state.copyWith(
       currentPhase: newPhase,
       players: updatedPlayers.isNotEmpty ? updatedPlayers : state.players,
       turnOrder: cleanTurnOrder.isNotEmpty ? cleanTurnOrder : state.turnOrder,
       activePlayerName: activeName,
-      currentRound: syncRound,
       serverMessage: "Sincronizado con el servidor",
-      lastDiceResult: null,
-      isMovementActive: false,
+      lastDiceResult: null, // Limpiar tiradas viejas al sincronizar
+      isMovementActive: false, // Asegurar tablero estático tras sincro
     );
   }
 

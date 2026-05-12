@@ -139,13 +139,11 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
     super.initState();
     _wsService = ref.read(webSocketProvider);
     Future.microtask(() {
-      // Inicializamos los jugadores desde los datos del lobby antes de conectar
-      final lobbyState = ref.read(lobbyProvider);
-      ref.read(gameProvider.notifier).initFromLobby(lobbyState.selectedCharacters);
-
       final token = ref.read(authProvider).token;
       if (token != null) {
-        final gameId = lobbyState.gameId ?? '1';
+        // Conectamos el WebSocket del juego usando el gameId guardado en el estado del lobby
+        // (si se viene de lobby) y el token de autenticación.
+        final gameId = ref.read(lobbyProvider).gameId ?? '1';
         _wsService.connect(gameId, token);
       }
 
@@ -204,13 +202,6 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
     final activePlayerId = gameState.activePlayerName ?? '';
     final myUsername = ref.watch(authProvider).username;
     final isMyTurn = myUsername == activePlayerId && activePlayerId.isNotEmpty;
-
-    if (gameState.players.isEmpty) {
-      return const Scaffold(
-        backgroundColor: Colors.black,
-        body: Center(child: CircularProgressIndicator(color: Colors.amber)),
-      );
-    }
 
     final me = gameState.players.firstWhere((p) => p.username == myUsername,
         orElse: () => gameState.players.first);
@@ -932,10 +923,6 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
     final effectiveRank =
         (gameState.hasImprovedDice && rank > 1) ? rank - 1 : rank;
 
-    final bool isRoundOne = gameState.currentRound <= 1;
-    final bool hasTwoDice =
-        (!isRoundOne && rank != 4 && rank != 0) || gameState.hasImprovedDice;
-
     return Positioned.fill(
       child: Center(
         child: TweenAnimationBuilder<double>(
@@ -985,7 +972,15 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
                       children: [
                         _buildDiceFace(d1, 4),
                         if (gameState.lastDice2 > 0 ||
-                            (_isRolling && hasTwoDice)) ...[
+                            (_isRolling &&
+                                gameState.players
+                                    .firstWhere(
+                                        (p) =>
+                                            p.username ==
+                                            gameState.activePlayerName,
+                                        orElse: () => gameState.players[0])
+                                    .diceInventory
+                                    .isNotEmpty)) ...[
                           const SizedBox(width: 20),
                           _buildDiceFace(d2, effectiveRank),
                         ],

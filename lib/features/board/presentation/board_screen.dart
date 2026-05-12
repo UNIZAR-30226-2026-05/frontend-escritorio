@@ -149,9 +149,13 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
         // gameId: primero intentamos el del lobby (flujo normal),
         // si es null usamos el del auth (flujo de auto-reconexión al arrancar).
         final gameId = ref.read(lobbyProvider).gameId ??
-            authState.activeGameId ??
-            '1';
-        _wsService.connect(gameId, token);
+            authState.activeGameId;
+            
+        if (gameId != null) {
+          _wsService.connect(gameId, token);
+        } else {
+          debugPrint("Error: No se encontró gameId para conectar el WebSocket.");
+        }
       }
 
       _wsEventSubscription = _wsService.eventStream.listen((event) {
@@ -214,7 +218,7 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
     final isMyTurn = myUsername == activePlayerId && activePlayerId.isNotEmpty;
 
     final me = gameState.players.firstWhere((p) => p.username == myUsername,
-        orElse: () => gameState.players.first);
+        orElse: () => gameState.players.isNotEmpty ? gameState.players.first : Player(id: '0', username: '...', characterClass: CharacterClass.videojugador));
     final bool isBanquero = me.characterClass == CharacterClass.banquero;
     final bool canRobAnyone = gameState.players
         .where((p) => p.username != myUsername)
@@ -654,7 +658,7 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
               // UI OVERLAY: Pantalla de Reconexión
               // Se muestra mientras el jugador espera su punto de reentrada al juego.
               // Bloquea todas las interacciones hasta que el backend envíe turno_de o ini_minijuego.
-              if (_isReconnecting)
+              if (_isReconnecting && gameState.currentPhase == GamePhase.boardTurn)
                 Positioned.fill(
                   child: Container(
                     color: Colors.black.withValues(alpha: 0.92),

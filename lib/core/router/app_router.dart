@@ -42,13 +42,29 @@ class _RouterNotifier extends ChangeNotifier {
         state.matchedLocation == '/register';
 
     // Si no estás autenticado y te encuentras en otra pantalla te devuelve
+    // Si no estás autenticado y te encuentras en otra pantalla te devuelve
     // la ruta de la pantalla de login.
     if (!isAuthenticated && !isAuthRoute) return '/login';
 
-    // Si el usuario tiene una partida activa en curso, le llevamos directamente al tablero.
-    // Tiene prioridad sobre cualquier otra redirección para que nunca pierda su partida.
-    if (isAuthenticated && activeGameId != null && state.matchedLocation != '/game') {
-      return '/game';
+    // Si el usuario tiene una partida activa en curso, le llevamos al sitio correcto.
+    if (isAuthenticated && activeGameId != null) {
+      final status = authState.activeGameStatus;
+      
+      if (status == 'WAITING') {
+        // Si la partida está en fase de Lobby, vamos al Lobby.
+        if (state.matchedLocation != '/lobby') {
+          // Actualizamos el ID en el lobbyProvider para que sepa a qué partida conectar
+          Future.microtask(() {
+            _ref.read(lobbyProvider.notifier).unirseAPartida(activeGameId);
+          });
+          return '/lobby';
+        }
+      } else if (status == 'PLAYING') {
+        // Si la partida ya ha empezado, vamos al tablero.
+        if (state.matchedLocation != '/game') {
+          return '/game';
+        }
+      }
     }
 
     // Si estás autenticado y te encuentras en alguna pantalla de autenticación

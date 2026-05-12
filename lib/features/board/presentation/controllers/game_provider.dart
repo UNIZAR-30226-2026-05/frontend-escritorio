@@ -19,43 +19,14 @@ class GameController extends StateNotifier<GameState> {
   Completer<void>? _rouletteCompleter;
   bool get isAnimationQueueEmpty => _animationQueue.isEmpty && !_isAnimating;
 
-  // 3. Estado Inicial de la Partida — 4 jugadores según el diseño del tablero
+  // 3. Estado Inicial de la Partida — Empezamos vacío hasta que el socket sincronice
   GameController()
       : super(GameState(
           currentPhase: GamePhase.boardTurn,
-          turnOrder: ['1', '2', '3', '4'],
-          activePlayerName: 'David',
-          players: [
-            Player(
-              id: '1',
-              username: 'David',
-              characterClass: CharacterClass.videojugador,
-              coins: 0,
-              diceInventory: [DiceType.normal],
-            ),
-            Player(
-              id: '2',
-              username: 'Elena',
-              characterClass: CharacterClass.banquero,
-              coins: 0,
-              diceInventory: [DiceType.normal],
-            ),
-            Player(
-              id: '3',
-              username: 'Marcos',
-              characterClass: CharacterClass.escapista,
-              coins: 0,
-              diceInventory: [DiceType.normal],
-            ),
-            Player(
-              id: '4',
-              username: 'Lucía',
-              characterClass: CharacterClass.vidente,
-              coins: 0,
-              diceInventory: [DiceType.normal],
-            ),
-          ],
-          serverMessage: "¡Comienza el juego!",
+          turnOrder: const [],
+          activePlayerName: null,
+          players: const [],
+          serverMessage: "Sincronizando...",
         ));
 
   Future<void> updatePlayerFromBackend(

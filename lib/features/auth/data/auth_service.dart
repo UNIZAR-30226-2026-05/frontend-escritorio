@@ -52,6 +52,26 @@ class AuthService {
     }
   }
 
+  // Comprueba si el usuario autenticado está actualmente en una partida activa.
+  // Devuelve el game_id como String si está en una partida, o null si no está o hay error.
+  // Nunca lanza excepción para no interrumpir el flujo de login/restore.
+  Future<String?> checkActiveGame(String token) async {
+    try {
+      final response = await http.get(
+        Uri.parse('${ApiConstants.baseUrl}${ApiConstants.miPartidaEndpoint}'),
+        headers: {'Authorization': 'Bearer $token'},
+      );
+      if (response.statusCode == 200) {
+        final gameId = jsonDecode(response.body);
+        return gameId.toString();
+      }
+      // 404 = no está en ninguna partida, cualquier otro error lo ignoramos
+      return null;
+    } catch (_) {
+      return null;
+    }
+  }
+
   // Método register de la clase de autenticación.
   // Devuelve un Future (promesa) que contendrá un void (es una función asíncorna).
   Future<void> register(String nombre, String password) async {

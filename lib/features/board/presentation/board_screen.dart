@@ -49,6 +49,10 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
   bool _showingDiceResult = false;
   Timer? _diceResultTimer;
 
+  // Indica que el jugador acaba de reconectarse y está esperando
+  // al siguiente punto seguro del juego para volver a interactuar.
+  bool _isReconnecting = false;
+
   // Coordenadas de los centros de las casillas en el tablero
   final Map<int, Offset> tileCenters = {
     -1: const Offset(
@@ -139,17 +143,20 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
     super.initState();
     _wsService = ref.read(webSocketProvider);
     Future.microtask(() {
-      final token = ref.read(authProvider).token;
+      final authState = ref.read(authProvider);
+      final token = authState.token;
       if (token != null) {
-        // Conectamos el WebSocket del juego usando el gameId guardado en el estado del lobby
-        // (si se viene de lobby) y el token de autenticación.
-        final gameId = ref.read(lobbyProvider).gameId ?? '1';
+        // gameId: primero intentamos el del lobby (flujo normal),
+        // si es null usamos el del auth (flujo de auto-reconexión al arrancar).
+        final gameId = ref.read(lobbyProvider).gameId ??
+            authState.activeGameId ??
+            '1';
         _wsService.connect(gameId, token);
       }
 
       _wsEventSubscription = _wsService.eventStream.listen((event) {
+        if (!mounted) return;
         if (event['type'] == 'info_message') {
-          if (!mounted) return;
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(event['message'] ?? '',
@@ -158,6 +165,9 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
               duration: const Duration(seconds: 4),
             ),
           );
+        } else if (event['type'] == 'reconnecting') {
+          // El WS service nos notifica si entra o sale del estado de reconexion.
+          setState(() => _isReconnecting = event['value'] == true);
         }
       });
     });
@@ -639,6 +649,52 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
                         ),
                       ),
                     ],
+                  ),
+                ),
+              // UI OVERLAY: Pantalla de Reconexión
+              // Se muestra mientras el jugador espera su punto de reentrada al juego.
+              // Bloquea todas las interacciones hasta que el backend envíe turno_de o ini_minijuego.
+              if (_isReconnecting)
+                Positioned.fill(
+                  child: Container(
+                    color: Colors.black.withValues(alpha: 0.92),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const SizedBox(
+                          width: 80,
+                          height: 80,
+                          child: CircularProgressIndicator(
+                            color: Colors.amber,
+                            strokeWidth: 6,
+                          ),
+                        ),
+                        const SizedBox(height: 32),
+                        const Text(
+                          'RECONECTANDO...',
+                          style: TextStyle(
+                            fontFamily: 'Retro Gaming',
+                            fontSize: 28,
+                            color: Colors.amber,
+                            letterSpacing: 3,
+                            shadows: [
+                              Shadow(
+                                  color: Colors.amber,
+                                  blurRadius: 16),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        const Text(
+                          'Esperando el siguiente turno...',
+                          style: TextStyle(
+                            fontFamily: 'Retro Gaming',
+                            fontSize: 14,
+                            color: Colors.white54,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
             ],

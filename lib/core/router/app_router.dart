@@ -34,20 +34,27 @@ class _RouterNotifier extends ChangeNotifier {
   // Devuelve un string que puede ser null, context es la info de la app actual
   // y state es el estado de GoRouter(qué ruta intentas ir, parámetros, etc.).
   String? redirect(BuildContext context, GoRouterState state) {
-    // Asigna a la variable isAuthenticated el valor del estadooo de autenticacion
-    // a través de la referencia que establecimos anteriormente.
-    final isAuthenticated = _ref.read(authProvider).isAuthenticated;
-    // Asigna a la variable isAuthRoute si te encuentras en alguna pantalla de
-    // autenticacion.
+    final authState = _ref.read(authProvider);
+    final isAuthenticated = authState.isAuthenticated;
+    final activeGameId = authState.activeGameId;
+
     final isAuthRoute = state.matchedLocation == '/login' ||
         state.matchedLocation == '/register';
 
     // Si no estás autenticado y te encuentras en otra pantalla te devuelve
     // la ruta de la pantalla de login.
     if (!isAuthenticated && !isAuthRoute) return '/login';
+
+    // Si el usuario tiene una partida activa en curso, le llevamos directamente al tablero.
+    // Tiene prioridad sobre cualquier otra redirección para que nunca pierda su partida.
+    if (isAuthenticated && activeGameId != null && state.matchedLocation != '/game') {
+      return '/game';
+    }
+
     // Si estás autenticado y te encuentras en alguna pantalla de autenticación
     // te devuelve la ruta de la pantalla lobby del juego.
     if (isAuthenticated && isAuthRoute) return '/lobby';
+
     // Si todos los jugadores han seleccionado personaje, navega a la partida.
     // Solo aplica si el usuario no está ya en /game para evitar bucles.
     final allReady = _ref.read(lobbyProvider).allCharactersSelected;

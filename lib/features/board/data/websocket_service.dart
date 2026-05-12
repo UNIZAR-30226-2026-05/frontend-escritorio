@@ -141,6 +141,14 @@ class WebSocketService {
           });
           break;
 
+        case 'reconnect_success':
+          final Map<String, dynamic> currentBoard =
+              decoded['current_board'] ?? {};
+          final String gameStatus = decoded['game_status'] ?? 'PLAYING';
+          _ref
+              .read(gameProvider.notifier)
+              .syncBoardState(currentBoard, gameStatus);
+          break;
 
         // Tipo de mensaje de comenzar el juego
         case 'game_start':

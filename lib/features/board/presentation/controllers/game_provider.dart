@@ -72,7 +72,8 @@ class GameController extends StateNotifier<GameState> {
     // Buscar el jugador de forma segura para evitar excepciones si no existe en el estado local
     final playerIndex = state.players.indexWhere((p) => p.id == playerId);
     if (playerIndex == -1) {
-      debugPrint("⚠️ ADVERTENCIA: Se intentó mover al jugador $playerId pero no existe en state.players.");
+      debugPrint(
+          "⚠️ ADVERTENCIA: Se intentó mover al jugador $playerId pero no existe en state.players.");
       return;
     }
     final currentPlayer = state.players[playerIndex];
@@ -84,15 +85,13 @@ class GameController extends StateNotifier<GameState> {
         lastDice1: dice1,
         lastDice2: dice2,
         lastDiceRollId: state.lastDiceRollId + 1,
-        serverMessage:
-            "${currentPlayer.username} sacó un $diceRoll.",
+        serverMessage: "${currentPlayer.username} sacó un $diceRoll.",
       );
       await Future.delayed(const Duration(seconds: 2));
     } else {
       state = state.copyWith(
         isMovementActive: true,
-        serverMessage:
-            "${currentPlayer.username} se desplaza por el tablero.",
+        serverMessage: "${currentPlayer.username} se desplaza por el tablero.",
       );
       await Future.delayed(const Duration(milliseconds: 400));
     }

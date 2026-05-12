@@ -145,10 +145,7 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
       final authState = ref.read(authProvider);
       final token = authState.token;
       if (token != null) {
-        // gameId: primero intentamos el del lobby (flujo normal),
-        // si es null usamos el del auth (flujo de auto-reconexión al arrancar).
-        final gameId = ref.read(lobbyProvider).gameId ??
-            authState.activeGameId;
+        final gameId = ref.read(lobbyProvider).gameId;
             
         if (gameId != null) {
           _wsService.connect(gameId, token);

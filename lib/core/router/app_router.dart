@@ -31,41 +31,15 @@ class _RouterNotifier extends ChangeNotifier {
     _ref.listen<LobbyState>(lobbyProvider, (_, __) => notifyListeners());
   }
 
-  // Devuelve un string que puede ser null, context es la info de la app actual
-  // y state es el estado de GoRouter(qué ruta intentas ir, parámetros, etc.).
   String? redirect(BuildContext context, GoRouterState state) {
     final authState = _ref.read(authProvider);
     final isAuthenticated = authState.isAuthenticated;
-    final activeGameId = authState.activeGameId;
-
     final isAuthRoute = state.matchedLocation == '/login' ||
         state.matchedLocation == '/register';
 
     // Si no estás autenticado y te encuentras en otra pantalla te devuelve
-    // Si no estás autenticado y te encuentras en otra pantalla te devuelve
     // la ruta de la pantalla de login.
     if (!isAuthenticated && !isAuthRoute) return '/login';
-
-    // Si el usuario tiene una partida activa en curso, le llevamos al sitio correcto.
-    if (isAuthenticated && activeGameId != null) {
-      final status = authState.activeGameStatus;
-      
-      if (status == 'WAITING') {
-        // Si la partida está en fase de Lobby, vamos al Lobby.
-        if (state.matchedLocation != '/lobby') {
-          // Actualizamos el ID en el lobbyProvider para que sepa a qué partida conectar
-          Future.microtask(() {
-            _ref.read(lobbyProvider.notifier).unirseAPartida(activeGameId);
-          });
-          return '/lobby';
-        }
-      } else if (status == 'PLAYING') {
-        // Si la partida ya ha empezado, vamos al tablero.
-        if (state.matchedLocation != '/game') {
-          return '/game';
-        }
-      }
-    }
 
     // Si estás autenticado y te encuentras en alguna pantalla de autenticación
     // te devuelve la ruta de la pantalla lobby del juego.

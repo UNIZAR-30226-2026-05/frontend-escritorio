@@ -15,12 +15,7 @@ class AuthState {
   final bool isLoading; // True = esperando respuesta.
   // Mensjae de error a mostrar si falla el login o registro.
   final String? error;
-  // ID de la partida activa en la que está el usuario (si existe).
-  // Se rellena tras el login o al restaurar sesión.
-  // null = no está en ninguna partida.
-  final String? activeGameId;
-  // Estado de la partida (WAITING o PLAYING)
-  final String? activeGameStatus;
+
   // Constructor con valores por defecto.
   const AuthState({
     this.isAuthenticated = false,
@@ -28,8 +23,6 @@ class AuthState {
     this.username,
     this.isLoading = false,
     this.error,
-    this.activeGameId,
-    this.activeGameStatus,
   });
 }
 
@@ -53,14 +46,10 @@ class AuthController extends StateNotifier<AuthState> {
     final session = await _authService.getSession();
     // Si existe, cambia el estado de la autenticación.
     if (session != null) {
-      // Comprobamos si el usuario está en una partida activa para auto-redirigirle.
-      final gameData = await _authService.checkActiveGame(session.token);
       state = AuthState(
         isAuthenticated: true,
         token: session.token,
         username: session.username,
-        activeGameId: gameData?['gameId'],
-        activeGameStatus: gameData?['status'],
       );
     }
   }
@@ -75,15 +64,11 @@ class AuthController extends StateNotifier<AuthState> {
       final response = await _authService.login(username, password);
       // Guarda el JWT y el username en el Windows Credential Manager para persistir la sesión.
       await _authService.saveSession(response.accessToken, username);
-      // Comprobamos si el usuario está en una partida activa para auto-redirigirle.
-      final gameData = await _authService.checkActiveGame(response.accessToken);
       // Actualiza el estado con la sesión activa.
       state = AuthState(
         isAuthenticated: true,
         token: response.accessToken,
         username: username,
-        activeGameId: gameData?['gameId'],
-        activeGameStatus: gameData?['status'],
       );
       return true;
     } catch (e) {

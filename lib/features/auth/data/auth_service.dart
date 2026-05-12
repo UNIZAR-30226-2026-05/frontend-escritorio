@@ -52,26 +52,7 @@ class AuthService {
     }
   }
 
-  // Comprueba si el usuario autenticado está actualmente en una partida activa.
-  // Devuelve un Map con {'gameId': '...', 'status': '...'} si está en una partida, o null si no.
-  Future<Map<String, String>?> checkActiveGame(String token) async {
-    try {
-      final response = await http.get(
-        Uri.parse('${ApiConstants.baseUrl}${ApiConstants.miPartidaEndpoint}'),
-        headers: {'Authorization': 'Bearer $token'},
-      );
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body) as Map<String, dynamic>;
-        return {
-          'gameId': data['game_id'].toString(),
-          'status': data['estado'].toString(),
-        };
-      }
-      return null;
-    } catch (_) {
-      return null;
-    }
-  }
+
 
   // Método register de la clase de autenticación.
   // Devuelve un Future (promesa) que contendrá un void (es una función asíncorna).

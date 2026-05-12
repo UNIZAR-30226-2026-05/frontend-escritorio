@@ -205,6 +205,13 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
     final myUsername = ref.watch(authProvider).username;
     final isMyTurn = myUsername == activePlayerId && activePlayerId.isNotEmpty;
 
+    if (gameState.players.isEmpty) {
+      return const Scaffold(
+        backgroundColor: Colors.black,
+        body: Center(child: CircularProgressIndicator(color: Colors.amber)),
+      );
+    }
+
     final me = gameState.players.firstWhere((p) => p.username == myUsername,
         orElse: () => gameState.players.first);
     final bool isBanquero = me.characterClass == CharacterClass.banquero;

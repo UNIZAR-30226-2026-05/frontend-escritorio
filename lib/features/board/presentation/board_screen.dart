@@ -226,6 +226,7 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
     final bool shouldForceBanquero = isMyTurn &&
         isBanquero &&
         !_hasUsedBanqueroSkill &&
+        !_hasRolledThisTurn &&
         canRobAnyone &&
         gameState.currentPhase == GamePhase.boardTurn &&
         !gameState.isMovementActive &&
@@ -291,10 +292,11 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
       },
     );
 
-    // Resetear _hasRolledThisTurn cuando cambia el turno,
-    // vuelve la fase al tablero o es un juego de 1 jugador
+    // Resetear flags de turno solo cuando cambia el jugador activo.
+    // No resetear en cambios de fase (boardTurn → minigameTile → boardTurn)
+    // para que el popup del banquero no reaparezca tras un minijuego de casilla.
     ref.listen(
-      gameProvider.select((s) => '${s.activePlayerName}_${s.currentPhase}'),
+      gameProvider.select((s) => s.activePlayerName),
       (prev, next) {
         if (prev != next && mounted) {
           setState(() {
@@ -732,7 +734,11 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.block, color: Colors.redAccent, size: 64),
+              const SizedBox(
+                width: 64,
+                height: 64,
+                child: CustomPaint(painter: _ProhibidoPainter()),
+              ),
               const SizedBox(height: 20),
               const Text(
                 'ESTÁS BLOQUEADO',
@@ -1659,4 +1665,40 @@ class _TurnTimerWidgetState extends State<TurnTimerWidget> {
       ),
     );
   }
+}
+
+class _ProhibidoPainter extends CustomPainter {
+  const _ProhibidoPainter();
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = Offset(size.width / 2, size.height / 2);
+    final radius = size.width / 2;
+    final borderW = radius * 0.12;
+
+    // Borde blanco exterior
+    canvas.drawCircle(center, radius,
+        Paint()..color = Colors.white..style = PaintingStyle.fill);
+
+    // Círculo rojo
+    canvas.drawCircle(center, radius - borderW,
+        Paint()..color = const Color(0xFFE53935)..style = PaintingStyle.fill);
+
+    // Barra diagonal blanca (clipada al círculo rojo)
+    canvas.save();
+    canvas.clipPath(Path()
+      ..addOval(Rect.fromCircle(center: center, radius: radius - borderW)));
+    canvas.translate(center.dx, center.dy);
+    canvas.rotate(pi / 4);
+    final barHalf = radius * 0.95;
+    final barThick = radius * 0.22;
+    canvas.drawRect(
+      Rect.fromLTRB(-barHalf, -barThick, barHalf, barThick),
+      Paint()..color = Colors.white..style = PaintingStyle.fill,
+    );
+    canvas.restore();
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

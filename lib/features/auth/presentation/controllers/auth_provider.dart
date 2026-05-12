@@ -15,7 +15,6 @@ class AuthState {
   final bool isLoading; // True = esperando respuesta.
   // Mensjae de error a mostrar si falla el login o registro.
   final String? error;
-
   // Constructor con valores por defecto.
   const AuthState({
     this.isAuthenticated = false,

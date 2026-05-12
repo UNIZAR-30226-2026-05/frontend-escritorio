@@ -19,14 +19,43 @@ class GameController extends StateNotifier<GameState> {
   Completer<void>? _rouletteCompleter;
   bool get isAnimationQueueEmpty => _animationQueue.isEmpty && !_isAnimating;
 
-  // 3. Estado Inicial de la Partida — Empezamos vacío hasta que el socket sincronice
+  // 3. Estado Inicial de la Partida — 4 jugadores según el diseño del tablero
   GameController()
       : super(GameState(
           currentPhase: GamePhase.boardTurn,
-          turnOrder: const [],
-          activePlayerName: null,
-          players: const [],
-          serverMessage: "Sincronizando...",
+          turnOrder: ['1', '2', '3', '4'],
+          activePlayerName: 'David',
+          players: [
+            Player(
+              id: '1',
+              username: 'David',
+              characterClass: CharacterClass.videojugador,
+              coins: 0,
+              diceInventory: [DiceType.normal],
+            ),
+            Player(
+              id: '2',
+              username: 'Elena',
+              characterClass: CharacterClass.banquero,
+              coins: 0,
+              diceInventory: [DiceType.normal],
+            ),
+            Player(
+              id: '3',
+              username: 'Marcos',
+              characterClass: CharacterClass.escapista,
+              coins: 0,
+              diceInventory: [DiceType.normal],
+            ),
+            Player(
+              id: '4',
+              username: 'Lucía',
+              characterClass: CharacterClass.vidente,
+              coins: 0,
+              diceInventory: [DiceType.normal],
+            ),
+          ],
+          serverMessage: "¡Comienza el juego!",
         ));
 
   Future<void> updatePlayerFromBackend(
@@ -69,15 +98,6 @@ class GameController extends StateNotifier<GameState> {
       {int dice1 = 0, int dice2 = 0}) async {
     if (state.currentPhase == GamePhase.finished) return;
 
-    // Buscar el jugador de forma segura para evitar excepciones si no existe en el estado local
-    final playerIndex = state.players.indexWhere((p) => p.id == playerId);
-    if (playerIndex == -1) {
-      debugPrint(
-          "⚠️ ADVERTENCIA: Se intentó mover al jugador $playerId pero no existe en state.players.");
-      return;
-    }
-    final currentPlayer = state.players[playerIndex];
-
     if (diceRoll > 0) {
       state = state.copyWith(
         isMovementActive: true,
@@ -85,17 +105,20 @@ class GameController extends StateNotifier<GameState> {
         lastDice1: dice1,
         lastDice2: dice2,
         lastDiceRollId: state.lastDiceRollId + 1,
-        serverMessage: "${currentPlayer.username} sacó un $diceRoll.",
+        serverMessage:
+            "${state.players.firstWhere((p) => p.id == playerId).username} sacó un $diceRoll.",
       );
       await Future.delayed(const Duration(seconds: 2));
     } else {
       state = state.copyWith(
         isMovementActive: true,
-        serverMessage: "${currentPlayer.username} se desplaza por el tablero.",
+        serverMessage:
+            "${state.players.firstWhere((p) => p.id == playerId).username} se desplaza por el tablero.",
       );
       await Future.delayed(const Duration(milliseconds: 400));
     }
 
+    final currentPlayer = state.players.firstWhere((p) => p.id == playerId);
     String newMessage = diceRoll == 0
         ? "${currentPlayer.username} ajusta su posición."
         : "${currentPlayer.username} sacó un $diceRoll.";
@@ -334,15 +357,22 @@ class GameController extends StateNotifier<GameState> {
   }
 
   void finishMinigame() {
-    // Limpiamos los datos del minijuego pero mantenemos el resto del estado
-    state = state.copyWith(
+    // Igual que startMinigame: construimos el estado directamente para
+    // poder poner todos los campos de minijuego a null de verdad.
+    state = GameState(
       currentPhase: GamePhase.boardTurn,
-      minigameName: null,
-      minigameDescription: null,
-      minigameDetails: null,
-      minigameResults: null,
-      minigameChoices: [],
-      isWaitingForMinigameChoice: false,
+      currentRound: state.currentRound,
+      players: state.players,
+      turnOrder: state.turnOrder,
+      activePlayerName: state.activePlayerName,
+      serverMessage: state.serverMessage,
+      isWaitingForMinigameChoice: state.isWaitingForMinigameChoice,
+      minigameChoices: state.minigameChoices,
+      winnerName: state.winnerName,
+      lastDiceResult: state.lastDiceResult,
+      lastDice1: state.lastDice1,
+      lastDice2: state.lastDice2,
+      lastDiceRollId: state.lastDiceRollId,
     );
   }
 
@@ -350,7 +380,6 @@ class GameController extends StateNotifier<GameState> {
   void setActivePlayerName(String? name, {int? round}) {
     state = state.copyWith(
       activePlayerName: name,
-      currentPhase: GamePhase.boardTurn,
       currentRound: round ?? state.currentRound,
       hasImprovedDice: false, // Resetear mejora al cambiar de turno
       lastDiceResult:
@@ -452,6 +481,31 @@ class GameController extends StateNotifier<GameState> {
       obtainedItemDesc: state.obtainedItemDesc,
       winnerName: state.winnerName,
       // videnteDiceResults: null by default
+    );
+  }
+
+  // MODO DEBUG: Inicia un minijuego localmente sin avisar al backend
+  void startDebugMinigameLocal(String name) {
+    Map<String, dynamic> mockDetails = {};
+
+    // Generamos datos falsos según lo que necesite cada minijuego
+    if (name == 'Tren') {
+      mockDetails = {'objetivo': 20.0};
+    } else if (name == 'Mayor o Menor') {
+      mockDetails = {
+        'cartas': [12, 25, 38, 51],
+        'personaje': 'banquero'
+      };
+    } else if (name == 'Cronometro ciego') {
+      mockDetails = {'objetivo': 8};
+    } else if (name == 'Cortar pan') {
+      mockDetails = {'objetivo': 50};
+    }
+
+    startMinigame(
+      name: name,
+      description: "DEBUG_MODE", // Usamos esto como bandera secreta
+      details: mockDetails,
     );
   }
 

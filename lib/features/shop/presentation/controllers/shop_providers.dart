@@ -97,9 +97,8 @@ class _ShopModalState extends ConsumerState<ShopModal> {
 
     // Ranking: determine if local player is the FIRST to roll in this round (Turn 1)
     // El backend bloquea al que tira primero porque ya tiene el dado de oro.
-    final bool isFirstInTurn = gameState.turnOrder.isNotEmpty &&
-        (gameState.turnOrder[0] == myUsername ||
-            gameState.turnOrder[0] == player.id);
+    final bool isFirstInTurn = gameState.turnOrder.isNotEmpty && 
+                              (gameState.turnOrder[0] == myUsername || gameState.turnOrder[0] == player.id);
     final bool isFirstPlace = isFirstInTurn && myUsername != null;
 
     return Container(
@@ -182,7 +181,7 @@ class _ShopModalState extends ConsumerState<ShopModal> {
             children: ShopRepository.catalog.map((item) {
               final canAfford = widget.playerCoins >= item.price;
 
-              final bool isAvanzar = item.name == 'Avanzar Casilla';
+              final bool isAvanzar = item.name == 'Avanzar Casillas';
               final bool isMejora = item.name == 'Mejorar Dados';
               final bool isSalvavidas =
                   item.name.toLowerCase().contains('salvavidas');

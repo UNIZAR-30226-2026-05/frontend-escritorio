@@ -86,11 +86,7 @@ class PokerGame extends ConsumerStatefulWidget {
 
 class _PokerGameState extends ConsumerState<PokerGame> {
   bool _showCards = false;
-  String _currentPhase = '';
-
-  bool _amIFolded = false;
-  List<String> _winnerUsernames = [];
-  int _potWon = 0;
+  String _currentPhase = 'preFlop';
 
   // El backend envía 'turno_poker' con el nombre del jugador que debe actuar.
   // Solo mostramos los botones de acción cuando es nuestro turno.
@@ -180,10 +176,8 @@ class _PokerGameState extends ConsumerState<PokerGame> {
         _isMyTurn = false; // esperamos turno_poker
         _resultMessage = '';
         _communityCards = [];
-        _myCards = [];
         _myCurrentBet = 0;
         _currentMaxBet = 0;
-        _amIFolded = false;
       }
 
       // ── poker_nueva_fase: nueva fase de apuestas ──
@@ -198,15 +192,6 @@ class _PokerGameState extends ConsumerState<PokerGame> {
         if (details.containsKey('jugadores_activos')) {
           final activos =
               List<String>.from(details['jugadores_activos'] as List);
-          final myUsername = ref.read(authProvider).username ?? '';
-          final gameState = ref.read(gameProvider);
-          final myId = gameState.players
-                  .where((p) => p.username == myUsername)
-                  .firstOrNull
-                  ?.id ??
-              '';
-          _amIFolded =
-              !activos.contains(myUsername) && !activos.contains(myId);
           for (final r in _rivals) {
             r.folded = !activos.contains(r.id) && !activos.contains(r.name);
           }
@@ -225,17 +210,6 @@ class _PokerGameState extends ConsumerState<PokerGame> {
         _gameFinished = true;
         _isMyTurn = false;
         _showCards = true;
-
-        _winnerUsernames = [];
-        if (details.containsKey('ganadores')) {
-          _winnerUsernames =
-              List<String>.from(details['ganadores'] as List);
-        } else if (details.containsKey('ganador')) {
-          _winnerUsernames = [details['ganador'] as String];
-        }
-
-        _potWon = (details['bote_ganado'] as num?)?.toInt() ?? 0;
-
         if (details.containsKey('mensaje')) {
           _resultMessage = details['mensaje'];
         } else if (details.containsKey('ganador')) {
@@ -264,10 +238,6 @@ class _PokerGameState extends ConsumerState<PokerGame> {
               .map((c) => PokerCard.fromBackend(c))
               .toList();
         }
-
-        Future.delayed(const Duration(seconds: 5), () {
-          if (mounted) widget.onFinish(0);
-        });
       }
 
       // ── Cartas propias ──
@@ -405,7 +375,6 @@ class _PokerGameState extends ConsumerState<PokerGame> {
 
     ref.watch(authProvider).username;
     final canAct = _isMyTurn && !_gameFinished;
-    final amIActive = !_amIFolded && (_myCards.isNotEmpty || _currentPhase.isEmpty);
     final size = MediaQuery.of(context).size;
 
     return Scaffold(
@@ -525,31 +494,18 @@ class _PokerGameState extends ConsumerState<PokerGame> {
                                       fontSize: 8,
                                       color: Colors.black,
                                       fontWeight: FontWeight.bold))),
-                        if (!amIActive && !_gameFinished && _currentPhase.isNotEmpty)
+                        if (!_isMyTurn && !_gameFinished)
                           Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 24, vertical: 12),
-                            decoration: BoxDecoration(
-                              color: Colors.red.shade900
-                                  .withValues(alpha: 0.6),
-                              border: Border.all(
-                                  color: Colors.red.shade500
-                                      .withValues(alpha: 0.3)),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Text(
-                              _myCards.isNotEmpty
-                                  ? 'TE HAS RETIRADO'
-                                  : 'NO TIENES SUFICIENTE SALDO PARA JUGAR LA MANO',
-                              style: TextStyle(
-                                fontFamily: 'Retro Gaming',
-                                fontSize: 14,
-                                color: Colors.red.shade300,
-                                letterSpacing: 2.0,
-                              ),
-                              textAlign: TextAlign.center,
-                            ),
-                          ),
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 8, vertical: 4),
+                              decoration: BoxDecoration(
+                                  color: Colors.blue.withValues(alpha: 0.3),
+                                  borderRadius: BorderRadius.circular(4)),
+                              child: const Text('ESPERANDO TU TURNO...',
+                                  style: TextStyle(
+                                      fontFamily: 'Retro Gaming',
+                                      fontSize: 8,
+                                      color: Colors.white70))),
                         if (_gameFinished && _resultMessage.isNotEmpty)
                           Container(
                               padding: const EdgeInsets.symmetric(
@@ -744,179 +700,18 @@ class _PokerGameState extends ConsumerState<PokerGame> {
               ]),
             )),
 
-        // Pantalla de ganador al terminar la mano
-        if (_gameFinished && _winnerUsernames.isNotEmpty)
-          Builder(builder: (context) {
-            final winnerUsername = _winnerUsernames[0];
-            final myUsername = ref.read(authProvider).username ?? '';
-            final gameState = ref.read(gameProvider);
-            final winnerPlayer = gameState.players
-                .where((p) => p.username == winnerUsername)
-                .firstOrNull;
-            final isMe = winnerUsername == myUsername;
-            final role =
-                winnerPlayer?.characterClass.name.toLowerCase() ?? 'videojugador';
-
-            return Positioned.fill(
-              child: Container(
-                color: Colors.black.withValues(alpha: 0.8),
-                child: Center(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Container(
-                        width: 192,
-                        height: 192,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          border: Border.all(color: Colors.amber, width: 8),
-                          boxShadow: [
-                            BoxShadow(
-                                color: Colors.amber.withValues(alpha: 0.4),
-                                blurRadius: 50,
-                                spreadRadius: 10)
-                          ],
-                          image: DecorationImage(
-                            image: AssetImage(
-                                'assets/images/characters/general/${role}_perfil.png'),
-                            fit: BoxFit.cover,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 24),
-                      Text(
-                        isMe ? '¡TÚ GANAS!' : winnerUsername.toUpperCase(),
-                        style: const TextStyle(
-                          fontFamily: 'Retro Gaming',
-                          fontSize: 36,
-                          color: Colors.white,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      const Text(
-                        'SE LLEVA EL BOTE',
-                        style: TextStyle(
-                          fontFamily: 'Retro Gaming',
-                          fontSize: 18,
-                          color: Colors.amber,
-                          letterSpacing: 2.0,
-                        ),
-                      ),
-                      const SizedBox(height: 32),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 48, vertical: 24),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.05),
-                          border: Border.all(
-                              color: Colors.amber.withValues(alpha: 0.2)),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Column(
-                          children: [
-                            const Text(
-                              'TOTAL PREMIO',
-                              style: TextStyle(
-                                fontFamily: 'Retro Gaming',
-                                fontSize: 10,
-                                color: Colors.white38,
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              '$_potWon¢',
-                              style: const TextStyle(
-                                fontFamily: 'Retro Gaming',
-                                fontSize: 60,
-                                color: Colors.amber,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            );
-          }),
-
-        // Overlay de espera/sin-saldo mientras no llegan las cartas
-        if (_currentPhase.isEmpty)
-          Positioned.fill(
-            child: Container(
-              color: Colors.black.withValues(alpha: 0.7),
-              child: Center(
-                child: (_myBalance < 5)
-                    ? Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 48, vertical: 32),
-                        decoration: BoxDecoration(
-                          color: Colors.black.withValues(alpha: 0.9),
-                          border: Border.all(
-                              color: Colors.red.withValues(alpha: 0.5),
-                              width: 2),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Text('💸',
-                                style: TextStyle(fontSize: 36)),
-                            const SizedBox(height: 16),
-                            const Text('NO TIENES SALDO SUFICIENTE',
-                                style: TextStyle(
-                                    color: Colors.redAccent,
-                                    fontFamily: 'Retro Gaming',
-                                    fontSize: 16,
-                                    letterSpacing: 2.0)),
-                            const SizedBox(height: 8),
-                            Text('MÁS SUERTE LA PRÓXIMA VEZ',
-                                style: TextStyle(
-                                    color:
-                                        Colors.white.withValues(alpha: 0.6),
-                                    fontFamily: 'Retro Gaming',
-                                    fontSize: 12,
-                                    letterSpacing: 2.0)),
-                            const SizedBox(height: 8),
-                            Text('(MÍNIMO 5 MONEDAS)',
-                                style: TextStyle(
-                                    color:
-                                        Colors.white.withValues(alpha: 0.4),
-                                    fontFamily: 'Retro Gaming',
-                                    fontSize: 10,
-                                    letterSpacing: 2.0)),
-                          ],
-                        ),
-                      )
-                    : Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 48, vertical: 32),
-                        decoration: BoxDecoration(
-                          color: Colors.black.withValues(alpha: 0.9),
-                          border: Border.all(
-                              color: Colors.purple.withValues(alpha: 0.5),
-                              width: 2),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: const Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            CircularProgressIndicator(
-                                color: Colors.purpleAccent),
-                            SizedBox(height: 16),
-                            Text('ESPERANDO CARTAS...',
-                                style: TextStyle(
-                                    color: Colors.white,
-                                    fontFamily: 'Retro Gaming',
-                                    fontSize: 18,
-                                    letterSpacing: 2.0)),
-                          ],
-                        ),
-                      ),
-              ),
-            ),
-          ),
+        // Botón para volver al tablero cuando la mano ha terminado
+        if (_gameFinished)
+          Positioned(
+              top: 24,
+              right: 24,
+              child: RetroImgButton(
+                  label: 'VOLVER',
+                  asset: 'assets/images/ui/btn_verde.png',
+                  width: 140,
+                  height: 48,
+                  fontSize: 11,
+                  onTap: () => widget.onFinish(0))),
       ]),
     );
   }

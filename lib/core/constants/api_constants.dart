@@ -13,8 +13,6 @@ class ApiConstants {
   static const String crearPartidaEndpoint = '/partidas/crear_partida';
   // Unirse a una partida existente por game_id antes de conectar el WS
   static const String unirsePartidaEndpoint = '/partidas/unirse_partida';
-  // Consultar si el usuario autenticado está en una partida activa
-  static const String miPartidaEndpoint = '/partidas/mi_partida';
 
   // WebSocket de partida
   // Cubre tanto la fase de lobby como la fase de juego

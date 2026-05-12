@@ -41,7 +41,6 @@ class WebSocketService {
   // startMinigame cambie la fase a minigameTile.
   bool _pendingTileMinigame = false;
 
-
   // Controlador para notificar eventos especiales a la UI (ej. navegación forzada)
   final _eventController = StreamController<Map<String, dynamic>>.broadcast();
   Stream<Map<String, dynamic>> get eventStream => _eventController.stream;
@@ -141,10 +140,16 @@ class WebSocketService {
           });
           break;
 
+        // Tipo de mensaje de reconexión exitosa
         case 'reconnect_success':
+          // DEBUG: imprimimos reconexion exitosa
+          debugPrint("Reconexión exitosa. Sincronizando tablero...");
+          // La reconexion es exitosa y guardamos el estado de playing
+          final String gameStatus = decoded['game_status'] ?? 'PLAYING';
+          // El backend envía el estado completo del tablero en "current_board" para que el cliente se sincronice
           final Map<String, dynamic> currentBoard =
               decoded['current_board'] ?? {};
-          final String gameStatus = decoded['game_status'] ?? 'PLAYING';
+          // Enviamos el estado del tablero al gameProvider para que actualice su estado interno y la UI se sincronice con el backend
           _ref
               .read(gameProvider.notifier)
               .syncBoardState(currentBoard, gameStatus);
@@ -195,7 +200,7 @@ class WebSocketService {
         case 'turno_de':
           final String nextUser = decoded['nombre_jugador'] ?? '';
           final int ronda = decoded['ronda'] ?? 1;
-          debugPrint("Es el turno de: $nextUser (Ronda $ronda)!");
+          debugPrint("¡Es el turno de: $nextUser (Ronda $ronda)!");
           _ref
               .read(gameProvider.notifier)
               .setActivePlayerName(nextUser, round: ronda);
@@ -205,8 +210,6 @@ class WebSocketService {
           _isActionLocked = false;
           _pendingTileMinigame = false;
           _pendingTurnAdvance = false;
-          _ref.read(gameProvider.notifier).clearTurnPurchasedItems();
-          // Comentario commit vacio
           _ref.read(gameProvider.notifier).clearTurnPurchasedItems();
           break;
 
@@ -277,7 +280,10 @@ class WebSocketService {
               return true; // Sigue esperando
             }).then((_) {
               // Limpiamos el flag ANTES de llamar a startMinigame.
+              // A partir de aquí la fase pasa a minigameTile, que es lo que
+              // usa checkAndFinalizeTurn para saber que no debe enviar fin_turno.
               if (isTileMinigame) _pendingTileMinigame = false;
+              // Ahora sí, el muñeco ha llegado a la casilla. Lanzamos el minijuego.
               _ref.read(gameProvider.notifier).startMinigame(
                     name: name,
                     description: desc,
@@ -353,13 +359,10 @@ class WebSocketService {
             final map = {
               activeUser: {
                 'apuesta': diff.abs(),
-                'ganado':
-                    diff > 0 || diff == 0, // Si es 0 es neutro, ponemos ganado
+                'ganado': diff > 0 || diff == 0, // Si es 0 es neutro, ponemos ganado
               }
             };
-            _ref
-                .read(gameProvider.notifier)
-                .setMinigameResults(map, [activeUser]);
+            _ref.read(gameProvider.notifier).setMinigameResults(map, [activeUser]);
           }
 
           // 2. Para cada jugador en el Map, actualizamos su balance
@@ -375,10 +378,8 @@ class WebSocketService {
           final victima = decoded['nombre'] as String;
           final monedas = decoded['monedas'] as int;
           // El banquero es el jugador activo actualmente en su turno
-          final banquero =
-              _ref.read(gameProvider).activePlayerName ?? 'Banquero';
-          final message =
-              '${banquero.toUpperCase()} HA ROBADO $monedas MONEDA${monedas > 1 ? 'S' : ''} A ${victima.toUpperCase()}';
+          final banquero = _ref.read(gameProvider).activePlayerName ?? 'Banquero';
+          final message = '${banquero.toUpperCase()} HA ROBADO $monedas MONEDA${monedas > 1 ? 'S' : ''} A ${victima.toUpperCase()}';
           _ref.read(gameProvider.notifier).setTurnTheftMessage(message);
           Future.delayed(const Duration(seconds: 4), () {
             _ref.read(gameProvider.notifier).clearTurnTheftMessage();
@@ -455,8 +456,7 @@ class WebSocketService {
         // Lo reenviamos como backend_error al minijuego activo para que
         // reactive el turno del jugador y evite un deadlock.
         case 'error':
-          final errorMsg =
-              decoded['message']?.toString() ?? 'Error desconocido';
+          final errorMsg = decoded['message']?.toString() ?? 'Error desconocido';
           debugPrint(' [WS] Error del backend: $errorMsg');
           _isActionLocked = false;
           _ref.read(gameProvider.notifier).updateMinigameDetails({
@@ -469,10 +469,10 @@ class WebSocketService {
           // El backend de Dilema del Prisionero nunca envía minijuego_resultados,
           // así que construimos el equivalente aquí para que _resultsSubscription
           // del overlay se dispare y cierre el minijuego correctamente.
-          final decisiones =
-              Map<String, dynamic>.from(decoded['decisiones'] as Map? ?? {});
-          final recompensas =
-              Map<String, dynamic>.from(decoded['recompensas'] as Map? ?? {});
+          final decisiones = Map<String, dynamic>.from(
+              decoded['decisiones'] as Map? ?? {});
+          final recompensas = Map<String, dynamic>.from(
+              decoded['recompensas'] as Map? ?? {});
           final sortedEntries = recompensas.entries.toList()
             ..sort((a, b) => (b.value as num).compareTo(a.value as num));
           int pos = 1;
@@ -499,28 +499,6 @@ class WebSocketService {
           final name = decoded['minijuego'] as String?;
           final user = decoded['user'] as String?;
           final myUsername = _ref.read(authProvider).username;
-
-          // Para Dilema del Prisionero, los espectadores no reciben ini_minijuego.
-          // Solo lanzamos el overlay cuando hay 2 participantes (la partida realmente empieza).
-          if (name == 'Dilema del Prisionero') {
-            final participants =
-                (decoded['jugadores'] as List?)?.cast<String>() ?? [];
-            final isParticipant = participants.contains(myUsername);
-            if (!isParticipant && participants.length >= 2) {
-              Future.doWhile(() async {
-                if (_ref.read(gameProvider.notifier).isAnimationQueueEmpty)
-                  return false;
-                await Future.delayed(const Duration(milliseconds: 200));
-                return true;
-              }).then((_) {
-                _ref.read(gameProvider.notifier).startMinigame(
-                      name: name!,
-                      description: decoded['descripcion'],
-                      details: decoded,
-                    );
-              });
-            }
-          }
 
           // Para Doble o Nada, los espectadores no reciben ini_minijuego, así que
           // forzamos el inicio del minijuego localmente para que se renderice el overlay de espera.
@@ -683,6 +661,26 @@ class WebSocketService {
       debugPrint(" [POKER] Acción enviada: $decision ($cantidad)");
     } else {
       debugPrint("No se pudo enviar 'poker_accion' porque no hay conexión.");
+    }
+  }
+
+  /// Pide al servidor 50 monedas extra para todos los jugadores (Debug)
+  void sendDebugAddCoins() {
+    if (_channel != null && _isConnected) {
+      _channel!.sink.add(jsonEncode({'action': 'debug_add_coins'}));
+      debugPrint("🪙 Cheat activado: Comando '+50 monedas' enviado al servidor.");
+    } else {
+      debugPrint("No se pudo enviar el cheat porque no hay conexión.");
+    }
+  }
+
+  /// Fuerza el inicio del Poker saltándose las casillas (Debug)
+  void sendDebugForcePoker() {
+    if (_channel != null && _isConnected) {
+      _channel!.sink.add(jsonEncode({'action': 'debug_force_poker'}));
+      debugPrint("🃏 Cheat activado: Comando 'Forzar Poker' enviado al servidor.");
+    } else {
+      debugPrint("No se pudo enviar el cheat porque no hay conexión.");
     }
   }
 

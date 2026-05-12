@@ -4,7 +4,7 @@ import '../../data/websocket_service.dart';
 import '../../domain/gamemodels.dart';
 import '../controllers/game_provider.dart';
 import '../../../../core/widgets/retro_widgets.dart';
-import '../board_screen.dart'; // Para reutilizar getCharacterPerfilPath
+import '../board_screen.dart'; // Para reutilizar getCharacterImagePath
 import '../../../auth/presentation/controllers/auth_provider.dart'; // <-- IMPORTACIÓN AÑADIDA
 
 class BanqueroModal extends ConsumerWidget {
@@ -87,7 +87,7 @@ class BanqueroModal extends ConsumerWidget {
                 final amountToRob = player.coins > maxToRob ? maxToRob : player.coins;
                 final canRob = amountToRob > 0;
 
-                // Color de botón según el mockup (escapista es purpura, otros verde)
+                // Color de botón según el mockup (david/escapista es purpura, otros verde)
                 final buttonAsset = isEscapista
                     ? 'assets/images/ui/btn_morado.png'
                     : 'assets/images/ui/btn_verde.png';
@@ -120,7 +120,8 @@ class BanqueroModal extends ConsumerWidget {
                                   color: const Color(0xFF4A3E66), width: 2),
                             ),
                             child: Image.asset(
-                              getCharacterPerfilPath(player.characterClass),
+                              getCharacterImagePath(
+                                  player.characterClass, true),
                               fit: BoxFit.contain,
                             ),
                           ),

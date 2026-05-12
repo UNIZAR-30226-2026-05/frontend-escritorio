@@ -533,6 +533,22 @@ class WebSocketService {
               await Future.delayed(const Duration(milliseconds: 200));
               return true;
             }).then((_) {
+              // Para Dilema del Prisionero el juego solo arranca cuando DOS jugadores
+              // coinciden en la misma casilla. Comprobamos AQUÍ, tras vaciar la cola de
+              // animaciones, porque las posiciones se actualizan durante el movimiento.
+              if (name == 'Dilema del Prisionero') {
+                final gameState = _ref.read(gameProvider);
+                final trigger = gameState.players.firstWhere(
+                  (p) => p.username == user || p.id == user,
+                  orElse: () => gameState.players.first,
+                );
+                final onSameTile = gameState.players
+                    .where(
+                        (p) => p.currentTileIndex == trigger.currentTileIndex)
+                    .length;
+                if (onSameTile < 2) return;
+              }
+
               _ref.read(gameProvider.notifier).startMinigame(
                     name: name!,
                     description: decoded['descripcion'],

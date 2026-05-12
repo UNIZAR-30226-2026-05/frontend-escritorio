@@ -503,22 +503,6 @@ class WebSocketService {
           // Para Doble o Nada y Dilema del Prisionero, los espectadores no reciben
           // ini_minijuego, así que forzamos el inicio localmente para renderizar el overlay de espera.
           if ((name == 'Doble o Nada' || name == 'Dilema del Prisionero') && user != myUsername) {
-            // Dilema del Prisionero solo arranca cuando DOS jugadores coinciden en la misma
-            // casilla. Como minijuego_casilla se emite cada vez que alguien cae (aunque
-            // esté solo), verificamos que haya al menos 2 jugadores en esa casilla antes de
-            // mostrar el overlay de espera a los espectadores.
-            if (name == 'Dilema del Prisionero') {
-              final gameState = _ref.read(gameProvider);
-              final trigger = gameState.players.firstWhere(
-                (p) => p.username == user || p.id == user,
-                orElse: () => gameState.players.first,
-              );
-              final onSameTile = gameState.players
-                  .where((p) => p.currentTileIndex == trigger.currentTileIndex)
-                  .length;
-              if (onSameTile < 2) break;
-            }
-
             Future.doWhile(() async {
               if (_ref.read(gameProvider.notifier).isAnimationQueueEmpty) {
                 return false;
@@ -526,6 +510,21 @@ class WebSocketService {
               await Future.delayed(const Duration(milliseconds: 200));
               return true;
             }).then((_) {
+              // Para Dilema del Prisionero el juego solo arranca cuando DOS jugadores
+              // coinciden en la misma casilla. Comprobamos AQUÍ, tras vaciar la cola de
+              // animaciones, porque las posiciones se actualizan durante el movimiento.
+              if (name == 'Dilema del Prisionero') {
+                final gameState = _ref.read(gameProvider);
+                final trigger = gameState.players.firstWhere(
+                  (p) => p.username == user || p.id == user,
+                  orElse: () => gameState.players.first,
+                );
+                final onSameTile = gameState.players
+                    .where((p) => p.currentTileIndex == trigger.currentTileIndex)
+                    .length;
+                if (onSameTile < 2) return;
+              }
+
               _ref.read(gameProvider.notifier).startMinigame(
                     name: name!,
                     description: decoded['descripcion'],

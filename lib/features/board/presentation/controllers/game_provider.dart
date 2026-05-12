@@ -253,14 +253,17 @@ class GameController extends StateNotifier<GameState> {
     debugPrint('  • Turno actual (backend): $turnoActual');
     debugPrint('  • Jugador activo identificado: $activeName');
 
+    final int syncRound = boardState['round'] as int? ?? state.currentRound;
+
     state = state.copyWith(
       currentPhase: newPhase,
       players: updatedPlayers.isNotEmpty ? updatedPlayers : state.players,
       turnOrder: cleanTurnOrder.isNotEmpty ? cleanTurnOrder : state.turnOrder,
       activePlayerName: activeName,
+      currentRound: syncRound,
       serverMessage: "Sincronizado con el servidor",
-      lastDiceResult: null, // Limpiar tiradas viejas al sincronizar
-      isMovementActive: false, // Asegurar tablero estático tras sincro
+      lastDiceResult: null,
+      isMovementActive: false,
     );
   }
 

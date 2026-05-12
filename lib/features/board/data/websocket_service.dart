@@ -551,6 +551,17 @@ class WebSocketService {
           }
           break;
 
+        // El backend envía esto al conectar con una partida en curso.
+        // Contiene el estado completo: orden de turno, posiciones, balances y ronda.
+        case 'reconnect_success':
+          final boardState =
+              decoded['current_board'] as Map<String, dynamic>? ?? {};
+          final gameStatus = decoded['game_status'] as String? ?? 'PLAYING';
+          _ref
+              .read(gameProvider.notifier)
+              .syncBoardState(boardState, gameStatus);
+          break;
+
         // Tipo de mensaje por defecto
         default:
           // Si el mensaje tiene una clave "error""

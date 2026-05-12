@@ -925,6 +925,10 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
     final effectiveRank =
         (gameState.hasImprovedDice && rank > 1) ? rank - 1 : rank;
 
+    final bool isRoundOne = gameState.currentRound <= 1;
+    final bool hasTwoDice =
+        (!isRoundOne && rank != 4 && rank != 0) || gameState.hasImprovedDice;
+
     return Positioned.fill(
       child: Center(
         child: TweenAnimationBuilder<double>(
@@ -974,15 +978,7 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
                       children: [
                         _buildDiceFace(d1, 4),
                         if (gameState.lastDice2 > 0 ||
-                            (_isRolling &&
-                                gameState.players
-                                    .firstWhere(
-                                        (p) =>
-                                            p.username ==
-                                            gameState.activePlayerName,
-                                        orElse: () => gameState.players[0])
-                                    .diceInventory
-                                    .isNotEmpty)) ...[
+                            (_isRolling && hasTwoDice)) ...[
                           const SizedBox(width: 20),
                           _buildDiceFace(d2, effectiveRank),
                         ],

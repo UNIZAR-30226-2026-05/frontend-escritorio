@@ -334,22 +334,15 @@ class GameController extends StateNotifier<GameState> {
   }
 
   void finishMinigame() {
-    // Igual que startMinigame: construimos el estado directamente para
-    // poder poner todos los campos de minijuego a null de verdad.
-    state = GameState(
+    // Limpiamos los datos del minijuego pero mantenemos el resto del estado
+    state = state.copyWith(
       currentPhase: GamePhase.boardTurn,
-      currentRound: state.currentRound,
-      players: state.players,
-      turnOrder: state.turnOrder,
-      activePlayerName: state.activePlayerName,
-      serverMessage: state.serverMessage,
-      isWaitingForMinigameChoice: state.isWaitingForMinigameChoice,
-      minigameChoices: state.minigameChoices,
-      winnerName: state.winnerName,
-      lastDiceResult: state.lastDiceResult,
-      lastDice1: state.lastDice1,
-      lastDice2: state.lastDice2,
-      lastDiceRollId: state.lastDiceRollId,
+      minigameName: null,
+      minigameDescription: null,
+      minigameDetails: null,
+      minigameResults: null,
+      minigameChoices: [],
+      isWaitingForMinigameChoice: false,
     );
   }
 

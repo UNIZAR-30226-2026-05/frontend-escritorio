@@ -289,9 +289,13 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
     // No resetear en cambios de fase (boardTurn → minigameTile → boardTurn)
     // para que el popup del banquero no reaparezca tras un minijuego de casilla.
     ref.listen(
-      gameProvider.select((s) => s.activePlayerName),
+      gameProvider.select((s) => (s.activePlayerName, s.currentPhase, s.currentRound)),
       (prev, next) {
-        if (prev != next && mounted) {
+        final nameChanged = prev?.$1 != next.$1;
+        final phaseChanged = prev?.$2 != next.$2;
+        final roundChanged = prev?.$3 != next.$3;
+
+        if ((nameChanged || phaseChanged || roundChanged) && mounted) {
           setState(() {
             _hasRolledThisTurn = false;
             _hasUsedBanqueroSkill = false;

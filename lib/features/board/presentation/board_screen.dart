@@ -484,10 +484,7 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
                     const SizedBox(height: 16),
                     // Inventario del Jugador Local
                     InventoryPanel(
-                      items: gameState.players
-                          .firstWhere((p) => p.username == myUsername,
-                              orElse: () => gameState.players.first)
-                          .itemInventory,
+                      items: me.itemInventory,
                     ),
                   ],
                 ),
@@ -582,9 +579,9 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
                       ),
                       Center(
                         child: ShopModal(
-                          playerCoins: gameState.players
-                              .firstWhere((p) => p.id == activePlayerId)
-                              .coins,
+                          playerCoins: gameState.players.isNotEmpty
+                              ? gameState.players.firstWhere((p) => p.id == activePlayerId, orElse: () => gameState.players.first).coins
+                              : 0,
                           hasRolled: _hasRolledThisTurn,
                           onClose: () => setState(() => _isShopOpen = false),
                         ),
@@ -717,7 +714,7 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
     // Buscar al jugador local para ver su penalización
     final localPlayer = gameState.players.firstWhere(
       (p) => p.username == myUsername,
-      orElse: () => gameState.players.first,
+      orElse: () => gameState.players.isNotEmpty ? gameState.players.first : Player(id: '0', username: '...', characterClass: CharacterClass.videojugador),
     );
     final isPenalized = localPlayer.penaltyTurns > 0;
 
@@ -1027,14 +1024,14 @@ class _BoardScreenState extends ConsumerState<BoardScreen> {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         _buildDiceFace(d1, 4),
-                        if (gameState.lastDice2 > 0 ||
+                         if (gameState.lastDice2 > 0 ||
                             (_isRolling &&
                                 gameState.players
                                     .firstWhere(
                                         (p) =>
                                             p.username ==
                                             gameState.activePlayerName,
-                                        orElse: () => gameState.players[0])
+                                        orElse: () => gameState.players.isNotEmpty ? gameState.players.first : Player(id: '0', username: '...', characterClass: CharacterClass.videojugador))
                                     .diceInventory
                                     .isNotEmpty)) ...[
                           const SizedBox(width: 20),

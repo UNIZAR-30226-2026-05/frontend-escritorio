@@ -30,14 +30,6 @@ class ShopController {
   void buyAndUseItem(ShopItem item, {String? targetPlayerId}) {
     final payloadBuy = {
       'action': 'comprar_objeto',
-      'payload': {'objeto': item.name}
-    };
-
-    final actionName = item.name.toLowerCase().contains('salvavidas')
-        ? 'usar_salvavidas'
-        : 'usar_objeto';
-    final payloadUse = {
-      'action': actionName,
       'payload': {
         'objeto': item.name,
         if (targetPlayerId != null) 'penalizar_a': targetPlayerId
@@ -45,7 +37,6 @@ class ShopController {
     };
 
     _ref.read(webSocketProvider).sendGenericAction(payloadBuy);
-    _ref.read(webSocketProvider).sendGenericAction(payloadUse);
 
     debugPrint(" [SHOP] Compra y uso instantáneo enviado: ${item.name}");
   }
@@ -97,8 +88,9 @@ class _ShopModalState extends ConsumerState<ShopModal> {
 
     // Ranking: determine if local player is the FIRST to roll in this round (Turn 1)
     // El backend bloquea al que tira primero porque ya tiene el dado de oro.
-    final bool isFirstInTurn = gameState.turnOrder.isNotEmpty && 
-                              (gameState.turnOrder[0] == myUsername || gameState.turnOrder[0] == player.id);
+    final bool isFirstInTurn = gameState.turnOrder.isNotEmpty &&
+        (gameState.turnOrder[0] == myUsername ||
+            gameState.turnOrder[0] == player.id);
     final bool isFirstPlace = isFirstInTurn && myUsername != null;
 
     return Container(

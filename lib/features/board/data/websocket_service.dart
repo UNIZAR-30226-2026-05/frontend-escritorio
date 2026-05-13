@@ -359,10 +359,13 @@ class WebSocketService {
             final map = {
               activeUser: {
                 'apuesta': diff.abs(),
-                'ganado': diff > 0 || diff == 0, // Si es 0 es neutro, ponemos ganado
+                'ganado':
+                    diff > 0 || diff == 0, // Si es 0 es neutro, ponemos ganado
               }
             };
-            _ref.read(gameProvider.notifier).setMinigameResults(map, [activeUser]);
+            _ref
+                .read(gameProvider.notifier)
+                .setMinigameResults(map, [activeUser]);
           }
 
           // 2. Para cada jugador en el Map, actualizamos su balance
@@ -378,8 +381,10 @@ class WebSocketService {
           final victima = decoded['nombre'] as String;
           final monedas = decoded['monedas'] as int;
           // El banquero es el jugador activo actualmente en su turno
-          final banquero = _ref.read(gameProvider).activePlayerName ?? 'Banquero';
-          final message = '${banquero.toUpperCase()} HA ROBADO $monedas MONEDA${monedas > 1 ? 'S' : ''} A ${victima.toUpperCase()}';
+          final banquero =
+              _ref.read(gameProvider).activePlayerName ?? 'Banquero';
+          final message =
+              '${banquero.toUpperCase()} HA ROBADO $monedas MONEDA${monedas > 1 ? 'S' : ''} A ${victima.toUpperCase()}';
           _ref.read(gameProvider.notifier).setTurnTheftMessage(message);
           Future.delayed(const Duration(seconds: 4), () {
             _ref.read(gameProvider.notifier).clearTurnTheftMessage();
@@ -456,7 +461,8 @@ class WebSocketService {
         // Lo reenviamos como backend_error al minijuego activo para que
         // reactive el turno del jugador y evite un deadlock.
         case 'error':
-          final errorMsg = decoded['message']?.toString() ?? 'Error desconocido';
+          final errorMsg =
+              decoded['message']?.toString() ?? 'Error desconocido';
           debugPrint(' [WS] Error del backend: $errorMsg');
           _isActionLocked = false;
           _ref.read(gameProvider.notifier).updateMinigameDetails({
@@ -469,10 +475,10 @@ class WebSocketService {
           // El backend de Dilema del Prisionero nunca envía minijuego_resultados,
           // así que construimos el equivalente aquí para que _resultsSubscription
           // del overlay se dispare y cierre el minijuego correctamente.
-          final decisiones = Map<String, dynamic>.from(
-              decoded['decisiones'] as Map? ?? {});
-          final recompensas = Map<String, dynamic>.from(
-              decoded['recompensas'] as Map? ?? {});
+          final decisiones =
+              Map<String, dynamic>.from(decoded['decisiones'] as Map? ?? {});
+          final recompensas =
+              Map<String, dynamic>.from(decoded['recompensas'] as Map? ?? {});
           final sortedEntries = recompensas.entries.toList()
             ..sort((a, b) => (b.value as num).compareTo(a.value as num));
           int pos = 1;
@@ -502,7 +508,8 @@ class WebSocketService {
 
           // Para Doble o Nada y Dilema del Prisionero, los espectadores no reciben
           // ini_minijuego, así que forzamos el inicio localmente para renderizar el overlay de espera.
-          if ((name == 'Doble o Nada' || name == 'Dilema del Prisionero') && user != myUsername) {
+          if ((name == 'Doble o Nada' || name == 'Dilema del Prisionero') &&
+              user != myUsername) {
             // Dilema del Prisionero solo arranca cuando DOS jugadores coinciden en la misma
             // casilla. Como minijuego_casilla se emite cada vez que alguien cae (aunque
             // esté solo), verificamos que haya al menos 2 jugadores en esa casilla antes de

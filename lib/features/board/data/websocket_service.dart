@@ -158,13 +158,11 @@ class WebSocketService {
         // Tipo de mensaje de comenzar el juego
         case 'game_start':
           debugPrint("El juego ha iniciado.");
-          // TODO Cambiar a GamePhase.playing cuando se soporte
           break;
 
         // Tipo de mensaje de actualizar el lobby
         case 'lobby_update':
           debugPrint("Lobby update: \${decoded['message']}");
-          // TODO Updatear cuando se soporte
           break;
 
         // Tipo de mensaje de que se ha desconectado un jugador

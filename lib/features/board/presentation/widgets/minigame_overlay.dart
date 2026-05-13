@@ -160,7 +160,7 @@ class _MinigameOverlayState extends ConsumerState<MinigameOverlay> {
     }
   }
 
-  // Build principal — Máquina de estados visual
+  // Build principal, Máquina de estados visual
 
   @override
   Widget build(BuildContext context) {
@@ -174,7 +174,7 @@ class _MinigameOverlayState extends ConsumerState<MinigameOverlay> {
       child: Stack(
         alignment: Alignment.center,
         children: [
-          // 1. Minijuego (se dibuja ocupando todo el fondo por detrás del texto)
+          // Minijuego (se dibuja ocupando todo el fondo por detrás del texto)
           if (_countdownFinished && results == null)
             if (gameState.minigameName == 'Doble o Nada' && gameState.activePlayerName != ref.read(authProvider).username)
               _buildDobleNadaWaitingScreen(gameState.activePlayerName ?? '')
@@ -201,12 +201,12 @@ class _MinigameOverlayState extends ConsumerState<MinigameOverlay> {
                 ),
               ),
 
-          // 2. Elementos de UI superpuestos
+          // Elementos de UI superpuestos
           if (!_countdownFinished || (results != null && gameState.minigameName != 'Doble o Nada'))
             Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                // ── Header: Título y descripción (siempre visible) ──
+                // Header: Título y descripción (siempre visible)
                 Text(
                   gameState.minigameName?.toUpperCase() ?? 'MINIJUEGO',
                   style: const TextStyle(
@@ -243,9 +243,9 @@ class _MinigameOverlayState extends ConsumerState<MinigameOverlay> {
                   ),
                 const SizedBox(height: 48),
 
-                // ── Contenido dinámico según el estado ──
+                // Contenido dinámico según el estado
                 if (results != null)
-                  // Estado 3: Han llegado los resultados → Mostrar podio
+                  // Estado 3: Han llegado los resultados, Mostrar podio
                   _buildResultsScreen(results)
                 else if (!_countdownFinished)
                   // Estado 1: Cuenta atrás activa
@@ -253,7 +253,7 @@ class _MinigameOverlayState extends ConsumerState<MinigameOverlay> {
               ],
             ),
           
-          // 3. Resultado específico de Doble o Nada
+          // Resultado específico de Doble o Nada
           if (results != null && gameState.minigameName == 'Doble o Nada')
             _buildDobleNadaResult(results, gameState.activePlayerName ?? '', ref.read(authProvider).username ?? ''),
         ],

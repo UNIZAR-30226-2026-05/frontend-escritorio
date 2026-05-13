@@ -87,7 +87,7 @@ class BanqueroModal extends ConsumerWidget {
                 final amountToRob = player.coins > maxToRob ? maxToRob : player.coins;
                 final canRob = amountToRob > 0;
 
-                // Color de botón según el mockup (david/escapista es purpura, otros verde)
+                // Color de botón según el mockup
                 final buttonAsset = isEscapista
                     ? 'assets/images/ui/btn_morado.png'
                     : 'assets/images/ui/btn_verde.png';

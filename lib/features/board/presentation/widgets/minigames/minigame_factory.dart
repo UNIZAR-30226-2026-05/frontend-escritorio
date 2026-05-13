@@ -1,4 +1,4 @@
-// MinigameFactory — Selector dinámico de minijuegos
+// MinigameFactory Selector dinámico de minijuegos
 //
 // Aquí se registra cada minijuego. Para añadir uno nuevo:
 //   1. Importa el archivo del minijuego
@@ -18,10 +18,7 @@ import 'poker_game.dart';
 import 'dilema_prisionero_game.dart';
 
 class MinigameFactory {
-  /// Devuelve el widget del minijuego correspondiente al [minigameName].
-  ///
-  /// [onFinish] se pasa al minijuego para que avise cuando el jugador termine.
-  /// [details] son los parámetros específicos que envía el backend.
+  // Devuelve el widget del minijuego correspondiente al [minigameName].
   static Widget buildGame({
     required String minigameName,
     required Function(dynamic score) onFinish,
@@ -52,8 +49,8 @@ class MinigameFactory {
     }
   }
 
-  /// Widget de placeholder que simula un minijuego no implementado.
-  /// Permite probar el flujo completo sin tener el juego real.
+  // Widget de placeholder que simula un minijuego no implementado.
+  // Permite probar el flujo completo sin tener el juego real.
   static Widget _buildPlaceholder(
       String minigameName, Function(dynamic score) onFinish) {
     return Center(

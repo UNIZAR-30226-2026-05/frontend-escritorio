@@ -18,7 +18,7 @@ import 'widgets/win_screen_modal.dart';
 import 'widgets/ruleta_modal.dart';
 import 'widgets/inventory_panel.dart';
 
-// BoardScreen — Pantalla principal del tablero de juego
+// BoardScreen, Pantalla principal del tablero de juego
 // Layout fijo con tablero centrado y paneles UI superpuestos
 class BoardScreen extends ConsumerStatefulWidget {
   const BoardScreen({super.key});

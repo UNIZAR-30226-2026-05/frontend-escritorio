@@ -1464,7 +1464,7 @@ class _IconRetroButton extends StatelessWidget {
   }
 }
 
-// ── Iconos dibujados ────────────────────────────────────────────────────────
+// Iconos dibujados 
 
 class _RetroGearIcon extends StatelessWidget {
   final double size;

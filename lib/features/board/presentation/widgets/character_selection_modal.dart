@@ -264,7 +264,7 @@ class _CharacterSelectionModalState
                   ? const Color(0xFF1E382B)
                   : _isMyTurn
                       ? const Color(0xFF1E382B).withValues(alpha: 0.6)
-                      : const Color(0xFF382B1E), // Tono amarillento/marrón
+                      : const Color(0xFF382B1E), 
               border: Border(
                 bottom: BorderSide(
                   color: _isMyTurn
@@ -333,7 +333,7 @@ class _CharacterSelectionModalState
                         ),
                         child: Column(
                           children: [
-                            // Recuadro del Avatar (≈1/3 del alto de la tarjeta)
+                            // Recuadro del Avatar (1/3 del alto de la tarjeta)
                             Container(
                               width: 110,
                               height: 110,

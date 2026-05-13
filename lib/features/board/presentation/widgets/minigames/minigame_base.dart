@@ -1,4 +1,4 @@
-// MinigameBase — Interfaz abstracta para todos los minijuegos
+// MinigameBase Interfaz abstracta para todos los minijuegos
 //
 // Para crear un nuevo minijuego:
 //   1. Crea un archivo en esta misma carpeta (ej: reflejos_game.dart)
@@ -9,12 +9,7 @@
 
 import 'package:flutter/material.dart';
 
-/// Interfaz que todo widget de minijuego debe cumplir.
-///
-/// [onFinish] — Callback que el minijuego invoca al terminar,
-///              pasando la puntuación obtenida como int.
-/// [details]  — Mapa con los parámetros enviados por el backend
-///              (ej: {"objetivo": 10} para Tren, {"cartas": [3,15,27]} para Mayor o Menor).
+// Interfaz que todo widget de minijuego debe cumplir.
 abstract class MinigameBase extends StatefulWidget {
   final Function(dynamic score) onFinish;
   final Map<String, dynamic> details;

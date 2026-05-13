@@ -117,11 +117,11 @@ class _ReflejosGameState extends State<ReflejosGame> {
           double offsetY = 0;
 
           if (screenAspect > imgAspect) {
-            // Pantalla más ancha → la imagen se escala por ancho
+            // Pantalla más ancha, la imagen se escala por ancho
             scale = screenW / 2816;
             offsetY = (screenH - 1536 * scale) / 2;
           } else {
-            // Pantalla más alta → la imagen se escala por alto
+            // Pantalla más alta, la imagen se escala por alto
             scale = screenH / 1536;
             offsetX = (screenW - 2816 * scale) / 2;
           }
@@ -134,7 +134,7 @@ class _ReflejosGameState extends State<ReflejosGame> {
           return Stack(
             fit: StackFit.expand,
             children: [
-              // 1. Imagen de fondo fija
+              // Imagen de fondo fija
               Image.asset(
                 'assets/images/minigames/reflejos/Fondo.png',
                 fit: BoxFit.cover,
@@ -142,7 +142,7 @@ class _ReflejosGameState extends State<ReflejosGame> {
                 height: screenH,
               ),
 
-              // 2. El rectángulo que cambia de color
+              // El rectángulo que cambia de color
               Positioned(
                 left: rectLeft,
                 top: rectTop,
@@ -169,7 +169,7 @@ class _ReflejosGameState extends State<ReflejosGame> {
                 ),
               ),
 
-              // 3. Pingüinillos
+              // Pingüinillos
               Positioned(
                 bottom: 0,
                 left: 0,

@@ -175,7 +175,7 @@ class _PanGameState extends State<PanGame> with SingleTickerProviderStateMixin {
               ),
             ),
 
-            // Línea de corte (cuchillo) — por encima del pan
+            // Línea de corte (cuchillo) por encima del pan
             AnimatedBuilder(
               animation: _animacionBarra,
               builder: (context, child) {

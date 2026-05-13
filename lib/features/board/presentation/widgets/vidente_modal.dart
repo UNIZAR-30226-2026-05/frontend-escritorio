@@ -76,7 +76,6 @@ class VidenteModal extends ConsumerWidget {
               diceWidgets = [_buildDiceFace(total, 4)];
             } else {
               final specialMax = rank == 1 ? 6 : (rank == 2 ? 4 : 2);
-              // Descomponemos: die2 ∈ [1, specialMax], die1 ∈ [1, 6], die1+die2=total
               final die2 = _clamp(total - 6, 1, specialMax);
               final die1 = _clamp(total - die2, 1, 6);
               diceWidgets = [

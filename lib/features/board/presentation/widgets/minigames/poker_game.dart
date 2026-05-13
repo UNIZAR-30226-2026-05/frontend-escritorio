@@ -118,14 +118,14 @@ class _PokerGameState extends ConsumerState<PokerGame> {
     debugPrint(
         "DEBUG POKER: Procesando detalles. Fase: ${details['fase']}, Tipo: $type");
     setState(() {
-      // ── Bote ──
+      // Bote
       if (details.containsKey('bote')) {
         _pot = details['bote'];
       } else if (details.containsKey('bote_actual')) {
         _pot = details['bote_actual'];
       }
 
-      // ── Fase ──
+      // Fase
       if (details.containsKey('fase')) {
         final newPhase = details['fase'] as String;
         if (newPhase != _currentPhase) {
@@ -134,7 +134,7 @@ class _PokerGameState extends ConsumerState<PokerGame> {
         }
       }
 
-      // ── poker_apuesta_actualizada: alguien subió, actualizamos el máximo ──
+      // poker_apuesta_actualizada: alguien subió, actualizamos el máximo
       if (type == 'poker_apuesta_actualizada') {
         _currentMaxBet =
             (details['nueva_apuesta_maxima'] as num?)?.toInt() ?? _currentMaxBet;
@@ -150,7 +150,7 @@ class _PokerGameState extends ConsumerState<PokerGame> {
         }
       }
 
-      // ── poker_apuesta: alguien igualó (call) sin subir ──
+      // poker_apuesta: alguien igualó (call) sin subir
       if (type == 'poker_apuesta') {
         final betUser = details['nombre_usuario'] as String? ?? '';
         final betAmount = (details['apuesta'] as num?)?.toInt() ?? 0;
@@ -164,7 +164,7 @@ class _PokerGameState extends ConsumerState<PokerGame> {
         }
       }
 
-      // ── turno_poker: el backend nos dice quién juega ahora ──
+      // turno_poker: el backend nos dice quién juega ahora
       if (type == 'turno_poker') {
         final myUsername = ref.read(authProvider).username ?? '';
         _isMyTurn = (details['nombre_jugador'] == myUsername);
@@ -172,7 +172,7 @@ class _PokerGameState extends ConsumerState<PokerGame> {
             "DEBUG POKER: turno_poker → ${details['nombre_jugador']} | ¿soy yo? $_isMyTurn");
       }
 
-      // ── poker_inicio_ronda: nueva mano, resetear todo ──
+      // poker_inicio_ronda: nueva mano, resetear todo
       if (type == 'poker_inicio_ronda') {
         _gameFinished = false;
         _isMyTurn = false; // esperamos turno_poker
@@ -190,7 +190,7 @@ class _PokerGameState extends ConsumerState<PokerGame> {
         }
       }
 
-      // ── poker_nueva_fase: nueva fase de apuestas ──
+      // poker_nueva_fase: nueva fase de apuestas
       // Reseteamos las apuestas de la ronda y marcamos quién se ha retirado.
       if (type == 'poker_nueva_fase') {
         _isMyTurn = false; // esperamos el siguiente turno_poker
@@ -210,14 +210,14 @@ class _PokerGameState extends ConsumerState<PokerGame> {
         }
       }
 
-      // ── backend_error: el back rechazó nuestra acción → devolvemos el turno ──
+      // backend_error: el back rechazó nuestra acción, devolvemos el turno
       if (type == 'backend_error') {
         debugPrint(
             ' [POKER] Error del backend: ${details['error']}. Reactivando turno.');
         _isMyTurn = true;
       }
 
-      // ── poker_resultados / poker_victoria_abandono: fin de la mano ──
+      // poker_resultados / poker_victoria_abandono: fin de la mano
       if (type == 'poker_resultados' || type == 'poker_victoria_abandono') {
         _gameFinished = true;
         _isMyTurn = false;
@@ -288,7 +288,7 @@ class _PokerGameState extends ConsumerState<PokerGame> {
         }
       }
 
-      // ── Cartas propias ──
+      // Cartas propias
       if (details.containsKey('cartas_propias')) {
         _myCards = (details['cartas_propias'] as List)
             .map((c) => PokerCard.fromBackend(c))
@@ -299,7 +299,7 @@ class _PokerGameState extends ConsumerState<PokerGame> {
             .toList();
       }
 
-      // ── Cartas comunitarias (no sobreescribir en resultados) ──
+      // Cartas comunitarias (no sobreescribir en resultados)
       if (type != 'poker_resultados') {
         if (details.containsKey('comunitarias')) {
           _communityCards = (details['comunitarias'] as List)
@@ -320,7 +320,7 @@ class _PokerGameState extends ConsumerState<PokerGame> {
         }
       }
 
-      // ── Jugadores y balances ──
+      // Jugadores y balances
       // Preferimos el balance del gameProvider (actualizado por balances_changed)
       // pero si el mensaje de poker incluye bote_actual, lo usamos para el bote.
       final gameState = ref.read(gameProvider);
@@ -355,7 +355,7 @@ class _PokerGameState extends ConsumerState<PokerGame> {
         );
       }).toList();
 
-      // ── Apuestas de los rivales si el backend las envía ──
+      // Apuestas de los rivales si el backend las envía
       if (details.containsKey('apuestas')) {
         final apuestas = details['apuestas'] as Map<String, dynamic>;
         apuestas.forEach((user, bet) {
@@ -395,7 +395,7 @@ class _PokerGameState extends ConsumerState<PokerGame> {
       decision = 'retirarse';
     } else if (type == 'call') {
       if (_highestBet <= _myCurrentBet) {
-        // No hay apuesta que igualar → pasar (check)
+        // No hay apuesta que igualar pasar (check)
         decision = 'pasar';
       } else {
         // El backend espera la apuesta TOTAL de la ronda, no el incremento.
@@ -403,7 +403,7 @@ class _PokerGameState extends ConsumerState<PokerGame> {
         amount = _highestBet.clamp(0, _myBalance);
       }
     } else {
-      // raise — total = igualar la apuesta máxima + la subida extra
+      // raise, total = igualar la apuesta máxima + la subida extra
       decision = 'apostar';
       amount = (_highestBet + _raiseAmount.toInt())
           .clamp(0, _myBalance);
@@ -634,7 +634,7 @@ class _PokerGameState extends ConsumerState<PokerGame> {
                       ]),
                 ]),
                 const Spacer(),
-                // Betting Actions — solo cuando es nuestro turno
+                // Betting Actions, solo cuando es nuestro turno
                 if (canAct)
                   Row(crossAxisAlignment: CrossAxisAlignment.end, children: [
                     if (_myCurrentBet > 0)

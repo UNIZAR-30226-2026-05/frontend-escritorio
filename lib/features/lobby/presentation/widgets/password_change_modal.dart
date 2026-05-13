@@ -35,7 +35,7 @@ class _PasswordChangeModalState extends ConsumerState<PasswordChangeModal> {
     final newPass = _newPassController.text;
     final confirm = _confirmPassController.text;
 
-    if (current.isEmpty || newPass.isEmpty) {
+    if (current.isEmpty || newPass.isEmpty || confirm.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Rellena todos los campos')),
       );
@@ -60,11 +60,20 @@ class _PasswordChangeModalState extends ConsumerState<PasswordChangeModal> {
         .read(authProvider.notifier)
         .cambiarContrasena(current, newPass);
 
-    if (success && mounted) {
+    if (!mounted) return;
+
+    if (success) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Contraseña cambiada con éxito')),
       );
       Navigator.of(context).pop();
+    } else {
+      final error = ref.read(authProvider).error;
+      if (error != null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(error)),
+        );
+      }
     }
   }
 

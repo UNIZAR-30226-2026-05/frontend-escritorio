@@ -44,12 +44,6 @@ class _LobbyScreenState extends ConsumerState<LobbyScreen> {
 
   // Estado para mostrar la pantalla de cambiar contraseña en vez del panel central.
   bool _showPasswordChange = false;
-  final TextEditingController _currentPassCtrl = TextEditingController();
-  final TextEditingController _newPassCtrl = TextEditingController();
-  final TextEditingController _confirmPassCtrl = TextEditingController();
-  final FocusNode _currentPassFocus = FocusNode();
-  final FocusNode _newPassFocus = FocusNode();
-  final FocusNode _confirmPassFocus = FocusNode();
 
   // Al montar el widget conectamos el WebSocket de sesión para recibir
   // invitaciones y estado online de los amigos. El WS vive mientras el
@@ -75,12 +69,6 @@ class _LobbyScreenState extends ConsumerState<LobbyScreen> {
     // Libera los recursos del controlador y el foco cuando el widget se destruye.
     _codeController.dispose();
     _codeFocus.dispose();
-    _currentPassCtrl.dispose();
-    _newPassCtrl.dispose();
-    _confirmPassCtrl.dispose();
-    _currentPassFocus.dispose();
-    _newPassFocus.dispose();
-    _confirmPassFocus.dispose();
     super.dispose();
   }
 
@@ -289,12 +277,6 @@ class _LobbyScreenState extends ConsumerState<LobbyScreen> {
                       ? _PasswordChangePanel(
                           w: w,
                           h: h,
-                          currentPassCtrl: _currentPassCtrl,
-                          newPassCtrl: _newPassCtrl,
-                          confirmPassCtrl: _confirmPassCtrl,
-                          currentPassFocus: _currentPassFocus,
-                          newPassFocus: _newPassFocus,
-                          confirmPassFocus: _confirmPassFocus,
                           onBack: () =>
                               setState(() => _showPasswordChange = false),
                         )
@@ -773,45 +755,102 @@ class _CenterPanel extends StatelessWidget {
 
 // PANEL CENTRAL: CAMBIAR CONTRASEÑA
 // Reemplaza el panel central cuando el usuario pulsa el engranaje.
-// Muestra tres campos de contraseña y un botón de guardar, con un enlace
-// "VOLVER AL MENÚ" para regresar al panel central normal.
-class _PasswordChangePanel extends StatelessWidget {
+class _PasswordChangePanel extends ConsumerStatefulWidget {
   final double w, h;
-  final TextEditingController currentPassCtrl;
-  final TextEditingController newPassCtrl;
-  final TextEditingController confirmPassCtrl;
-  final FocusNode currentPassFocus;
-  final FocusNode newPassFocus;
-  final FocusNode confirmPassFocus;
   final VoidCallback onBack;
 
   const _PasswordChangePanel({
     required this.w,
     required this.h,
-    required this.currentPassCtrl,
-    required this.newPassCtrl,
-    required this.confirmPassCtrl,
-    required this.currentPassFocus,
-    required this.newPassFocus,
-    required this.confirmPassFocus,
     required this.onBack,
   });
 
   @override
+  ConsumerState<_PasswordChangePanel> createState() =>
+      _PasswordChangePanelState();
+}
+
+class _PasswordChangePanelState extends ConsumerState<_PasswordChangePanel> {
+  final _currentPassCtrl = TextEditingController();
+  final _newPassCtrl = TextEditingController();
+  final _confirmPassCtrl = TextEditingController();
+  final _currentPassFocus = FocusNode();
+  final _newPassFocus = FocusNode();
+  final _confirmPassFocus = FocusNode();
+
+  @override
+  void dispose() {
+    _currentPassCtrl.dispose();
+    _newPassCtrl.dispose();
+    _confirmPassCtrl.dispose();
+    _currentPassFocus.dispose();
+    _newPassFocus.dispose();
+    _confirmPassFocus.dispose();
+    super.dispose();
+  }
+
+  Future<void> _handleSave() async {
+    final current = _currentPassCtrl.text;
+    final newPass = _newPassCtrl.text;
+    final confirm = _confirmPassCtrl.text;
+
+    if (current.isEmpty || newPass.isEmpty || confirm.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Rellena todos los campos')),
+      );
+      return;
+    }
+
+    if (newPass != confirm) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Las contraseñas no coinciden')),
+      );
+      return;
+    }
+
+    if (newPass.length < 8) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+            content: Text('La contraseña debe tener al menos 8 caracteres')),
+      );
+      return;
+    }
+
+    final success = await ref
+        .read(authProvider.notifier)
+        .cambiarContrasena(current, newPass);
+
+    if (!mounted) return;
+
+    if (success) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Contraseña cambiada con éxito')),
+      );
+      widget.onBack();
+    } else {
+      final error = ref.read(authProvider).error;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(error ?? 'Error al cambiar la contraseña')),
+      );
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final titleSize = h * 0.042;
-    final textSize = h * 0.026;
-    final fieldW = w * 0.23;
-    final fieldH = h * 0.075;
+    final titleSize = widget.h * 0.042;
+    final textSize = widget.h * 0.026;
+    final fieldW = widget.w * 0.23;
+    final fieldH = widget.h * 0.075;
+
+    final isLoading = ref.watch(authProvider).isLoading;
 
     return Padding(
-      padding: EdgeInsets.symmetric(horizontal: w * 0.015),
+      padding: EdgeInsets.symmetric(horizontal: widget.w * 0.015),
       child: Column(
         mainAxisSize: MainAxisSize.max,
         children: [
           const Spacer(flex: 12),
 
-          // Título
           Text(
             'CAMBIAR\nCONTRASEÑA',
             textAlign: TextAlign.center,
@@ -829,11 +868,10 @@ class _PasswordChangePanel extends StatelessWidget {
 
           const Spacer(flex: 6),
 
-          // Campo: Contraseña actual
           RetroField(
             label: 'CONTRASEÑA ACTUAL',
-            controller: currentPassCtrl,
-            focusNode: currentPassFocus,
+            controller: _currentPassCtrl,
+            focusNode: _currentPassFocus,
             fieldWidth: fieldW,
             fieldHeight: fieldH,
             labelFontSize: textSize * 0.7,
@@ -842,16 +880,15 @@ class _PasswordChangePanel extends StatelessWidget {
             color: Colors.white,
             textInputAction: TextInputAction.next,
             onSubmitted: () =>
-                FocusScope.of(context).requestFocus(newPassFocus),
+                FocusScope.of(context).requestFocus(_newPassFocus),
           ),
 
           const Spacer(flex: 4),
 
-          // Campo: Nueva contraseña
           RetroField(
             label: 'NUEVA CONTRASEÑA',
-            controller: newPassCtrl,
-            focusNode: newPassFocus,
+            controller: _newPassCtrl,
+            focusNode: _newPassFocus,
             fieldWidth: fieldW,
             fieldHeight: fieldH,
             labelFontSize: textSize * 0.7,
@@ -860,16 +897,15 @@ class _PasswordChangePanel extends StatelessWidget {
             color: Colors.white,
             textInputAction: TextInputAction.next,
             onSubmitted: () =>
-                FocusScope.of(context).requestFocus(confirmPassFocus),
+                FocusScope.of(context).requestFocus(_confirmPassFocus),
           ),
 
           const Spacer(flex: 4),
 
-          // Campo: Confirmar nueva
           RetroField(
             label: 'CONFIRMAR NUEVA',
-            controller: confirmPassCtrl,
-            focusNode: confirmPassFocus,
+            controller: _confirmPassCtrl,
+            focusNode: _confirmPassFocus,
             fieldWidth: fieldW,
             fieldHeight: fieldH,
             labelFontSize: textSize * 0.7,
@@ -877,32 +913,24 @@ class _PasswordChangePanel extends StatelessWidget {
             obscureText: true,
             color: Colors.white,
             textInputAction: TextInputAction.done,
-            onSubmitted: () {
-              // TODO: Integración real con backend
-              onBack();
-            },
+            onSubmitted: isLoading ? null : _handleSave,
           ),
 
           const Spacer(flex: 6),
 
-          // Botón Guardar
           RetroImgButton(
-            label: 'Guardar',
+            label: isLoading ? '...' : 'GUARDAR',
             asset: 'assets/images/ui/btn_verde.png',
-            width: w * 0.15,
-            height: h * 0.08,
+            width: widget.w * 0.15,
+            height: widget.h * 0.08,
             fontSize: titleSize * 0.65,
-            onTap: () {
-              // TODO: Integración real con backend
-              onBack();
-            },
+            onTap: isLoading ? null : _handleSave,
           ),
 
           const Spacer(flex: 4),
 
-          // Enlace volver al menú
           GestureDetector(
-            onTap: onBack,
+            onTap: isLoading ? null : widget.onBack,
             child: Text(
               'VOLVER AL MENÚ',
               style: TextStyle(

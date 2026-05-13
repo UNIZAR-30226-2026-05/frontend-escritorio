@@ -24,19 +24,21 @@ class AuthState {
     this.error,
   });
 
+  static const _noValue = Object();
+
   AuthState copyWith({
     bool? isAuthenticated,
     String? token,
     String? username,
     bool? isLoading,
-    String? error,
+    Object? error = _noValue,
   }) {
     return AuthState(
       isAuthenticated: isAuthenticated ?? this.isAuthenticated,
       token: token ?? this.token,
       username: username ?? this.username,
       isLoading: isLoading ?? this.isLoading,
-      error: error ?? this.error,
+      error: identical(error, _noValue) ? this.error : error as String?,
     );
   }
 }
@@ -122,7 +124,7 @@ class AuthController extends StateNotifier<AuthState> {
     state = state.copyWith(isLoading: true, error: null);
     try {
       await _authService.cambiarContrasena(currentPass, newPass, token);
-      state = state.copyWith(isLoading: false);
+      state = state.copyWith(isLoading: false, error: null);
       return true;
     } catch (e) {
       state = state.copyWith(

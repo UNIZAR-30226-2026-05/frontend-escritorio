@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 
 import '../../../core/constants/api_constants.dart';
+import '../data/lobby_service.dart';
 import '../domain/lobby_models.dart';
 import '../presentation/controllers/lobby_provider.dart';
 
@@ -202,6 +203,14 @@ class SessionWebSocketService {
           notifier.clearFriendRequestSent(target);
           notifier.setFriendRequestError('No existe el usuario "$target"');
           debugPrint('Error: Usuario "$target" no existe');
+          break;
+
+        case 'reconnect_game':
+          // El backend indica que el usuario tiene una partida activa previa.
+          // La abandonamos automáticamente para que pueda iniciar una nueva.
+          if (_savedToken != null) {
+            LobbyService().salirPartida(_savedToken!).catchError((_) {});
+          }
           break;
 
         default:

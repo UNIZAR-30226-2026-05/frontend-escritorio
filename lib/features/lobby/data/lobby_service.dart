@@ -97,4 +97,15 @@ class LobbyService {
       throw Exception('Error al unirse a la partida: ${response.statusCode}');
     }
   }
+
+  // Abandona la partida activa del usuario (limpia sesiones colgadas).
+  Future<void> salirPartida(String token) async {
+    final response = await http.delete(
+      Uri.parse('${ApiConstants.baseUrl}${ApiConstants.salirPartidaEndpoint}'),
+      headers: _authHeaders(token),
+    );
+    if (response.statusCode != 200) {
+      throw Exception('Error al salir de la partida: ${response.statusCode}');
+    }
+  }
 }

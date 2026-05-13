@@ -10,7 +10,7 @@ final gameProvider = StateNotifierProvider<GameController, GameState>((ref) {
 
 // El controlador del juego
 class GameController extends StateNotifier<GameState> {
-  // Tamaño del tablero para esta prueba (72 casillas — la meta es la 71)
+  // Tamaño del tablero para esta prueba (72 casillas, la meta es la 71)
   final int totalTiles = 72;
 
   // Para manejar animaciones secuenciales de movimiento
@@ -19,7 +19,7 @@ class GameController extends StateNotifier<GameState> {
   Completer<void>? _rouletteCompleter;
   bool get isAnimationQueueEmpty => _animationQueue.isEmpty && !_isAnimating;
 
-  // 3. Estado Inicial de la Partida — 4 jugadores según el diseño del tablero
+  // Estado Inicial de la Partida
   GameController()
       : super(GameState(
           currentPhase: GamePhase.boardTurn,
@@ -307,7 +307,7 @@ class GameController extends StateNotifier<GameState> {
       minigameDetails: (details == null || details.isEmpty)
           ? state.minigameDetails
           : details,
-      // minigameResults: null (por defecto) — reset intencional
+      // minigameResults: null (por defecto), reset intencional
       // minigameChoices: null (por defecto)
       isWaitingForMinigameChoice: false,
       winnerName: state.winnerName,
@@ -343,8 +343,8 @@ class GameController extends StateNotifier<GameState> {
     state = state.copyWith(clearTheftMessage: true);
   }
 
-  /// Actualiza los detalles del minijuego actual fusionando los nuevos datos.
-  /// Útil para minijuegos con múltiples fases como el Póker.
+  // Actualiza los detalles del minijuego actual fusionando los nuevos datos.
+  // Útil para minijuegos con múltiples fases como el Póker.
   void updateMinigameDetails(Map<String, dynamic> newDetails) {
     final type = newDetails['type'];
     final isNewGame =
@@ -376,7 +376,7 @@ class GameController extends StateNotifier<GameState> {
     );
   }
 
-  /// Actualiza el jugador activo basándose en la orden explícita del servidor
+  // Actualiza el jugador activo basándose en la orden explícita del servidor
   void setActivePlayerName(String? name, {int? round}) {
     state = state.copyWith(
       activePlayerName: name,
@@ -433,7 +433,6 @@ class GameController extends StateNotifier<GameState> {
   }
 
   void hideObtainedItem() {
-    // Ya NO avanzamos el turno aquí manualmente
     state = state.copyWith(clearObtainedItem: true);
 
     if (_rouletteCompleter != null && !_rouletteCompleter!.isCompleted) {
@@ -480,7 +479,6 @@ class GameController extends StateNotifier<GameState> {
       obtainedItemName: state.obtainedItemName,
       obtainedItemDesc: state.obtainedItemDesc,
       winnerName: state.winnerName,
-      // videnteDiceResults: null by default
     );
   }
 
@@ -496,5 +494,4 @@ class GameController extends StateNotifier<GameState> {
     state = state.copyWith(players: updatedPlayers);
   }
 
-  // Sincronización Ruleta: marca si la ruleta está en fase de giro (bloquea movimiento)
 }

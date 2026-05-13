@@ -1,6 +1,5 @@
-// ENUMS: Reglas de negocio del documento
 
-/// RF08 - Clases de personajes con habilidades únicas
+// RF08 - Clases de personajes con habilidades únicas
 enum CharacterClass {
   banquero, // Roba monedas
   videojugador, // Elige minijuegos
@@ -8,7 +7,7 @@ enum CharacterClass {
   vidente // Ve el resultado de los dados antes
 }
 
-/// RF06.1 - Tipos de dados ganados en los minijuegos
+// RF06.1 - Tipos de dados ganados en los minijuegos
 enum DiceType {
   normal, // 1-6
   oro, // 1-6 extra
@@ -17,7 +16,7 @@ enum DiceType {
   unico // 1 dado normal (castigo 4ª posición)
 }
 
-/// RF10 - Objetos estratégicos de la tienda
+// RF10 - Objetos estratégicos de la tienda
 enum ItemType {
   avanzarRetroceder,
   modificadorDado, // Mejorar/Empeorar dados
@@ -28,7 +27,7 @@ enum ItemType {
   salvavidas // Eliminar penalización
 }
 
-/// Fases del turno global en el servidor
+// Fases del turno global en el servidor
 enum GamePhase {
   waitingForPlayers, // En el Lobby
   minigameOrder, // Jugando minijuego simultáneo para decidir orden (Tren, Reflejos...)
@@ -54,7 +53,7 @@ class Player {
   // RF09 - Economía
   final int coins; // Monedas
 
-  // RF06 & RF10 - Inventarios
+  // RF06 Y RF10 - Inventarios
   final List<DiceType> diceInventory; // Dados en el inventario
   final List<ItemType> itemInventory; // Objetos en el inventario
 
@@ -199,8 +198,6 @@ class GameState {
 
   // Mensaje de robo del banquero en este turno
   final String? turnTheftMessage;
-
-  // Evento bloqueante individual (Doble o Nada, ruleta) — bloquea al siguiente jugador
 
 
   //Constructor de la clase

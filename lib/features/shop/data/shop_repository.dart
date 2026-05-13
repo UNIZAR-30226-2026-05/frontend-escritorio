@@ -9,7 +9,7 @@ class ShopRepository {
       price: 1,
       description: 'Suma casillas extra a tu próxima tirada.',
       icon: 'assets/images/items/item_avanzar.png',
-      effectType: ItemType.avanzarRetroceder, // TU ENUM
+      effectType: ItemType.avanzarRetroceder, 
     ),
     ShopItem(
       id: 'item_silver_dice',
@@ -17,7 +17,7 @@ class ShopRepository {
       price: 3,
       description: 'Mejora tu segundo dado a un dado de plata (1-4).',
       icon: 'assets/images/items/item_dados.png',
-      effectType: ItemType.modificadorDado, // TU ENUM
+      effectType: ItemType.modificadorDado,
     ),
     ShopItem(
       id: 'item_block_barrier',
@@ -25,7 +25,7 @@ class ShopRepository {
       price: 10,
       description: 'Bloquea el turno de un jugador a tu elección.',
       icon: 'assets/images/items/item_barrera.png',
-      effectType: ItemType.barrera, // TU ENUM
+      effectType: ItemType.barrera,
     ),
     ShopItem(
       id: 'item_lifesaver',
@@ -33,7 +33,7 @@ class ShopRepository {
       price: 10,
       description: 'Te libra de una penalización de bloqueo del tablero.',
       icon: 'assets/images/items/item_salvavidas.png',
-      effectType: ItemType.salvavidas, // TU ENUM
+      effectType: ItemType.salvavidas, 
     ),
   ];
 
@@ -46,7 +46,7 @@ class ShopRepository {
     }
   }
 
-  // Helper para traducir el backend (String) a tu Enum (ItemType)
+  // Helper para traducir el backend
   static ItemType parseItemType(String backendName) {
     switch (backendName) {
       case 'Avanzar Casillas':

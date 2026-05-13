@@ -144,8 +144,7 @@ class AuthService {
 
   // Decodifica el payload del JWT y comprueba si el claim `exp` (unix seconds)
   // está por debajo del instante actual. Si el token no es un JWT válido o no
-  // contiene `exp`, lo consideramos expirado por seguridad — no queremos
-  // arrastrar tokens indescifrables en la sesión.
+  // contiene `exp`, lo consideramos expirado por seguridad
   bool _isJwtExpired(String token) {
     try {
       final parts = token.split('.');

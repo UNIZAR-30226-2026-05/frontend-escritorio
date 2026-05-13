@@ -6,7 +6,7 @@ class ShopItem {
   final int price;
   final String description;
   final String icon;
-  final ItemType effectType; // Usamos tu enum directamente
+  final ItemType effectType; 
 
   const ShopItem({
     required this.id,

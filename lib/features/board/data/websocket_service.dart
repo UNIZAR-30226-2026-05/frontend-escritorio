@@ -339,11 +339,11 @@ class WebSocketService {
         case 'balances_changed':
           final balances = decoded['balances'] as Map<String, dynamic>;
 
-          // 1. Mostrar resultado de Doble o Nada a todos y desbloquear a los espectadores
+          // Mostrar resultado de Doble o Nada a todos y desbloquear a los espectadores
           final gameState = _ref.read(gameProvider);
           final activeUser = gameState.activePlayerName;
 
-          // LA CLAVE ESTÁ AQUÍ: Comprobamos estrictamente que estamos en el Doble o Nada
+          // Comprobamos estrictamente que estamos en el Doble o Nada
           // y que las monedas que han cambiado incluyen al jugador que está apostando.
           if (activeUser != null &&
               gameState.minigameName == 'Doble o Nada' &&
@@ -366,7 +366,7 @@ class WebSocketService {
                 .setMinigameResults(map, [activeUser]);
           }
 
-          // 2. Para cada jugador en el Map, actualizamos su balance
+          // Para cada jugador en el Map, actualizamos su balance
           balances.forEach((userId, coins) {
             _ref
                 .read(gameProvider.notifier)
@@ -685,9 +685,9 @@ class WebSocketService {
     }
   }
 
-  /// Función robusta para evaluar si un turno ha finalizado por completo.
-  /// Espera a que todas las animaciones, la ruleta y cualquier minijuego de
-  /// casilla hayan terminado antes de enviar fin_turno al backend.
+  // Función robusta para evaluar si un turno ha finalizado por completo.
+  // Espera a que todas las animaciones, la ruleta y cualquier minijuego de
+  // casilla hayan terminado antes de enviar fin_turno al backend.
   void checkAndFinalizeTurn() {
     Future.doWhile(() async {
       final gameState = _ref.read(gameProvider);
@@ -701,10 +701,10 @@ class WebSocketService {
       if (gameState.activePlayerName != myUsername) return false;
 
       // Seguimos esperando mientras:
-      //   - La cola de animaciones no esté vacía.
-      //   - La ruleta de objeto esté abierta.
-      //   - Haya un minijuego de casilla inminente (_pendingTileMinigame).
-      //   - Un minijuego de casilla esté en curso (fase minigameTile).
+      // La cola de animaciones no esté vacía.
+      // La ruleta de objeto esté abierta.
+      // Haya un minijuego de casilla inminente (_pendingTileMinigame).
+      // Un minijuego de casilla esté en curso (fase minigameTile).
       if (!isQueueEmpty ||
           gameState.obtainedItemName != null ||
           _pendingTileMinigame ||

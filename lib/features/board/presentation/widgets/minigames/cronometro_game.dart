@@ -37,10 +37,10 @@ class _CronometroGameState extends State<CronometroGame>
   void initState() {
     super.initState();
 
-    // 1. Obtener el objetivo del backend (ej. 7, 8, 9 o 10)
+    // Obtener el objetivo del backend (ej. 7, 8, 9 o 10)
     _objetivoSec = widget.details["objetivo"] ?? 8;
 
-    // 2. Configurar la animación de la cortina (0.5 segundos de duración)
+    // Configurar la animación de la cortina (0.5 segundos de duración)
     _cortinaController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 500),
@@ -55,7 +55,7 @@ class _CronometroGameState extends State<CronometroGame>
       curve: Curves.easeOut,
     ));
 
-    // 3. Iniciar el reloj de alta precisión de Flutter
+    // Iniciar el reloj de alta precisión de Flutter
     _ticker = createTicker((elapsed) {
       if (_stopwatch.isRunning) {
         setState(() {
@@ -95,9 +95,6 @@ class _CronometroGameState extends State<CronometroGame>
       // Calculamos cuánto se ha equivocado (en milisegundos)
       int errorMs = (elapsedMs - objetivoMs).abs();
 
-      // TRUCO PARA EL BACKEND:
-      // Enviamos (Objetivo + Error). Como el backend hace abs(Score - Objetivo),
-      // el resultado final en el servidor será exactamente el Error. ¡El que tenga menor error gana!
       int scoreParaBackend = _objetivoSec + errorMs;
 
       setState(() {
@@ -144,7 +141,7 @@ class _CronometroGameState extends State<CronometroGame>
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor:
-          Colors.black, // Fondo negro por si las imágenes no cubren todo
+          Colors.black, 
       body: Stack(
         children: [
           // Fondo, reloj y cortina escalados juntos
@@ -157,7 +154,7 @@ class _CronometroGameState extends State<CronometroGame>
                 height: 901,
                 child: Stack(
                   children: [
-                    // 1. FONDO (El Búnker nevado)
+                    // FONDO (El Búnker nevado)
                     Positioned.fill(
                       child: Container(
                         decoration: BoxDecoration(
@@ -178,16 +175,16 @@ class _CronometroGameState extends State<CronometroGame>
                       ),
                     ),
 
-                    // 2. TEXTO DEL CRONÓMETRO (Se dibuja detrás de la cortina)
+                    // TEXTO DEL CRONÓMETRO (Se dibuja detrás de la cortina)
                     Center(
                       child: Container(
                         margin: const EdgeInsets.only(top: 40),
                         child: Text(
                           _tiempoFormateado,
                           style: const TextStyle(
-                            fontFamily: 'Courier', // Fuente tipo reloj digital
+                            fontFamily: 'Courier', 
                             fontSize:
-                                100, // Aumentado proporcionalmente al nuevo fondo
+                                100, 
                             fontWeight: FontWeight.bold,
                             color: Colors.greenAccent,
                             letterSpacing: 2.0,
@@ -202,7 +199,7 @@ class _CronometroGameState extends State<CronometroGame>
                       ),
                     ),
 
-                    // 3. LA CORTINA (Persiana metálica animada)
+                    // LA CORTINA (Persiana metálica animada)
                     Positioned(
                       left: 466,
                       top: 368,
@@ -235,7 +232,7 @@ class _CronometroGameState extends State<CronometroGame>
             ),
           ),
 
-          // 4. INTERFAZ SUPERIOR E INFERIOR (Textos y Botones)
+          // INTERFAZ SUPERIOR E INFERIOR (Textos y Botones)
           SafeArea(
             child: Column(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,

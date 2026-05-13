@@ -71,13 +71,13 @@ class _DilemaPrisioneroGameState extends ConsumerState<DilemaPrisioneroGame> {
       body: Stack(
         fit: StackFit.expand,
         children: [
-          // 1. FONDO
+          // FONDO
           Image.asset(
             'assets/images/minigames/dilema/fondo_dilema.png',
             fit: BoxFit.cover,
           ),
 
-          // 2. TÍTULO Y SUBTÍTULO
+          // TÍTULO Y SUBTÍTULO
           const Positioned(
             top: 60,
             left: 0,
@@ -89,7 +89,7 @@ class _DilemaPrisioneroGameState extends ConsumerState<DilemaPrisioneroGame> {
                   style: TextStyle(
                     fontFamily: 'Retro Gaming',
                     fontSize: 42,
-                    color: Color(0xFFFFD700), // Amarillo/Oro
+                    color: Color(0xFFFFD700), 
                     shadows: [
                       Shadow(
                           color: Colors.black,
@@ -112,9 +112,9 @@ class _DilemaPrisioneroGameState extends ConsumerState<DilemaPrisioneroGame> {
             ),
           ),
 
-          // 3. PERSONAJE LOCAL (IZQUIERDA)
+          // PERSONAJE LOCAL (IZQUIERDA)
           Positioned(
-            left: 285, // Más alejado del centro para centrarlo en el foco
+            left: 285, 
             bottom: 105,
             child: SizedBox(
               width: 210 * 1.1,
@@ -123,15 +123,15 @@ class _DilemaPrisioneroGameState extends ConsumerState<DilemaPrisioneroGame> {
                 getBigCharacterPath(myPlayer.characterClass, true),
                 fit: BoxFit.contain,
                 color: const Color.fromARGB(255, 252, 214, 102)
-                    .withValues(alpha: 0.9), // Menos amarillo (más natural)
+                    .withValues(alpha: 0.9), 
                 colorBlendMode: BlendMode.modulate,
               ),
             ),
           ),
 
-          // 4. PERSONAJE OPONENTE (DERECHA)
+          // PERSONAJE OPONENTE (DERECHA)
           Positioned(
-            right: 285, // Simétrico
+            right: 285, 
             bottom: 105,
             child: SizedBox(
               width: 210 * 1.1,
@@ -140,13 +140,13 @@ class _DilemaPrisioneroGameState extends ConsumerState<DilemaPrisioneroGame> {
                 getBigCharacterPath(opponent.characterClass, false),
                 fit: BoxFit.contain,
                 color: const Color.fromARGB(255, 252, 214, 102)
-                    .withValues(alpha: 0.9), // Menos amarillo
+                    .withValues(alpha: 0.9), 
                 colorBlendMode: BlendMode.modulate,
               ),
             ),
           ),
 
-          // 4.5. CARTEL DE RECOMPENSAS (CENTRO)
+          // CARTEL DE RECOMPENSAS (CENTRO)
           if (!_hasVoted)
             Positioned(
               top: 190,
@@ -158,7 +158,7 @@ class _DilemaPrisioneroGameState extends ConsumerState<DilemaPrisioneroGame> {
                   padding:
                       const EdgeInsets.symmetric(horizontal: 24, vertical: 18),
                   decoration: const BoxDecoration(
-                    color: Colors.black, // Completamente opaco
+                    color: Colors.black, 
                     borderRadius: BorderRadius.all(Radius.circular(4)),
                   ),
                   child: Column(
@@ -168,7 +168,7 @@ class _DilemaPrisioneroGameState extends ConsumerState<DilemaPrisioneroGame> {
                         'TABLA DE PENALIZACIONES',
                         style: TextStyle(
                           fontFamily: 'Retro Gaming',
-                          color: Colors.white54, // Color más apagado
+                          color: Colors.white54, 
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
                           letterSpacing: 3,
@@ -193,7 +193,7 @@ class _DilemaPrisioneroGameState extends ConsumerState<DilemaPrisioneroGame> {
               ),
             ),
 
-          // 5. ACCIONES O ESTADO
+          // ACCIONES O ESTADO
           if (!_hasVoted)
             Positioned(
               bottom: 50,
@@ -211,7 +211,7 @@ class _DilemaPrisioneroGameState extends ConsumerState<DilemaPrisioneroGame> {
                     fontSize: 20 * 1.2,
                     onTap: () => _sendVote('traicionar'),
                   ),
-                  const SizedBox(width: 300), // Botones más alejados
+                  const SizedBox(width: 300), 
                   // BOTÓN COOPERAR
                   RetroImgButton(
                     label: 'COOPERAR',

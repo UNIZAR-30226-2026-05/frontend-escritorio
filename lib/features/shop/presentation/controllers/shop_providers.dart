@@ -86,7 +86,7 @@ class _ShopModalState extends ConsumerState<ShopModal> {
       orElse: () => gameState.players.first,
     );
 
-    // Ranking: determine if local player is the FIRST to roll in this round (Turn 1)
+
     // El backend bloquea al que tira primero porque ya tiene el dado de oro.
     final bool isFirstInTurn = gameState.turnOrder.isNotEmpty &&
         (gameState.turnOrder[0] == myUsername ||
@@ -99,7 +99,7 @@ class _ShopModalState extends ConsumerState<ShopModal> {
       decoration: BoxDecoration(
         color: const Color(0xFF2D1B4E),
         border:
-            Border.all(color: Colors.white, width: 2), // Sin borde redondeado
+            Border.all(color: Colors.white, width: 2), 
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.7),
@@ -111,7 +111,6 @@ class _ShopModalState extends ConsumerState<ShopModal> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // HEADER DE LA TIENDA (Todo en una misma fila sobre fondo morado uniforme)
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             crossAxisAlignment: CrossAxisAlignment.center,
@@ -133,7 +132,7 @@ class _ShopModalState extends ConsumerState<ShopModal> {
                   Text(
                     '${widget.playerCoins}¢',
                     style: const TextStyle(
-                      color: Color(0xFFFFD700), // Amarillo oro para la moneda
+                      color: Color(0xFFFFD700),
                       fontWeight: FontWeight.bold,
                       fontSize: 18,
                       fontFamily: 'Retro Gaming',
@@ -163,7 +162,6 @@ class _ShopModalState extends ConsumerState<ShopModal> {
             ],
           ),
           const SizedBox(height: 16),
-          // Línea divisoria blanca fina
           Container(height: 2, color: Colors.white),
           const SizedBox(height: 24),
 
@@ -206,18 +204,17 @@ class _ShopModalState extends ConsumerState<ShopModal> {
 
               return Container(
                 width: 200,
-                height: 260, // Altura ajustada
+                height: 260, 
                 margin: const EdgeInsets.symmetric(horizontal: 4),
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF2D1B4E), // Mismo fondo morado
+                  color: const Color(0xFF2D1B4E), 
                   border: Border.all(
-                      color: Colors.white, width: 2), // Borde blanco afilado
+                      color: Colors.white, width: 2),
                 ),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    // Icono (Manteniendo tus emojis originales tal y cómo pediste) y contador
                     Stack(
                       clipBehavior: Clip.none,
                       children: [
@@ -340,7 +337,7 @@ class _ShopModalState extends ConsumerState<ShopModal> {
                         RetroImgButton(
                           label: 'COMPRAR',
                           asset: 'assets/images/ui/btn_verde.png',
-                          width: 140, // tamaño compacto para cuadrar
+                          width: 140, 
                           height: 38,
                           fontSize: 10,
                           onTap: (canAfford && !isDisabled)

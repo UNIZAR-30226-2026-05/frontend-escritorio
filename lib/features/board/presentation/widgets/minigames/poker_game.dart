@@ -4,6 +4,7 @@ import '../../../../../core/widgets/retro_widgets.dart';
 import '../../../data/websocket_service.dart';
 import '../../controllers/game_provider.dart';
 import '../../../../auth/presentation/controllers/auth_provider.dart';
+import 'poker_win_modal.dart';
 
 enum GamePhase { preFlop, flop, turn, river }
 
@@ -95,6 +96,7 @@ class _PokerGameState extends ConsumerState<PokerGame> {
   int _currentMaxBet = 0; // updated from poker_apuesta_actualizada
 
   bool _gameFinished = false;
+  bool _myFolded = false;
   String _resultMessage = '';
   List<PokerCard> _myCards = [];
   List<PokerCard> _communityCards = [];
@@ -174,10 +176,18 @@ class _PokerGameState extends ConsumerState<PokerGame> {
       if (type == 'poker_inicio_ronda') {
         _gameFinished = false;
         _isMyTurn = false; // esperamos turno_poker
+        _myFolded = false;
         _resultMessage = '';
         _communityCards = [];
         _myCurrentBet = 0;
         _currentMaxBet = 0;
+        
+        if (details.containsKey('jugadores_activos')) {
+          final activos =
+              List<String>.from(details['jugadores_activos'] as List);
+          final myUsername = ref.read(authProvider).username ?? '';
+          _myFolded = !activos.contains(myUsername);
+        }
       }
 
       // ── poker_nueva_fase: nueva fase de apuestas ──
@@ -192,6 +202,8 @@ class _PokerGameState extends ConsumerState<PokerGame> {
         if (details.containsKey('jugadores_activos')) {
           final activos =
               List<String>.from(details['jugadores_activos'] as List);
+          final myUsername = ref.read(authProvider).username ?? '';
+          _myFolded = !activos.contains(myUsername);
           for (final r in _rivals) {
             r.folded = !activos.contains(r.id) && !activos.contains(r.name);
           }
@@ -237,6 +249,42 @@ class _PokerGameState extends ConsumerState<PokerGame> {
           _communityCards = (details['mesa_completa'] as List)
               .map((c) => PokerCard.fromBackend(c))
               .toList();
+        }
+
+        // Invocar Modal de Victoria y cerrar el minijuego tras 2 segundos
+        if (details.containsKey('id_ganadores')) {
+          final ganadores = List<String>.from(details['id_ganadores'] as List);
+          if (ganadores.isNotEmpty) {
+            final winnerUsername = ganadores.first;
+            final winnerPlayer = ref
+                .read(gameProvider)
+                .players
+                .where((p) => p.id == winnerUsername || p.username == winnerUsername)
+                .firstOrNull;
+            
+            if (winnerPlayer != null && mounted) {
+              final prize = (details['bote_ganado'] as num?)?.toInt() ?? 0;
+              
+              // No usamos context directo de _parseBackendDetails porque puede estar fuera del árbol si se llama en init,
+              // pero como es provocado por el listen del build, el Future.microtask es seguro.
+              Future.microtask(() {
+                if (!mounted) return;
+                showDialog(
+                  context: context,
+                  barrierDismissible: false,
+                  builder: (ctx) => PokerWinModal(winner: winnerPlayer, prize: prize),
+                );
+                
+                // Automáticamente salir después de 2 segundos
+                Future.delayed(const Duration(seconds: 2), () {
+                  if (mounted) {
+                    Navigator.of(context).pop(); // Cerrar modal
+                    widget.onFinish(0); // Salir del minijuego
+                  }
+                });
+              });
+            }
+          }
         }
       }
 
@@ -494,7 +542,19 @@ class _PokerGameState extends ConsumerState<PokerGame> {
                                       fontSize: 8,
                                       color: Colors.black,
                                       fontWeight: FontWeight.bold))),
-                        if (!_isMyTurn && !_gameFinished)
+                        if (_myFolded && !_gameFinished)
+                          Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 8, vertical: 4),
+                              decoration: BoxDecoration(
+                                  color: Colors.red.withValues(alpha: 0.3),
+                                  borderRadius: BorderRadius.circular(4)),
+                              child: const Text('TE HAS RETIRADO',
+                                  style: TextStyle(
+                                      fontFamily: 'Retro Gaming',
+                                      fontSize: 8,
+                                      color: Colors.redAccent)))
+                        else if (!_isMyTurn && !_gameFinished)
                           Container(
                               padding: const EdgeInsets.symmetric(
                                   horizontal: 8, vertical: 4),
@@ -700,18 +760,6 @@ class _PokerGameState extends ConsumerState<PokerGame> {
               ]),
             )),
 
-        // Botón para volver al tablero cuando la mano ha terminado
-        if (_gameFinished)
-          Positioned(
-              top: 24,
-              right: 24,
-              child: RetroImgButton(
-                  label: 'VOLVER',
-                  asset: 'assets/images/ui/btn_verde.png',
-                  width: 140,
-                  height: 48,
-                  fontSize: 11,
-                  onTap: () => widget.onFinish(0))),
       ]),
     );
   }

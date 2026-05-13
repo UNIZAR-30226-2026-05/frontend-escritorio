@@ -59,152 +59,158 @@ class _WinScreenModalState extends ConsumerState<WinScreenModal>
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-              // ---------------- TÍTULO ----------------
-              Text(
-                '¡FIN DE LA PARTIDA!',
-                style: TextStyle(
-                  color: Colors.amber,
-                  fontSize: 60,
-                  fontFamily: 'Retro Gaming',
-                  fontWeight: FontWeight.bold,
-                  shadows: [
-                    Shadow(
-                      color: Colors.black.withValues(alpha: 0.8),
-                      offset: const Offset(4, 4),
-                      blurRadius: 2,
+                    // ---------------- TÍTULO ----------------
+                    Text(
+                      '¡FIN DE LA PARTIDA!',
+                      style: TextStyle(
+                        color: Colors.amber,
+                        fontSize: 60,
+                        fontFamily: 'Retro Gaming',
+                        fontWeight: FontWeight.bold,
+                        shadows: [
+                          Shadow(
+                            color: Colors.black.withValues(alpha: 0.8),
+                            offset: const Offset(4, 4),
+                            blurRadius: 2,
+                          ),
+                        ],
+                      ),
+                      textAlign: TextAlign.center,
                     ),
-                  ],
-                ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 10),
+                    const SizedBox(height: 10),
 
-              // ---------------- CORONA FLOTANTE ----------------
-              AnimatedBuilder(
-                animation: _controller,
-                builder: (context, child) {
-                  return Transform.translate(
-                    offset: Offset(0, sin(_controller.value * 2 * pi) * 8),
-                    child: child,
-                  );
-                },
-                child: const Text('👑', style: TextStyle(fontSize: 48)),
-              ),
+                    // ---------------- CORONA FLOTANTE ----------------
+                    AnimatedBuilder(
+                      animation: _controller,
+                      builder: (context, child) {
+                        return Transform.translate(
+                          offset:
+                              Offset(0, sin(_controller.value * 2 * pi) * 8),
+                          child: child,
+                        );
+                      },
+                      child: const Text('👑', style: TextStyle(fontSize: 48)),
+                    ),
 
-              // ---------------- SECCIÓN GANADOR ----------------
-              Column(
-                children: [
-                  Stack(
-                    alignment: Alignment.bottomCenter,
-                    clipBehavior: Clip.none,
-                    children: [
-                      // Tarjeta del ganador
-                      Container(
-                        width: 220,
-                        height: 220,
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF1E1640),
-                          border: Border.all(color: Colors.amber, width: 6),
-                          borderRadius: BorderRadius.circular(20),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.amber.withValues(alpha: 0.6),
-                              blurRadius: 25,
-                              spreadRadius: 8,
+                    // ---------------- SECCIÓN GANADOR ----------------
+                    Column(
+                      children: [
+                        Stack(
+                          alignment: Alignment.bottomCenter,
+                          clipBehavior: Clip.none,
+                          children: [
+                            // Tarjeta del ganador
+                            Container(
+                              width: 220,
+                              height: 220,
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF1E1640),
+                                border:
+                                    Border.all(color: Colors.amber, width: 6),
+                                borderRadius: BorderRadius.circular(20),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.amber.withValues(alpha: 0.6),
+                                    blurRadius: 25,
+                                    spreadRadius: 8,
+                                  ),
+                                ],
+                              ),
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(14),
+                                child: Padding(
+                                  padding: const EdgeInsets.all(12.0),
+                                  child: Image.asset(
+                                    getCharacterPerfilPath(
+                                        winner.characterClass),
+                                    fit: BoxFit.contain,
+                                  ),
+                                ),
+                              ),
+                            ),
+                            // Badge "1º LUGAR"
+                            Positioned(
+                              bottom: -15,
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 20, vertical: 6),
+                                decoration: BoxDecoration(
+                                  color: Colors.amber,
+                                  borderRadius: BorderRadius.circular(20),
+                                  border:
+                                      Border.all(color: Colors.white, width: 2),
+                                  boxShadow: const [
+                                    BoxShadow(
+                                        color: Colors.black45, blurRadius: 4)
+                                  ],
+                                ),
+                                child: const Text(
+                                  '1º LUGAR',
+                                  style: TextStyle(
+                                    color: Colors.black,
+                                    fontFamily: 'Retro Gaming',
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
                             ),
                           ],
                         ),
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(14),
-                          child: Padding(
-                            padding: const EdgeInsets.all(12.0),
-                            child: Image.asset(
-                              getCharacterPerfilPath(winner.characterClass),
-                              fit: BoxFit.contain,
-                            ),
+                        const SizedBox(height: 30),
+                        // Nombre del Ganador
+                        Text(
+                          winner.username.toUpperCase(),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 42,
+                            fontFamily: 'Retro Gaming',
+                            letterSpacing: 2.0,
                           ),
                         ),
-                      ),
-                      // Badge "1º LUGAR"
-                      Positioned(
-                        bottom: -15,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 20, vertical: 6),
-                          decoration: BoxDecoration(
-                            color: Colors.amber,
-                            borderRadius: BorderRadius.circular(20),
-                            border: Border.all(color: Colors.white, width: 2),
-                            boxShadow: const [
-                              BoxShadow(color: Colors.black45, blurRadius: 4)
-                            ],
-                          ),
-                          child: const Text(
-                            '1º LUGAR',
-                            style: TextStyle(
-                              color: Colors.black,
-                              fontFamily: 'Retro Gaming',
-                              fontSize: 14,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 30),
-                  // Nombre del Ganador
-                  Text(
-                    winner.username.toUpperCase(),
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 42,
-                      fontFamily: 'Retro Gaming',
-                      letterSpacing: 2.0,
+                      ],
                     ),
-                  ),
-                ],
-              ),
 
-              const SizedBox(height: 50),
+                    const SizedBox(height: 50),
 
-              // ---------------- RANKING SECUNDARIO ----------------
-              if (others.isNotEmpty)
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: others.asMap().entries.map((entry) {
-                      final idx = entry.key + 2; // 2nd, 3rd, 4th
-                      final player = entry.value;
-                      return Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 10),
-                        child: _buildRankingBox(idx, player),
-                      );
-                    }).toList(),
-                  ),
-                ),
+                    // ---------------- RANKING SECUNDARIO ----------------
+                    if (others.isNotEmpty)
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 20),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: others.asMap().entries.map((entry) {
+                            final idx = entry.key + 2; // 2nd, 3rd, 4th
+                            final player = entry.value;
+                            return Padding(
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 10),
+                              child: _buildRankingBox(idx, player),
+                            );
+                          }).toList(),
+                        ),
+                      ),
 
-              const SizedBox(height: 60),
+                    const SizedBox(height: 60),
 
-              // ---------------- BOTÓN SALIR ----------------
-              RetroImgButton(
-                label: 'VOLVER AL MENÚ',
-                asset: 'assets/images/ui/btn_morado.png',
-                width: 240,
-                height: 60,
-                fontSize: 16,
-                onTap: () {
-                  if (widget.onClose != null) {
-                    widget.onClose!();
-                  } else {
-                    ref.read(webSocketProvider).disconnect();
-                    ref.read(lobbyProvider.notifier).clearGameSession();
-                    context.go('/lobby');
-                  }
-                },
-              ),
-              const SizedBox(height: 40),
+                    // ---------------- BOTÓN SALIR ----------------
+                    RetroImgButton(
+                      label: 'VOLVER AL MENÚ',
+                      asset: 'assets/images/ui/btn_morado.png',
+                      width: 240,
+                      height: 60,
+                      fontSize: 16,
+                      onTap: () {
+                        if (widget.onClose != null) {
+                          widget.onClose!();
+                        } else {
+                          ref.read(webSocketProvider).disconnect();
+                          ref.read(lobbyProvider.notifier).clearGameSession();
+                          context.go('/lobby');
+                        }
+                      },
+                    ),
+                    const SizedBox(height: 40),
                   ],
                 ),
               ),

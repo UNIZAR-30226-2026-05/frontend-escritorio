@@ -105,7 +105,7 @@ class _MayorMenorGameState extends ConsumerState<MayorMenorGame> {
     if (listaCartas is List && listaCartas.length == 4) {
       _cartasRaw = List<int>.from(listaCartas);
     } else {
-      _cartasRaw = [0, 13, 26, 39];
+      _cartasRaw = [2, 13, 30, 41];
     }
   }
 

@@ -1,9 +1,9 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../../core/widgets/retro_widgets.dart';
-import '../../domain/gamemodels.dart';
-import '../board_screen.dart';
+import '../../../../../core/widgets/retro_widgets.dart';
+import '../../../domain/gamemodels.dart';
+import '../../board_screen.dart';
 
 class PokerWinModal extends ConsumerStatefulWidget {
   final Player winner;
@@ -89,62 +89,66 @@ class _PokerWinModalState extends ConsumerState<PokerWinModal>
                     Column(
                       children: [
                         Stack(
-                           alignment: Alignment.bottomCenter,
-                           clipBehavior: Clip.none,
-                           children: [
-                             // Tarjeta del ganador
-                             Container(
-                               width: 220,
-                               height: 220,
-                               decoration: BoxDecoration(
-                                 color: const Color(0xFF1E1640),
-                                 border: Border.all(color: Colors.amber, width: 6),
-                                 borderRadius: BorderRadius.circular(20),
-                                 boxShadow: [
-                                   BoxShadow(
-                                     color: Colors.amber.withValues(alpha: 0.6),
-                                     blurRadius: 25,
-                                     spreadRadius: 8,
-                                   ),
-                                 ],
-                               ),
-                               child: ClipRRect(
-                                 borderRadius: BorderRadius.circular(14),
-                                 child: Padding(
-                                   padding: const EdgeInsets.all(12.0),
-                                   child: Image.asset(
-                                     getCharacterPerfilPath(widget.winner.characterClass),
-                                     fit: BoxFit.contain,
-                                   ),
-                                 ),
-                               ),
-                             ),
-                             // Badge Premio
-                             Positioned(
-                               bottom: -15,
-                               child: Container(
-                                 padding: const EdgeInsets.symmetric(
-                                     horizontal: 20, vertical: 6),
-                                 decoration: BoxDecoration(
-                                   color: Colors.amber,
-                                   borderRadius: BorderRadius.circular(20),
-                                   border: Border.all(color: Colors.white, width: 2),
-                                   boxShadow: const [
-                                     BoxShadow(color: Colors.black45, blurRadius: 4)
-                                   ],
-                                 ),
-                                 child: Text(
-                                   '+${widget.prize}¢',
-                                   style: const TextStyle(
-                                     color: Colors.black,
-                                     fontFamily: 'Retro Gaming',
-                                     fontSize: 18,
-                                     fontWeight: FontWeight.bold,
-                                   ),
-                                 ),
-                               ),
-                             ),
-                           ],
+                          alignment: Alignment.bottomCenter,
+                          clipBehavior: Clip.none,
+                          children: [
+                            // Tarjeta del ganador
+                            Container(
+                              width: 220,
+                              height: 220,
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF1E1640),
+                                border:
+                                    Border.all(color: Colors.amber, width: 6),
+                                borderRadius: BorderRadius.circular(20),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.amber.withValues(alpha: 0.6),
+                                    blurRadius: 25,
+                                    spreadRadius: 8,
+                                  ),
+                                ],
+                              ),
+                              child: ClipRRect(
+                                borderRadius: BorderRadius.circular(14),
+                                child: Padding(
+                                  padding: const EdgeInsets.all(12.0),
+                                  child: Image.asset(
+                                    getCharacterPerfilPath(
+                                        widget.winner.characterClass),
+                                    fit: BoxFit.contain,
+                                  ),
+                                ),
+                              ),
+                            ),
+                            // Badge Premio
+                            Positioned(
+                              bottom: -15,
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 20, vertical: 6),
+                                decoration: BoxDecoration(
+                                  color: Colors.amber,
+                                  borderRadius: BorderRadius.circular(20),
+                                  border:
+                                      Border.all(color: Colors.white, width: 2),
+                                  boxShadow: const [
+                                    BoxShadow(
+                                        color: Colors.black45, blurRadius: 4)
+                                  ],
+                                ),
+                                child: Text(
+                                  '+${widget.prize}¢',
+                                  style: const TextStyle(
+                                    color: Colors.black,
+                                    fontFamily: 'Retro Gaming',
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                         const SizedBox(height: 30),
                         // Nombre del Ganador

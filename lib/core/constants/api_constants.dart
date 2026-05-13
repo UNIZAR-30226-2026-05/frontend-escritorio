@@ -7,6 +7,7 @@ class ApiConstants {
   // Autenticacion
   static const String loginEndpoint = '/usuarios/login';
   static const String registerEndpoint = '/usuarios/registro/';
+  static const String cambioContrasenaEndpoint = '/usuarios/cambio_contrasena/';
 
   // Partidas
   // Crear una nueva partida y obtener su game_id

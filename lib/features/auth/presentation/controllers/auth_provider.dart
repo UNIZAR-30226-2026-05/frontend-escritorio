@@ -23,6 +23,22 @@ class AuthState {
     this.isLoading = false,
     this.error,
   });
+
+  AuthState copyWith({
+    bool? isAuthenticated,
+    String? token,
+    String? username,
+    bool? isLoading,
+    String? error,
+  }) {
+    return AuthState(
+      isAuthenticated: isAuthenticated ?? this.isAuthenticated,
+      token: token ?? this.token,
+      username: username ?? this.username,
+      isLoading: isLoading ?? this.isLoading,
+      error: error ?? this.error,
+    );
+  }
 }
 
 // El controlador que gestiona el estado.
@@ -92,6 +108,25 @@ class AuthController extends StateNotifier<AuthState> {
     } catch (e) {
       // Si el registro falló guarda el error en el estado.
       state = AuthState(
+        error: e.toString().replaceFirst('Exception: ', ''),
+      );
+      return false;
+    }
+  }
+
+  // Método público para cambiar la contraseña.
+  Future<bool> cambiarContrasena(String currentPass, String newPass) async {
+    final token = state.token;
+    if (token == null) return false;
+
+    state = state.copyWith(isLoading: true, error: null);
+    try {
+      await _authService.cambiarContrasena(currentPass, newPass, token);
+      state = state.copyWith(isLoading: false);
+      return true;
+    } catch (e) {
+      state = state.copyWith(
+        isLoading: false,
         error: e.toString().replaceFirst('Exception: ', ''),
       );
       return false;

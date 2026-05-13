@@ -74,9 +74,42 @@ class AuthService {
       // Estatus 400 = Bad Request.
     } else if (response.statusCode == 400) {
       throw Exception('El nombre de usuario ya existe');
-      // Cualquier otro codigo de error.
     } else {
       throw Exception('Error del servidor: ${response.statusCode}');
+    }
+  }
+
+  // Método cambiarContrasena de la clase de autenticación.
+  Future<void> cambiarContrasena(String currentPassword, String newPassword, String token) async {
+    final url = '${ApiConstants.baseUrl}${ApiConstants.cambioContrasenaEndpoint}';
+    print('DEBUG: Llamando a cambio de contraseña en: $url');
+    
+    try {
+      final response = await http.post(
+        Uri.parse(url),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode({
+          'contrasena_actual': currentPassword,
+          'contrasena_nueva': newPassword,
+        }),
+      );
+
+      print('DEBUG: Respuesta del servidor: ${response.statusCode}');
+      print('DEBUG: Cuerpo de la respuesta: ${response.body}');
+
+      if (response.statusCode == 200) {
+        return;
+      } else if (response.statusCode == 401) {
+        throw Exception('La contraseña actual es incorrecta');
+      } else {
+        throw Exception('Error del servidor: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('DEBUG: Error en la petición: $e');
+      rethrow;
     }
   }
 

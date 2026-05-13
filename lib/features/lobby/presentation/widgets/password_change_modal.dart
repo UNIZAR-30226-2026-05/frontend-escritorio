@@ -1,14 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../auth/presentation/controllers/auth_provider.dart';
 import '../../../../core/widgets/retro_widgets.dart';
 
-class PasswordChangeModal extends StatefulWidget {
+class PasswordChangeModal extends ConsumerStatefulWidget {
   const PasswordChangeModal({super.key});
 
   @override
-  State<PasswordChangeModal> createState() => _PasswordChangeModalState();
+  ConsumerState<PasswordChangeModal> createState() => _PasswordChangeModalState();
 }
 
-class _PasswordChangeModalState extends State<PasswordChangeModal> {
+class _PasswordChangeModalState extends ConsumerState<PasswordChangeModal> {
   final TextEditingController _currentPassController = TextEditingController();
   final TextEditingController _newPassController = TextEditingController();
   final TextEditingController _confirmPassController = TextEditingController();
@@ -28,13 +30,52 @@ class _PasswordChangeModalState extends State<PasswordChangeModal> {
     super.dispose();
   }
 
+  Future<void> _handleSave() async {
+    final current = _currentPassController.text;
+    final newPass = _newPassController.text;
+    final confirm = _confirmPassController.text;
+
+    if (current.isEmpty || newPass.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Rellena todos los campos')),
+      );
+      return;
+    }
+
+    if (newPass != confirm) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Las contraseñas no coinciden')),
+      );
+      return;
+    }
+
+    if (newPass.length < 8) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('La contraseña debe tener al menos 8 caracteres')),
+      );
+      return;
+    }
+
+    final success = await ref
+        .read(authProvider.notifier)
+        .cambiarContrasena(current, newPass);
+
+    if (success && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Contraseña cambiada con éxito')),
+      );
+      Navigator.of(context).pop();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    // Basándonos en RetroField de core/widgets/retro_widgets.dart
     const fieldW = 320.0;
     const fieldH = 45.0;
     const labelSize = 14.0;
     const inputSize = 16.0;
+
+    final isLoading = ref.watch(authProvider).isLoading;
 
     return Dialog(
       backgroundColor: Colors.transparent,
@@ -111,12 +152,29 @@ class _PasswordChangeModalState extends State<PasswordChangeModal> {
               obscureText: true,
               color: Colors.white,
               textInputAction: TextInputAction.done,
-              onSubmitted: () {
-                // TODO: Integración real con backend
-                Navigator.of(context).pop();
+              onSubmitted: isLoading ? null : _handleSave,
+            ),
+            const SizedBox(height: 10),
+            // Mostrar error si existe en el authProvider
+            Consumer(
+              builder: (context, ref, child) {
+                final authError = ref.watch(authProvider).error;
+                if (authError == null) return const SizedBox.shrink();
+                return Padding(
+                  padding: const EdgeInsets.only(top: 8.0),
+                  child: Text(
+                    authError,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      color: Colors.redAccent,
+                      fontFamily: 'Retro Gaming',
+                      fontSize: 12,
+                    ),
+                  ),
+                );
               },
             ),
-            const SizedBox(height: 40),
+            const SizedBox(height: 30),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
@@ -126,18 +184,15 @@ class _PasswordChangeModalState extends State<PasswordChangeModal> {
                   width: 140,
                   height: 50,
                   fontSize: 14,
-                  onTap: () => Navigator.of(context).pop(),
+                  onTap: isLoading ? null : () => Navigator.of(context).pop(),
                 ),
                 RetroImgButton(
-                  label: 'GUARDAR',
+                  label: isLoading ? '...' : 'GUARDAR',
                   asset: 'assets/images/ui/btn_morado.png',
                   width: 140,
                   height: 50,
                   fontSize: 14,
-                  onTap: () {
-                    // TODO: Integración real con backend
-                    Navigator.of(context).pop();
-                  },
+                  onTap: isLoading ? null : _handleSave,
                 ),
               ],
             ),
